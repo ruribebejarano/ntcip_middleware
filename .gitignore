@@ -1,0 +1,29 @@
+# Entornos virtuales de Python
+rsu-env/
+venv/
+env/
+.venv/
+
+# Bytecode / caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+
+# Variables de entorno y credenciales
+.env
+.env.*
+*.pem
+*.key
+secrets/
+credentials.json
+
+# Logs
+*.log
+
+# Archivos de sistema/editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
