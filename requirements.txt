@@ -1,0 +1,20 @@
+paho-mqtt==2.1.0
+
+# pysnmp: NO usar la ultima version estable de PyPI (7.1.29, publicada
+# 2026-08-21). Esa version tiene un bug conocido en el modelo de seguridad
+# USM: la combinacion auth SHA-1 + privacidad AES-128 (la que exige esta
+# tesis) falla con "Decryption error" en todo GET/SET SNMPv3.
+# Ver: https://github.com/pysnmp/pysnmp/issues/54
+# El fix se mergeo el 2026-08-27 (PR #98) pero aun no se publico en PyPI,
+# asi que se instala directo desde el commit del fix:
+pysnmp @ git+https://github.com/pysnmp/pysnmp.git@398095c912d8d8494af6916ea53d1c9a9622d874
+
+# NOTA IMPORTANTE: ese commit distribuye el paquete bajo el nombre
+# "pysnmplib" (no "pysnmp") en PyPI/pip, aunque el modulo Python sigue
+# siendo `import pysnmp` normalmente. `pip install -r requirements.txt`
+# instalara la distribucion "pysnmplib". Ademas, ese commit tiene un bug
+# menor propio (falta `import importlib.util` en pysnmp/smi/builder.py,
+# rompe con "AttributeError: module 'importlib' has no attribute 'util'"
+# en Python 3.13+). Aplicar el parche manual documentado en docs/agent.md
+# despues de instalar. Revisar periodicamente si ya salio una version
+# oficial en PyPI que incluya el fix, para dejar de depender del commit.

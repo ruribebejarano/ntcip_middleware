@@ -56,10 +56,15 @@ gestión (V2I) y otras RSU vecinas (I2I).
       `NEMA-SMI`, `NEMA-SMI2`) son *stubs* no oficiales con al menos un OID
       placeholder (`scp` bajo `devices.5`) pendiente de confirmar contra el
       MIB real.
-- [ ] Agente SNMPv3 propio (`agent/`) con `pysnmp`, autenticación SHA +
-      privacidad AES-128 (USM), exponiendo un OID de prueba equivalente a
-      `phaseStatusCurrentGroup` (valor ficticio, no es la implementación
-      final de la MIB 1202).
+- [x] Agente SNMPv3 propio (`agent/rsu_snmpv3_agent.py`) con `pysnmp`,
+      autenticación SHA-1 + privacidad AES-128 (USM), exponiendo un OID de
+      prueba ficticio (`1.3.6.1.4.1.99999.1.1.0`, equivalente conceptual a
+      `phaseStatusCurrentGroup`, no es la implementación final de la MIB
+      1202). Probado con `snmpget`/`snmpset` reales, incluyendo acceso vía
+      la IP LAN de la Raspberry Pi (ver `docs/agent.md`).
+      ⚠️ Requiere una build de `pysnmp` con un fix aún no publicado en PyPI
+      (bug conocido de USM SHA+AES128, ver `docs/agent.md` y
+      `requirements.txt`) — revisar periódicamente si ya hay versión oficial.
 - [ ] Validación manual del lector OBD-II con app comercial (Torque / Car
       Scanner) antes de desarrollar el gateway propio.
 - [ ] Raspberry Pi como Access Point Wi-Fi (`hostapd` + `dnsmasq`) para el
