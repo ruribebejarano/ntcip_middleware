@@ -71,6 +71,46 @@ gestión (V2I) y otras RSU vecinas (I2I).
       banco de pruebas.
 - [ ] Gateway OBD-II → I2I/V2I (`gateway/`).
 
+## Cómo continuar (siguiente sesión de trabajo)
+
+Sesión de setup pausada aquí el 2026-09-01. Progreso real, en orden:
+
+1. **Entorno de desarrollo** (Sección 1) — listo. `~/rsu-env` con
+   `pysnmp`/`paho-mqtt`; `snmpd`, `mosquitto`, `git`, `gh` instalados.
+2. **Agente de referencia `snmpd`** (Sección 2) — listo, con comunidad de
+   prueba local y las MIB NTCIP 1202/1211 extraídas del PDF público
+   instaladas (ver advertencias arriba sobre que no son el archivo oficial
+   de NEMA).
+3. **Agente SNMPv3 propio** (Sección 3) — listo y probado
+   (`agent/rsu_snmpv3_agent.py`, ver `docs/agent.md` para el bug de pysnmp
+   y su workaround).
+4. **Validación manual OBD-II** (Sección 4) — **pendiente, la hace el
+   usuario**: probar el lector OBD-II con Torque o Car Scanner desde una
+   tablet antes de tocar código de gateway. No requiere esta sesión.
+5. **Raspberry Pi como Access Point Wi-Fi** (Sección 5) — **sin empezar**.
+   Falta:
+   - Instalar `hostapd` y `dnsmasq`.
+   - Definir SSID y contraseña del banco de pruebas (se le preguntará al
+     usuario antes de escribir `hostapd.conf`).
+   - Confirmar explícitamente con el usuario antes de aplicar cualquier
+     cambio de red, y verificar que no se pierda la sesión SSH activa.
+6. **Documentación y GitHub** (Sección 6) — repo local inicializado,
+   conectado a `https://github.com/ruribebejarano/ntcip_middleware` y con
+   los commits de las secciones 1–3 ya *pusheados*. Falta seguir subiendo
+   progreso a medida que avancen las secciones 5 y el gateway OBD-II.
+
+**Pendientes técnicos abiertos** (no bloquean, pero hay que resolverlos
+antes de dar por buena la implementación):
+
+- Confirmar el OID real del nodo `scp` (hoy es un placeholder
+  `devices.5` en los *stubs* `NEMA-SMI`/`NEMA-SMI2`) contra el MIB oficial
+  de NEMA, una vez se solicite por correo a `ntcip@nema.org`.
+- Revisar si ya salió una versión oficial de `pysnmp` en PyPI con el fix de
+  USM SHA+AES128 (ver `requirements.txt` y `docs/agent.md`), para dejar de
+  depender de un commit de git y de un parche manual.
+- Probar el agente SNMPv3 desde un segundo equipo físico real (hasta ahora
+  solo se probó desde la propia Raspberry Pi, incluyendo por su IP LAN).
+
 ## Estructura del proyecto
 
 ```
