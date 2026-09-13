@@ -27,3 +27,8 @@ credentials.json
 .vscode/
 .idea/
 *.swp
+
+# Contexto local para el agente de IA (no publicar)
+CLAUDE.md
+CLAUDE.local.md
+.claude/

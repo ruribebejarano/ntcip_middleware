@@ -1,3 +1,4 @@
+[Cronograma de trabajo](docs/CRONOGRAMA.md) — entrega 20 de noviembre de 2026
 # RSU NTCIP Middleware
 
 Prototipo de tesis de bachillerato en Ingeniería Electrónica: middleware NTCIP
