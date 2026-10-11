@@ -1,0 +1,17 @@
+[Unit]
+Description=RSU - Middleware NTCIP (agente SNMPv3 + enlace V2I) (prototipo de tesis)
+After=network.target mosquitto.service rsu-controller.service
+Wants=mosquitto.service rsu-controller.service
+
+[Service]
+Type=simple
+User=ricardoub
+WorkingDirectory=/home/ricardoub/ntcip_middleware
+ExecStart=/home/ricardoub/rsu-env/bin/python3 agent/rsu_middleware.py
+Restart=on-failure
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

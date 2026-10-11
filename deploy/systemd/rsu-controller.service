@@ -1,0 +1,16 @@
+[Unit]
+Description=RSU - Emulador del controlador de transito (prototipo de tesis)
+After=network.target
+
+[Service]
+Type=simple
+User=ricardoub
+WorkingDirectory=/home/ricardoub/ntcip_middleware
+ExecStart=/home/ricardoub/rsu-env/bin/python3 controller/controller_emulator.py
+Restart=on-failure
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
