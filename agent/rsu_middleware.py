@@ -40,13 +40,20 @@ agent/rsu_snmpv3_agent.py.
 from __future__ import annotations
 
 import json
+import os
 import socket
+import sys
+import uuid
+from pathlib import Path
 
 import paho.mqtt.client as mqtt
 from pysnmp.entity import config, engine
 from pysnmp.entity.rfc3413 import cmdrsp
 from pysnmp.entity.rfc3413.context import SnmpContext
 from pysnmp.proto.rfc1902 import Integer32
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from common.events import EVT_M1_RX, EVT_SNMP_SET_TX, EventLogger  # noqa: E402
 
 SNMP_LISTEN_ADDRESS = ("0.0.0.0", 1161)  # mismo puerto que rsu_snmpv3_agent.py -- no correr ambos juntos
 
@@ -66,6 +73,14 @@ MQTT_BROKER_PORT = 1883
 MQTT_TOPIC = "rsu/v2i/solicitud_prioridad"
 
 FASE_A_ENTERO = {"rojo": 1, "amarillo": 2, "verde": 3}
+
+# Identificador de esta RSU en el banco de pruebas (hay dos, ver CLAUDE.md).
+# No cambia ningun puerto ni topico, solo el nombre del nodo en el registro
+# de eventos (eventos_rsu_<RSU_ID>.csv) y en el id_solicitud sintetico que
+# se genera para las solicitudes de prioridad hechas a mano por SNMP (no
+# originadas por una OBU, ver SolicitudPrioridadTestInstance.setValue).
+RSU_ID = os.environ.get("RSU_ID", "1")
+EVENTOS = EventLogger(f"rsu_{RSU_ID}")
 
 
 def controller_request(payload: dict, timeout: float = 2.0) -> dict:
@@ -110,23 +125,39 @@ class SolicitudPrioridadTestInstance:
 
     def setValue(self, value, name, idx):
         activar = int(value) != 0
+        # No hay OBU de origen en este camino (SET manual desde el centro de
+        # control, p. ej. centro_control/software_gestion.py): se genera un
+        # id_solicitud sintetico propio, para poder distinguirlo en el
+        # registro de eventos de una solicitud V2I real.
+        id_solicitud = f"snmp-manual-{uuid.uuid4().hex[:8]}"
         try:
             if activar:
+                EVENTOS.log(EVT_SNMP_SET_TX, id_solicitud, origen="snmp_manual", accion="request_priority")
                 controller_request({
                     "cmd": "request_priority",
                     "vehiculo_id": "centro-control-manual",
                     "eta_seg": 0,
+                    "id_solicitud": id_solicitud,
                 })
             else:
-                controller_request({"cmd": "clear_priority"})
+                EVENTOS.log(EVT_SNMP_SET_TX, id_solicitud, origen="snmp_manual", accion="clear_priority")
+                controller_request({"cmd": "clear_priority", "id_solicitud": id_solicitud})
         except OSError as exc:
             print(f"[middleware] No se pudo avisar al controlador: {exc}")
         return self.syntax.clone(1 if activar else 0)
 
 
-def _on_mqtt_connect(_client, _userdata, _flags, reason_code, _properties=None):
+def _on_mqtt_connect(client, _userdata, _flags, reason_code, _properties=None):
     print(f"[middleware] Conectado al broker MQTT ({MQTT_BROKER_HOST}:{MQTT_BROKER_PORT}), "
           f"reason_code={reason_code}")
+    # Resuscribirse en cada conexion (no solo la primera vez): si el broker
+    # se reinicia o la red se cae un momento, el cliente se reconecta solo
+    # (loop_start ya lo maneja) pero pierde la suscripcion del lado del
+    # broker si no se repite aqui. Antes esto solo se hacia una vez en
+    # start_mqtt_listener(), lo que dejaba al middleware "sordo" tras
+    # cualquier reconexion sin ningun error visible (ver bitacora
+    # 2026-10-11_arranque-servicios-y-smoke-test.md).
+    client.subscribe(MQTT_TOPIC, qos=1)
 
 
 def _on_mqtt_message(_client, _userdata, msg) -> None:
@@ -138,13 +169,21 @@ def _on_mqtt_message(_client, _userdata, msg) -> None:
         print(f"[middleware] Mensaje V2I invalido en '{msg.topic}': {exc}")
         return
 
+    id_solicitud = data.get("id_solicitud") or f"sin-id-{uuid.uuid4().hex[:8]}"
+    if "id_solicitud" not in data:
+        print(f"[middleware] Aviso: mensaje V2I sin id_solicitud, se genero uno "
+              f"({id_solicitud}) solo para el registro de eventos.")
+
     print(f"[middleware] Solicitud V2I recibida de '{vehiculo_id}' (ETA {eta_seg}s) "
           f"-> reenviando al controlador")
+    EVENTOS.log(EVT_M1_RX, id_solicitud, vehiculo_id=vehiculo_id, eta_seg=eta_seg, topic=msg.topic)
     try:
+        EVENTOS.log(EVT_SNMP_SET_TX, id_solicitud, origen="v2i", accion="request_priority")
         controller_request({
             "cmd": "request_priority",
             "vehiculo_id": vehiculo_id,
             "eta_seg": eta_seg,
+            "id_solicitud": id_solicitud,
         })
     except OSError as exc:
         print(f"[middleware] No se pudo reenviar la solicitud V2I al controlador: {exc}")
@@ -155,7 +194,6 @@ def start_mqtt_listener() -> mqtt.Client:
     client.on_connect = _on_mqtt_connect
     client.on_message = _on_mqtt_message
     client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, keepalive=30)
-    client.subscribe(MQTT_TOPIC, qos=1)
     client.loop_start()
     print(f"[middleware] Escuchando solicitudes V2I en "
           f"mqtt://{MQTT_BROKER_HOST}:{MQTT_BROKER_PORT}/{MQTT_TOPIC}")
@@ -221,6 +259,7 @@ def build_snmp_engine() -> engine.SnmpEngine:
 
 def main() -> None:
     print("=== Middleware RSU: SNMP + V2I (MQTT) + adaptador de controlador ===")
+    print(f"RSU_ID={RSU_ID} -- registro de eventos en {EVENTOS.path}")
     print(f"Controlador esperado en {CONTROLLER_HOST}:{CONTROLLER_PORT} "
           f"(correr primero controller/controller_emulator.py)\n")
 
