@@ -1,0 +1,22 @@
+{
+  "escenario": "prueba_registro_eventos_P1_sincronizado",
+  "fecha": "2026-10-11",
+  "commit": "0db8e4b",
+  "rsu_host": "192.168.18.175",
+  "rsu_id": "1",
+  "obu": {
+    "vehiculo_id": "ambulancia-sync",
+    "eta_seg": 10,
+    "id_solicitud": "ambulancia-sync-a2fcf0d2"
+  },
+  "sincronizacion_reloj": {
+    "w32time_laptop_aplicado": true,
+    "offset_medido_al_momento_de_la_corrida": {
+      "laptop_vs_time_cloudflare_com_ms": 156.0605,
+      "pi_vs_ntp_ms": -0.8928,
+      "laptop_relativo_a_pi_ms": 156.9533,
+      "nota": "W32Time estaba activo pero todavia en proceso de slew gradual (no habia convergido a offset ~0 al momento de esta corrida); se registra el offset medido para poder corregir el calculo de t_V2I en el analisis, en vez de esperar la convergencia completa."
+    }
+  },
+  "notas": "Ver notas.md en esta misma carpeta para la comparacion con resultados/prueba_registro/ (antes de aplicar W32Time)."
+}

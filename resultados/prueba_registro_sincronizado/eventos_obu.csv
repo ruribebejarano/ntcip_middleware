@@ -1,0 +1,2 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1791744616447511600,obu,M1_tx,ambulancia-sync-a2fcf0d2,"{""vehiculo_id"":""ambulancia-sync"",""eta_seg"":10.0,""broker_host"":""192.168.18.175"",""broker_port"":1883,""topic"":""rsu/v2i/solicitud_prioridad""}"

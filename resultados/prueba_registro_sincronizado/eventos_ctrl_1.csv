@@ -1,0 +1,8 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1791726704419971203,ctrl_1,ctrl_fase_cambio,ambulancia-p1-cdd9f1ab,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""ambulancia-p1"",""eta_seg"":10.0}"
+1791743748524953045,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""amarillo"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1791743760621666855,ctrl_1,ctrl_fase_cambio,snmp-manual-cf59c6ce,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""centro-control-manual"",""eta_seg"":0}"
+1791743769735811437,ctrl_1,ctrl_fase_cambio,snmp-manual-4285dba9,"{""fase"":""amarillo"",""prioridad_activa"":false,""motivo"":""liberacion_manual""}"
+1791743769735965234,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""todo_rojo"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1791743902814424186,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1791744616605858291,ctrl_1,ctrl_fase_cambio,ambulancia-sync-a2fcf0d2,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""ambulancia-sync"",""eta_seg"":10.0}"

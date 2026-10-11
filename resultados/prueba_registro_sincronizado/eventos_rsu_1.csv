@@ -1,0 +1,7 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1791726704419038658,rsu_1,M1_rx,ambulancia-p1-cdd9f1ab,"{""vehiculo_id"":""ambulancia-p1"",""eta_seg"":10.0,""topic"":""rsu/v2i/solicitud_prioridad""}"
+1791726704419226493,rsu_1,snmp_set_tx,ambulancia-p1-cdd9f1ab,"{""origen"":""v2i"",""accion"":""request_priority""}"
+1791743760620251530,rsu_1,snmp_set_tx,snmp-manual-cf59c6ce,"{""origen"":""snmp_manual"",""accion"":""request_priority""}"
+1791743769735167025,rsu_1,snmp_set_tx,snmp-manual-4285dba9,"{""origen"":""snmp_manual"",""accion"":""clear_priority""}"
+1791744616605114212,rsu_1,M1_rx,ambulancia-sync-a2fcf0d2,"{""vehiculo_id"":""ambulancia-sync"",""eta_seg"":10.0,""topic"":""rsu/v2i/solicitud_prioridad""}"
+1791744616605305695,rsu_1,snmp_set_tx,ambulancia-sync-a2fcf0d2,"{""origen"":""v2i"",""accion"":""request_priority""}"
