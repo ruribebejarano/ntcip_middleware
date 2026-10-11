@@ -1,0 +1,2 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1791726704421787900,obu,M1_tx,ambulancia-p1-cdd9f1ab,"{""vehiculo_id"":""ambulancia-p1"",""eta_seg"":10.0,""broker_host"":""192.168.18.175"",""broker_port"":1883,""topic"":""rsu/v2i/solicitud_prioridad""}"

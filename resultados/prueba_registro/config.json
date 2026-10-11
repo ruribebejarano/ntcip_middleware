@@ -1,0 +1,17 @@
+{
+  "escenario": "prueba_registro_eventos_P1",
+  "fecha": "2026-10-11",
+  "commit": "455621d",
+  "rsu_host": "192.168.18.175",
+  "rsu_id": "1",
+  "obu": {
+    "vehiculo_id": "ambulancia-p1",
+    "eta_seg": 10,
+    "id_solicitud": "ambulancia-p1-cdd9f1ab"
+  },
+  "sincronizacion_reloj": {
+    "w32time_laptop_aplicado": false,
+    "nota": "Offset no medido en el instante exacto de esta corrida; ver bitacora 2026-10-11_arranque-servicios-y-smoke-test.md para la ultima medicion (~38 ms laptop vs Pi) antes del fix de W32Time."
+  },
+  "notas": "Ver notas.md en esta misma carpeta."
+}

@@ -1,0 +1,2 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1791726704419971203,ctrl_1,ctrl_fase_cambio,ambulancia-p1-cdd9f1ab,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""ambulancia-p1"",""eta_seg"":10.0}"

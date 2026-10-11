@@ -1,0 +1,3 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1791726704419038658,rsu_1,M1_rx,ambulancia-p1-cdd9f1ab,"{""vehiculo_id"":""ambulancia-p1"",""eta_seg"":10.0,""topic"":""rsu/v2i/solicitud_prioridad""}"
+1791726704419226493,rsu_1,snmp_set_tx,ambulancia-p1-cdd9f1ab,"{""origen"":""v2i"",""accion"":""request_priority""}"
