@@ -7,6 +7,7 @@ Wants=mosquitto.service rsu-controller.service
 Type=simple
 User=ricardoub
 WorkingDirectory=/home/ricardoub/ntcip_middleware
+Environment=PYTHONUNBUFFERED=1
 ExecStart=/home/ricardoub/rsu-env/bin/python3 agent/rsu_middleware.py
 Restart=on-failure
 RestartSec=2
