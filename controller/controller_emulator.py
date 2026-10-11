@@ -150,6 +150,11 @@ class Controller:
         if fase == self._fase_logueada:
             return
         self._fase_logueada = fase
+        # print() ademas del registro CSV: sin esto, el ciclo normal (fuera
+        # de una solicitud de prioridad) no deja ningun rastro visible en
+        # journalctl -- se detecto al intentar capturar evidencia de un
+        # ciclo completo para la bitacora (2026-10-11).
+        print(f"[controlador] Fase -> {fase} ({extra.get('motivo', '?')})")
         if self._eventos is not None:
             self._eventos.log(
                 EVT_CTRL_FASE_CAMBIO,
