@@ -33,18 +33,11 @@ quiere que sobrevivan a un reinicio de la Pi, agregar:
 sudo systemctl enable rsu-controller.service rsu-agent.service
 ```
 
-## Sudo sin contraseña para estos tres servicios (opcional, recomendado)
+## Sudo sin contraseña para estos tres servicios (ya aplicado)
 
-Sin esto, cada `scripts/pi.sh start|stop|restart|logs ...` va a pedir la
-contraseña de `ricardoub` de forma interactiva (`ssh -t`). Para evitarlo,
-**a mano, por `ssh rsu`**, crear una regla de sudoers acotada exactamente a
-estos comandos (nunca dar `sudo` sin contraseña de forma general):
-
-```bash
-sudo visudo -f /etc/sudoers.d/rsu-pi-scripts
-```
-
-Contenido:
+**Estado real en la Pi (2026-10-11):** el estudiante creó
+`/etc/sudoers.d/rsu-servicios` con esta regla exacta (confirmado con
+`sudo -n -l`):
 
 ```
 ricardoub ALL=(root) NOPASSWD: /usr/bin/systemctl start rsu-controller.service, \
@@ -53,17 +46,42 @@ ricardoub ALL=(root) NOPASSWD: /usr/bin/systemctl start rsu-controller.service, 
   /usr/bin/systemctl start rsu-agent.service, \
   /usr/bin/systemctl stop rsu-agent.service, \
   /usr/bin/systemctl restart rsu-agent.service, \
-  /usr/bin/systemctl start mosquitto.service, \
-  /usr/bin/systemctl stop mosquitto.service, \
-  /usr/bin/systemctl restart mosquitto.service, \
-  /usr/bin/journalctl -u rsu-controller.service -n 50 -f, \
-  /usr/bin/journalctl -u rsu-agent.service -n 50 -f, \
-  /usr/bin/journalctl -u mosquitto.service -n 50 -f
+  /usr/bin/systemctl restart mosquitto.service
 ```
 
-Verificar la ruta real de los binarios antes de pegar (`which systemctl`,
-`which journalctl`) — si no coincide exactamente con lo que `visudo` valida,
-la regla no aplica y sigue pidiendo contraseña (falla segura, no silenciosa).
+Notas sobre esta regla, tal como quedó (no como se había sugerido
+originalmente):
+
+- Cubre `start`/`stop`/`restart` de `rsu-controller` y `rsu-agent`, pero
+  de `mosquitto` **solo `restart`** (no `start`/`stop` sueltos). Si hace
+  falta `scripts/pi.sh start mosquitto` o `stop mosquitto` sin
+  contraseña, hay que ampliar la regla.
+- **No incluye `journalctl`**: `scripts/pi.sh logs <servicio>` sigue
+  pidiendo contraseña (usa `sudo journalctl ... -f`). Para leer el log
+  sin seguimiento en vivo y sin contraseña, alcanza con `journalctl -u
+  <servicio> -n N --no-pager` **sin** `sudo` — el usuario `ricardoub` ya
+  puede leer el journal de estos servicios sin privilegios elevados
+  (confirmado en la práctica); solo `-f` (seguimiento) vía
+  `scripts/pi.sh logs` requiere la contraseña hoy.
+- **La regla general `(ALL : ALL) ALL`** (de un hito anterior, ver
+  bitácora `2026-10-11_commit-backlog-y-primer-deploy.md`) **sigue
+  presente** además de esta regla acotada — no se retiró. La regla
+  acotada es, en la práctica, redundante mientras la general exista,
+  pero documentarla aquí deja claro qué haría falta si en algún momento
+  se retira la general y se quiere mantener el acceso sin contraseña
+  solo para estos tres servicios.
+
+Para crearla desde cero en otra máquina (p. ej. la segunda RSU), el
+comando es:
+
+```bash
+sudo visudo -f /etc/sudoers.d/rsu-servicios
+```
+
+pegando el bloque de arriba. Verificar la ruta real de los binarios antes
+(`which systemctl`) — si no coincide exactamente con lo que `visudo`
+valida, la regla no aplica y sigue pidiendo contraseña (falla segura, no
+silenciosa).
 
 ## Verificación
 

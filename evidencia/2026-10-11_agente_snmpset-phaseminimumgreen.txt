@@ -1,0 +1,11 @@
+$ GET phaseMinimumGreen (antes)
+2026-10-11 13:59:03 [INFO] 1.3.6.1.4.1.1206.4.2.1.1.2.1.4.1 = 8
+
+$ SET phaseMinimumGreen = 15
+2026-10-11 13:59:04 [INFO] 1.3.6.1.4.1.1206.4.2.1.1.2.1.4.1 = 15
+
+$ GET phaseMinimumGreen (despues del SET)
+2026-10-11 13:59:05 [INFO] 1.3.6.1.4.1.1206.4.2.1.1.2.1.4.1 = 15
+
+$ journalctl -u rsu-controller.service -n 1 (en la Pi)
+Oct 11 13:59:04 ricardoub python3[2111]: [controlador] Tiempos actualizados: verde=15s amarillo=3.0s todo_rojo=2.0s rojo_general=8s

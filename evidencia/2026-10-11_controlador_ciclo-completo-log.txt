@@ -1,0 +1,8 @@
+Oct 11 14:05:50 ricardoub python3[2744]: [controlador] Fase -> amarillo (ciclo_normal)
+Oct 11 14:05:54 ricardoub python3[2744]: [controlador] Fase -> todo_rojo (ciclo_normal)
+Oct 11 14:05:58 ricardoub python3[2744]: [controlador] Fase -> rojo_general (ciclo_normal)
+Oct 11 14:06:08 ricardoub python3[2744]: [controlador] Fase -> verde (ciclo_normal)
+Oct 11 14:06:17 ricardoub python3[2744]: [controlador] Fase -> amarillo (ciclo_normal)
+Oct 11 14:06:21 ricardoub python3[2744]: [controlador] Fase -> todo_rojo (ciclo_normal)
+Oct 11 14:06:25 ricardoub python3[2744]: [controlador] Fase -> rojo_general (ciclo_normal)
+Oct 11 14:06:35 ricardoub python3[2744]: [controlador] Fase -> verde (ciclo_normal)
