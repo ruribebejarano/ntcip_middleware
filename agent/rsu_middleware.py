@@ -3,13 +3,23 @@
 el controlador de transito (protocolo propietario, emulado por
 controller/controller_emulator.py).
 
-*** SOLO SNMP GENERICO -- SIN MIB ESTANDARIZADA REAL TODAVIA ***
-Igual que agent/rsu_snmpv3_agent.py, los OID expuestos aqui son ficticios
-(bajo un numero de empresa NO registrado, 99999). El objetivo de este script
-es validar el LAZO COMPLETO, no la semantica de un estandar de MIB de
-transito real. Ver CLAUDE.md / docs/CRONOGRAMA.md para cuando se reemplacen
-estos OID por objetos reales -- el resto de la arquitectura (MQTT + adaptador
-al controlador) no deberia necesitar cambios grandes.
+*** OBJETOS NTCIP 1202 REALES (lectura de fase y tiempos); NTCIP 1211
+(solicitud de prioridad) TODAVIA FICTICIO ***
+Desde P2 (ver docs/PLAN_IMPLEMENTACION.md), el lado de LECTURA de este
+agente -- estado de fase y parametros de tiempo -- usa los objetos reales
+de la norma NTCIP 1202 v03B, verificados a mano contra
+NTCIP-1202v03.35e-aspublished.pdf (no solo el .mib extraido automaticamente
+del PDF, que tiene errores conocidos de orden de campos en las tablas; ver
+E:\\Tesis\\respaldos\\extraccion_ntcip1202\\LEEME.md). Cita exigida por la
+licencia de redistribucion: "Derived from NTCIP 1202. Copyright by
+AASHTO / ITE / NEMA. Used by permission."
+
+Se modela UNA sola fase (phaseNumber=1), dentro de phaseStatusGroupNumber=1,
+bit 0 ("Bit 0: Phase # = (phaseStatusGroupNumber * 8) - 7" en la norma) --
+consistente con el alcance de esta etapa (sin arbitraje entre fases
+concurrentes, ver ssec:alcance en main.tex). El objeto solicitudPrioridadTest
+(lado de ESCRITURA, equivalente a NTCIP 1211) sigue siendo ficticio -- bajo
+el numero de empresa NO registrado 99999 -- hasta P3.
 
 Tres enlaces que este proceso conecta:
 
@@ -20,8 +30,9 @@ Tres enlaces que este proceso conecta:
 2. RSU -> Controlador: un SNMP SET sobre solicitudPrioridadTest, o un
    mensaje V2I por MQTT, dispara una conexion TCP local hacia
    controller/controller_emulator.py pidiendole que fuerce o libere la fase
-   verde. faseActualTest siempre refleja en vivo la fase real del
-   controlador (consulta al controlador en cada GET, no hay cache local).
+   verde. Los objetos de phaseStatusGroupTable y phaseTable siempre reflejan
+   en vivo el estado y los tiempos reales del controlador (consulta en cada
+   GET, no hay cache local).
 3. OBU -> RSU (V2I): un mensaje MQTT en MQTT_TOPIC (publicado por
    gateway/obu_simulator.py) dispara el mismo pedido de prioridad que un
    SNMP SET manual desde el centro de control.
@@ -61,9 +72,38 @@ USER_NAME = "rsuLabUser"
 AUTH_KEY = "labAuthPass123"  # SOLO laboratorio
 PRIV_KEY = "labPrivPass123"  # SOLO laboratorio
 
-FASE_OID = (1, 3, 6, 1, 4, 1, 99999, 1, 1)       # ...1.1.0, solo lectura
+# Ficticio, bajo un numero de empresa NO registrado: lado de ESCRITURA
+# (equivalente a NTCIP 1211), todavia no implementado con objetos reales.
 PRIORIDAD_OID = (1, 3, 6, 1, 4, 1, 99999, 1, 2)  # ...1.2.0, lectura/escritura
 BASE_OID = (1, 3, 6, 1, 4, 1, 99999, 1)
+
+# Objetos REALES de NTCIP 1202 v03B (rama "asc.phase"; "asc" = devices.1,
+# "phase" = asc.1; devices es del enterprise 1206 = NEMA). Verificados a
+# mano contra NTCIP-1202v03.35e-aspublished.pdf, clausulas 5.2.2.4 (verde
+# minimo), 5.2.2.8 (amarillo), 5.2.2.9 (todo rojo), 5.2.4.1-5.2.4.3 (estado
+# de fase). Ver el docstring del modulo para la cita de licencia.
+NTCIP_ASC_OID = (1, 3, 6, 1, 4, 1, 1206, 4, 2, 1)     # subarbol expuesto por SNMP
+PHASE_OID = NTCIP_ASC_OID + (1,)                       # phase = asc.1
+
+MAXPHASES_OID = PHASE_OID + (1,)                       # S, RO, unidad: phase
+PHASETABLE_OID = PHASE_OID + (2,)
+PHASEENTRY_OID = PHASETABLE_OID + (1,)
+PHASENUMBER_COL_OID = PHASEENTRY_OID + (1,)            # S, RO, unidad: phase
+PHASEMINGREEN_COL_OID = PHASEENTRY_OID + (4,)          # P, RW, unidad: second        (NTCIP: 1-255)
+PHASEYELLOWCHANGE_COL_OID = PHASEENTRY_OID + (8,)      # P, RW, unidad: tenth second  (NTCIP: 3-255)
+PHASEREDCLEAR_COL_OID = PHASEENTRY_OID + (9,)          # P, RW, unidad: tenth second  (NTCIP: 0-255)
+
+MAXPHASEGROUPS_OID = PHASE_OID + (3,)                  # S, RO, unidad: group
+PHASESTATUSGROUPTABLE_OID = PHASE_OID + (4,)
+PHASESTATUSGROUPENTRY_OID = PHASESTATUSGROUPTABLE_OID + (1,)
+PHASESTATUSGROUPNUMBER_COL_OID = PHASESTATUSGROUPENTRY_OID + (1,)  # S, RO, unidad: group
+PHASESTATUSGROUPREDS_COL_OID = PHASESTATUSGROUPENTRY_OID + (2,)    # S, RO, bitmask (sin unidad fisica)
+PHASESTATUSGROUPYELLOWS_COL_OID = PHASESTATUSGROUPENTRY_OID + (3,)
+PHASESTATUSGROUPGREENS_COL_OID = PHASESTATUSGROUPENTRY_OID + (4,)
+
+# Fase simulada unica (phaseNumber=1), en el grupo de estado 1, bit 0:
+# "Bit 0: Phase # = (phaseStatusGroupNumber * 8) - 7" -> para grupo 1, bit 0 = fase 1.
+FILA_UNICA = (1,)
 
 CONTROLLER_HOST = "127.0.0.1"
 CONTROLLER_PORT = 9000
@@ -71,8 +111,6 @@ CONTROLLER_PORT = 9000
 MQTT_BROKER_HOST = "127.0.0.1"  # mosquitto local, en la propia RSU
 MQTT_BROKER_PORT = 1883
 MQTT_TOPIC = "rsu/v2i/solicitud_prioridad"
-
-FASE_A_ENTERO = {"rojo": 1, "amarillo": 2, "verde": 3}
 
 # Identificador de esta RSU en el banco de pruebas (hay dos, ver CLAUDE.md).
 # No cambia ningun puerto ni topico, solo el nombre del nodo en el registro
@@ -98,17 +136,116 @@ def controller_request(payload: dict, timeout: float = 2.0) -> dict:
     return json.loads(buf.decode("utf-8"))
 
 
-class FaseActualTestInstance:
-    """Solo lectura: refleja en vivo la fase del controlador emulado."""
+class _ValorConstanteInstance:
+    """Objetos escalares/columna que no dependen del controlador (tamanos
+    de tabla fijos: una sola fase, un solo grupo de estado)."""
+
+    _valor = 0
+
+    def getValue(self, name, idx):
+        return self.syntax.clone(self._valor)
+
+
+class MaxPhasesInstance(_ValorConstanteInstance):
+    _valor = 1
+
+
+class MaxPhaseGroupsInstance(_ValorConstanteInstance):
+    _valor = 1
+
+
+class PhaseNumberInstance(_ValorConstanteInstance):
+    _valor = 1
+
+
+class PhaseStatusGroupNumberInstance(_ValorConstanteInstance):
+    _valor = 1
+
+
+class PhaseMinimumGreenInstance:
+    """phaseMinimumGreen (NTCIP 1202, clausula 5.2.2.4): segundos, 1-255."""
+
+    def getValue(self, name, idx):
+        try:
+            valor = controller_request({"cmd": "get_timing"})["phase_minimum_green"]
+        except OSError as exc:
+            print(f"[middleware] No se pudo consultar tiempos al controlador: {exc}")
+            valor = 0
+        return self.syntax.clone(valor)
+
+    def setValue(self, value, name, idx):
+        try:
+            controller_request({"cmd": "set_timing", "phase_minimum_green": int(value)})
+        except OSError as exc:
+            print(f"[middleware] No se pudo actualizar phaseMinimumGreen: {exc}")
+        return self.syntax.clone(int(value))
+
+
+class PhaseYellowChangeInstance:
+    """phaseYellowChange (clausula 5.2.2.8): decimas de segundo, 3-255."""
+
+    def getValue(self, name, idx):
+        try:
+            valor = controller_request({"cmd": "get_timing"})["phase_yellow_change"]
+        except OSError as exc:
+            print(f"[middleware] No se pudo consultar tiempos al controlador: {exc}")
+            valor = 0
+        return self.syntax.clone(valor)
+
+    def setValue(self, value, name, idx):
+        try:
+            controller_request({"cmd": "set_timing", "phase_yellow_change": int(value)})
+        except OSError as exc:
+            print(f"[middleware] No se pudo actualizar phaseYellowChange: {exc}")
+        return self.syntax.clone(int(value))
+
+
+class PhaseRedClearInstance:
+    """phaseRedClear (clausula 5.2.2.9): decimas de segundo, 0-255."""
+
+    def getValue(self, name, idx):
+        try:
+            valor = controller_request({"cmd": "get_timing"})["phase_red_clear"]
+        except OSError as exc:
+            print(f"[middleware] No se pudo consultar tiempos al controlador: {exc}")
+            valor = 0
+        return self.syntax.clone(valor)
+
+    def setValue(self, value, name, idx):
+        try:
+            controller_request({"cmd": "set_timing", "phase_red_clear": int(value)})
+        except OSError as exc:
+            print(f"[middleware] No se pudo actualizar phaseRedClear: {exc}")
+        return self.syntax.clone(int(value))
+
+
+class _PhaseStatusBitInstance:
+    """Bit 0 del grupo de estado 1 (unica fase simulada): 1 si esa salida
+    esta activa, 0 si no (clausulas 5.2.4.2 a 5.2.4.4 -- Reds/Yellows/Greens,
+    cada una un bitmask de 8 fases; aqui solo el bit 0 tiene significado)."""
+
+    _clave_estado = ""  # "red" | "yellow" | "green", ver controller_emulator.py status()
 
     def getValue(self, name, idx):
         try:
             status = controller_request({"cmd": "get_status"})
-            valor = FASE_A_ENTERO.get(status.get("fase"), 0)
+            valor = 1 if status.get(self._clave_estado) else 0
         except OSError as exc:
             print(f"[middleware] No se pudo consultar al controlador: {exc}")
             valor = 0
         return self.syntax.clone(valor)
+
+
+class PhaseStatusGroupRedsInstance(_PhaseStatusBitInstance):
+    _clave_estado = "red"
+
+
+class PhaseStatusGroupYellowsInstance(_PhaseStatusBitInstance):
+    _clave_estado = "yellow"
+
+
+class PhaseStatusGroupGreensInstance(_PhaseStatusBitInstance):
+    _clave_estado = "green"
 
 
 class SolicitudPrioridadTestInstance:
@@ -226,22 +363,109 @@ def build_snmp_engine() -> engine.SnmpEngine:
         readSubTree=BASE_OID,
         writeSubTree=BASE_OID,
     )
-
-    mib_builder = snmp_engine.getMibBuilder()
-    MibScalar, MibScalarInstance = mib_builder.importSymbols(
-        "SNMPv2-SMI", "MibScalar", "MibScalarInstance"
+    # Segunda region de la misma vista: el subarbol real de NTCIP 1202.
+    # addVacmUser vuelve a crear el mismo grupo/acceso (idempotente para el
+    # mismo securityName/securityModel/securityLevel) y agrega esta region
+    # a la vista existente, no la reemplaza -- por eso el usuario queda con
+    # acceso a AMBOS subarboles (el ficticio 99999 y el real 1206).
+    config.addVacmUser(
+        snmp_engine,
+        3,
+        USER_NAME,
+        "authPriv",
+        readSubTree=NTCIP_ASC_OID,
+        writeSubTree=NTCIP_ASC_OID,
     )
 
-    class _FaseActualTestInstance(FaseActualTestInstance, MibScalarInstance):
-        pass
+    mib_builder = snmp_engine.getMibBuilder()
+    MibScalar, MibScalarInstance, MibTable, MibTableRow, MibTableColumn = mib_builder.importSymbols(
+        "SNMPv2-SMI", "MibScalar", "MibScalarInstance", "MibTable", "MibTableRow", "MibTableColumn"
+    )
 
     class _SolicitudPrioridadTestInstance(SolicitudPrioridadTestInstance, MibScalarInstance):
         pass
 
+    class _MaxPhasesInstance(MaxPhasesInstance, MibScalarInstance):
+        pass
+
+    class _MaxPhaseGroupsInstance(MaxPhaseGroupsInstance, MibScalarInstance):
+        pass
+
+    class _PhaseNumberInstance(PhaseNumberInstance, MibScalarInstance):
+        pass
+
+    class _PhaseMinimumGreenInstance(PhaseMinimumGreenInstance, MibScalarInstance):
+        pass
+
+    class _PhaseYellowChangeInstance(PhaseYellowChangeInstance, MibScalarInstance):
+        pass
+
+    class _PhaseRedClearInstance(PhaseRedClearInstance, MibScalarInstance):
+        pass
+
+    class _PhaseStatusGroupNumberInstance(PhaseStatusGroupNumberInstance, MibScalarInstance):
+        pass
+
+    class _PhaseStatusGroupRedsInstance(PhaseStatusGroupRedsInstance, MibScalarInstance):
+        pass
+
+    class _PhaseStatusGroupYellowsInstance(PhaseStatusGroupYellowsInstance, MibScalarInstance):
+        pass
+
+    class _PhaseStatusGroupGreensInstance(PhaseStatusGroupGreensInstance, MibScalarInstance):
+        pass
+
     mib_builder.exportSymbols(
         "__RSU-MIDDLEWARE-TEST-MIB",
-        faseActualTest=MibScalar(FASE_OID, Integer32()).setMaxAccess("readonly"),
-        faseActualTestInstance=_FaseActualTestInstance(FASE_OID, (0,), Integer32()),
+        # --- NTCIP 1202 v03B real: tiempos de fase (phaseTable) ---
+        maxPhases=MibScalar(MAXPHASES_OID, Integer32()).setMaxAccess("readonly"),
+        maxPhasesInstance=_MaxPhasesInstance(MAXPHASES_OID, (0,), Integer32()),
+        phaseTable=MibTable(PHASETABLE_OID),
+        phaseEntry=MibTableRow(PHASEENTRY_OID).setIndexNames(
+            (0, "__RSU-MIDDLEWARE-TEST-MIB", "phaseNumber")
+        ),
+        phaseNumber=MibTableColumn(PHASENUMBER_COL_OID, Integer32()).setMaxAccess("readonly"),
+        phaseNumberInstance=_PhaseNumberInstance(PHASENUMBER_COL_OID, FILA_UNICA, Integer32()),
+        phaseMinimumGreen=MibTableColumn(PHASEMINGREEN_COL_OID, Integer32()).setMaxAccess("readwrite"),
+        phaseMinimumGreenInstance=_PhaseMinimumGreenInstance(
+            PHASEMINGREEN_COL_OID, FILA_UNICA, Integer32()
+        ),
+        phaseYellowChange=MibTableColumn(PHASEYELLOWCHANGE_COL_OID, Integer32()).setMaxAccess("readwrite"),
+        phaseYellowChangeInstance=_PhaseYellowChangeInstance(
+            PHASEYELLOWCHANGE_COL_OID, FILA_UNICA, Integer32()
+        ),
+        phaseRedClear=MibTableColumn(PHASEREDCLEAR_COL_OID, Integer32()).setMaxAccess("readwrite"),
+        phaseRedClearInstance=_PhaseRedClearInstance(PHASEREDCLEAR_COL_OID, FILA_UNICA, Integer32()),
+        # --- NTCIP 1202 v03B real: estado de fase (phaseStatusGroupTable) ---
+        maxPhaseGroups=MibScalar(MAXPHASEGROUPS_OID, Integer32()).setMaxAccess("readonly"),
+        maxPhaseGroupsInstance=_MaxPhaseGroupsInstance(MAXPHASEGROUPS_OID, (0,), Integer32()),
+        phaseStatusGroupTable=MibTable(PHASESTATUSGROUPTABLE_OID),
+        phaseStatusGroupEntry=MibTableRow(PHASESTATUSGROUPENTRY_OID).setIndexNames(
+            (0, "__RSU-MIDDLEWARE-TEST-MIB", "phaseStatusGroupNumber")
+        ),
+        phaseStatusGroupNumber=MibTableColumn(
+            PHASESTATUSGROUPNUMBER_COL_OID, Integer32()
+        ).setMaxAccess("readonly"),
+        phaseStatusGroupNumberInstance=_PhaseStatusGroupNumberInstance(
+            PHASESTATUSGROUPNUMBER_COL_OID, FILA_UNICA, Integer32()
+        ),
+        phaseStatusGroupReds=MibTableColumn(PHASESTATUSGROUPREDS_COL_OID, Integer32()).setMaxAccess("readonly"),
+        phaseStatusGroupRedsInstance=_PhaseStatusGroupRedsInstance(
+            PHASESTATUSGROUPREDS_COL_OID, FILA_UNICA, Integer32()
+        ),
+        phaseStatusGroupYellows=MibTableColumn(
+            PHASESTATUSGROUPYELLOWS_COL_OID, Integer32()
+        ).setMaxAccess("readonly"),
+        phaseStatusGroupYellowsInstance=_PhaseStatusGroupYellowsInstance(
+            PHASESTATUSGROUPYELLOWS_COL_OID, FILA_UNICA, Integer32()
+        ),
+        phaseStatusGroupGreens=MibTableColumn(
+            PHASESTATUSGROUPGREENS_COL_OID, Integer32()
+        ).setMaxAccess("readonly"),
+        phaseStatusGroupGreensInstance=_PhaseStatusGroupGreensInstance(
+            PHASESTATUSGROUPGREENS_COL_OID, FILA_UNICA, Integer32()
+        ),
+        # --- Ficticio (P3: reemplazar por NTCIP 1211 real) ---
         solicitudPrioridadTest=MibScalar(PRIORIDAD_OID, Integer32()).setMaxAccess("readwrite"),
         solicitudPrioridadTestInstance=_SolicitudPrioridadTestInstance(
             PRIORIDAD_OID, (0,), Integer32()
@@ -266,12 +490,22 @@ def main() -> None:
     mqtt_client = start_mqtt_listener()
     snmp_engine = build_snmp_engine()
 
-    fase_oid_str = ".".join(str(n) for n in FASE_OID) + ".0"
+    def _oid_str(oid: tuple[int, ...], fila: tuple[int, ...] = FILA_UNICA) -> str:
+        return ".".join(str(n) for n in (oid + fila))
+
     prioridad_oid_str = ".".join(str(n) for n in PRIORIDAD_OID) + ".0"
     print(f"SNMP escuchando en {SNMP_LISTEN_ADDRESS[0]}:{SNMP_LISTEN_ADDRESS[1]} "
           f"(usuario USM: {USER_NAME}, auth SHA-1 / priv AES-128)")
-    print(f"  {fase_oid_str} = faseActualTest (solo lectura: 1=rojo 2=amarillo 3=verde)")
-    print(f"  {prioridad_oid_str} = solicitudPrioridadTest (lectura/escritura: 0/1)")
+    print("  NTCIP 1202 v03B real (fase unica, phaseNumber=1, grupo de estado 1 bit 0):")
+    print(f"    {_oid_str(MAXPHASES_OID, (0,))} = maxPhases (RO)")
+    print(f"    {_oid_str(PHASEMINGREEN_COL_OID)} = phaseMinimumGreen (RW, segundos)")
+    print(f"    {_oid_str(PHASEYELLOWCHANGE_COL_OID)} = phaseYellowChange (RW, decimas de seg.)")
+    print(f"    {_oid_str(PHASEREDCLEAR_COL_OID)} = phaseRedClear (RW, decimas de seg.)")
+    print(f"    {_oid_str(MAXPHASEGROUPS_OID, (0,))} = maxPhaseGroups (RO)")
+    print(f"    {_oid_str(PHASESTATUSGROUPREDS_COL_OID)} = phaseStatusGroupReds (RO, bit 0)")
+    print(f"    {_oid_str(PHASESTATUSGROUPYELLOWS_COL_OID)} = phaseStatusGroupYellows (RO, bit 0)")
+    print(f"    {_oid_str(PHASESTATUSGROUPGREENS_COL_OID)} = phaseStatusGroupGreens (RO, bit 0)")
+    print(f"  {prioridad_oid_str} = solicitudPrioridadTest (ficticio, RW: 0/1 -- P3 lo reemplaza por NTCIP 1211)")
     print("\nCtrl+C para detener.\n")
 
     dispatcher = snmp_engine.transportDispatcher
