@@ -5,16 +5,20 @@
 Un agente SNMPv3 minimo hecho con `pysnmp` que expone un unico objeto entero
 ficticio (OID `1.3.6.1.4.1.99999.1.1.0`, bajo un numero de empresa privado
 NO registrado) para validar la pila USM (autenticacion SHA-1 + privacidad
-AES-128) con `snmpget`/`snmpset` reales. **No implementa la MIB NTCIP 1202
-ni 1211** — ver el comentario de cabecera del propio script.
+AES-128) con `snmpget`/`snmpset` reales. **No implementa ninguna MIB
+estandarizada real** — ver el comentario de cabecera del propio script.
+
+Para el lazo completo (agente + adaptador hacia un controlador + enlace V2I
+por MQTT), ver `agent/rsu_middleware.py` y `docs/GUIA_COMANDOS.md` — este
+documento cubre solo el agente minimo original.
 
 ## Bug conocido de pysnmp y por qué el setup es distinto de lo esperado
 
 La ultima version de `pysnmp` publicada en PyPI al momento de escribir esto
 (`7.1.29`, 2026-08-21) tiene un bug en el modelo de seguridad USM: la
-combinacion **SHA-1 (auth) + AES-128 (priv)** — exactamente la que pide esta
-tesis — falla con `Decryption error` en cualquier `snmpget`/`snmpset`
-SNMPv3, sin importar que la contraseña/config sean correctas.
+combinacion **SHA-1 (auth) + AES-128 (priv)** falla con `Decryption error`
+en cualquier `snmpget`/`snmpset` SNMPv3, sin importar que la
+contraseña/config sean correctas.
 
 - Reportado en: <https://github.com/pysnmp/pysnmp/issues/54>
 - Corregido en: <https://github.com/pysnmp/pysnmp/pull/98> (mergeado
@@ -77,4 +81,12 @@ Verificado localmente (`snmpget`/`snmpset`/`snmpget`): devuelve `5` (valor
 inicial), confirma el `SET` a `42`, y el `GET` posterior ya devuelve `42`.
 Tambien verificado accediendo por la IP LAN de la Raspberry Pi (no solo
 `localhost`), confirmando que el socket esta en `0.0.0.0` y es alcanzable
-desde la red. Falta la prueba final desde un segundo equipo fisico distinto.
+desde la red.
+
+**Prueba desde un segundo equipo fisico (2026-09-13): hecha.** Se corrio
+el software de gestion central (hoy `centro_control/software_gestion.py`,
+ver `docs/SOFTWARE_GESTION.md`) desde la laptop -- maquina distinta a la
+Raspberry Pi, en la misma LAN -- contra el agente en `192.168.18.163:1161`.
+`GET` devolvio `42` (valor dejado por una prueba anterior), `SET` a `7`
+confirmado y `GET` posterior ya devolvia `7`. Con esto se cierra el
+pendiente que quedaba abierto en esta seccion.

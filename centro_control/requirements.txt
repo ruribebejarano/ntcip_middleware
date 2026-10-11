@@ -1,0 +1,28 @@
+# Dependencias para correr, desde una máquina distinta a la Raspberry Pi
+# (la "PC" -- laptop, incluyendo Windows) -- todo lo que hace de "centro de
+# control" u "OBU" en el banco de pruebas:
+#   - centro_control/software_gestion.py  (centro de control: GET/SET/WALK/
+#                                           monitoreo por SNMP)
+#   - gateway/obu_simulator.py             (OBU: publica solicitudes V2I por MQTT)
+#
+# Usa el mismo commit de pysnmp con el fix de USM SHA+AES128 que agent/ (ver
+# requirements.txt en la raíz y docs/agent.md para el detalle del bug). Va
+# como URL a secas, sin git+, por la misma razón documentada en el
+# requirements.txt de la raíz (desajuste de nombre "pysnmplib" con pip
+# moderno, y para no requerir git instalado):
+https://github.com/pysnmp/pysnmp/archive/398095c912d8d8494af6916ea53d1c9a9622d874.zip
+
+# NOTA (hallazgo nuevo, no documentado antes): al instalar ese commit en un
+# entorno limpio, pip resuelve por defecto una versión de pyasn1 >=0.5 que ya
+# no trae el submódulo pyasn1.compat, y pysnmp falla al importar con:
+#   ModuleNotFoundError: No module named 'pyasn1.compat'
+# Fijar pyasn1 a una versión anterior lo resuelve:
+pyasn1<0.5.0
+pyasn1-modules<0.3.0
+
+# Recordar también el parche manual de importlib.util en
+# <venv>/Lib/site-packages/pysnmp/smi/builder.py, documentado en
+# docs/agent.md -- necesario en Python 3.13+, tanto en la Pi como en Windows.
+
+# Para gateway/obu_simulator.py (publica la solicitud V2I por MQTT):
+paho-mqtt==2.1.0

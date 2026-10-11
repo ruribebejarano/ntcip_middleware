@@ -7,14 +7,27 @@ paho-mqtt==2.1.0
 # Ver: https://github.com/pysnmp/pysnmp/issues/54
 # El fix se mergeo el 2026-08-27 (PR #98) pero aun no se publico en PyPI,
 # asi que se instala directo desde el commit del fix:
-pysnmp @ git+https://github.com/pysnmp/pysnmp.git@398095c912d8d8494af6916ea53d1c9a9622d874
+https://github.com/pysnmp/pysnmp/archive/398095c912d8d8494af6916ea53d1c9a9622d874.zip
 
-# NOTA IMPORTANTE: ese commit distribuye el paquete bajo el nombre
-# "pysnmplib" (no "pysnmp") en PyPI/pip, aunque el modulo Python sigue
-# siendo `import pysnmp` normalmente. `pip install -r requirements.txt`
-# instalara la distribucion "pysnmplib". Ademas, ese commit tiene un bug
-# menor propio (falta `import importlib.util` en pysnmp/smi/builder.py,
-# rompe con "AttributeError: module 'importlib' has no attribute 'util'"
-# en Python 3.13+). Aplicar el parche manual documentado en docs/agent.md
-# despues de instalar. Revisar periodicamente si ya salio una version
-# oficial en PyPI que incluya el fix, para dejar de depender del commit.
+# NOTA IMPORTANTE: va como URL a secas (sin "pysnmp @" delante) a proposito.
+# Ese commit distribuye el paquete bajo el nombre "pysnmplib" (no "pysnmp")
+# en sus metadatos, y pip 24+ rechaza "pysnmp @ <url>" por ese desajuste de
+# nombre ("Requested pysnmp ... has inconsistent name"). El modulo Python
+# se sigue important igual, `import pysnmp`, sin importar como pip llame a
+# la distribucion. Tambien se usa el .zip del commit (no `git+https://`)
+# para no requerir tener git instalado en la maquina donde se corre esto.
+#
+# Ademas, ese commit tiene un bug menor propio (falta `import
+# importlib.util` en pysnmp/smi/builder.py, rompe con "AttributeError:
+# module 'importlib' has no attribute 'util'" en Python 3.13+). Aplicar el
+# parche manual documentado en docs/agent.md despues de instalar. Revisar
+# periodicamente si ya salio una version oficial en PyPI que incluya el
+# fix, para dejar de depender del commit.
+#
+# Fijar pyasn1 a una version anterior a 0.5: pysnmp resuelve por defecto
+# una version mas nueva que ya no trae el submodulo pyasn1.compat que este
+# commit todavia importa (pysnmp/entity/config.py hace
+# "from pyasn1.compat.octets import null"), y falla con
+# "ModuleNotFoundError: No module named 'pyasn1.compat'".
+pyasn1<0.5.0
+pyasn1-modules<0.3.0

@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-"""Agente SNMPv3 minimo del middleware NTCIP de la RSU (prototipo de tesis).
+"""Agente SNMPv3 minimo de la RSU (prototipo de tesis).
 
-*** OBJETO DE PRUEBA - NO ES LA IMPLEMENTACION FINAL DE LA MIB NTCIP 1202/1211 ***
+*** OBJETO DE PRUEBA - GENERICO, SIN MIB ESTANDARIZADA TODAVIA ***
 El OID expuesto aqui (1.3.6.1.4.1.99999.1.1.0, bajo un numero de empresa NO
 registrado) es un entero FICTICIO que solo imita, para validar la pila SNMPv3
 (USM: autenticacion SHA-1 + privacidad AES-128), la idea de un objeto de
-estado agregado de fases tipo "phaseStatusCurrentGroup" de un controlador de
-senal NTCIP 1202. No tiene la semantica real (bitmask de rojo/ambar/verde por
-grupo de 8 fases, definida en phaseStatusGroupReds/Yellows/Greens) ni respeta
-el caracter de solo-lectura de esos objetos en el estandar real -- aqui es
-de lectura/escritura a proposito, para poder probar snmpget y snmpset.
+estado agregado de fases de un controlador de senal de transito. No tiene la
+semantica real de un estandar de MIB de transito (bitmask de rojo/ambar/verde
+por grupo de fases) ni respeta el caracter de solo-lectura que tendria un
+objeto asi en un estandar real -- aqui es de lectura/escritura a proposito,
+para poder probar snmpget y snmpset.
 
-Cuando se implemente la MIB 1202/1211 real, este agente debe reemplazarse por
-objetos definidos a partir de las MIB instaladas en /usr/share/snmp/mibs/
-(NTCIP1202-v03.mib, NTCIP1211-v02-PRS-MIB1.mib, NTCIP1211-v02-CO-MIB1.mib).
+Cuando se agregue una MIB estandarizada real, este agente debe reemplazarse
+por objetos definidos a partir de las MIB correspondientes (ver CLAUDE.md
+para el detalle de cuales y donde se instalan).
 
 Seguridad: USM (SNMPv3) con SHA-1/AES-128 es un PUNTO DE PARTIDA de
 laboratorio. La migracion planeada para produccion es a TLSTM (Transport
-Security Model sobre TLS/DTLS, RFC 6353), conforme a NTCIP 1102. Las claves
-de abajo son de laboratorio unicamente y no deben usarse fuera de el.
+Security Model sobre TLS/DTLS, RFC 6353). Las claves de abajo son de
+laboratorio unicamente y no deben usarse fuera de el.
 
 Nota de dependencia: requiere una build de pysnmp posterior al fix de
 https://github.com/pysnmp/pysnmp/pull/98 (combinaciones USM SHA+AES128 rotas
@@ -113,7 +113,7 @@ def build_agent() -> engine.SnmpEngine:
 def main() -> None:
     snmp_engine = build_agent()
     oid_str = ".".join(str(n) for n in TEST_SCALAR_OID) + ".0"
-    print(f"Agente SNMPv3 de prueba (RSU/NTCIP) escuchando en "
+    print(f"Agente SNMPv3 de prueba (RSU) escuchando en "
           f"{LISTEN_ADDRESS[0]}:{LISTEN_ADDRESS[1]}")
     print(f"Usuario USM: {USER_NAME} (auth SHA-1 / priv AES-128)")
     print(f"OID de prueba (ficticio, ver cabecera del modulo): {oid_str}")
