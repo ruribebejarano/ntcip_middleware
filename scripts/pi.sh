@@ -122,16 +122,22 @@ case "$cmd" in
 
   clock)
     HOST="${2:-$DEFAULT_HOST}"
-    echo "==> Offset de chrony en $HOST (RSU):"
-    ssh "$HOST" "chronyc tracking | grep -E 'System time|Last offset|Reference ID'" \
+    REF="time.cloudflare.com"  # misma referencia que scripts/chrony/rsu-lab.conf
+    echo "==> Offset de la Pi ($HOST) contra $REF (vía chronyc sources, no solo la mejor fuente):"
+    ssh "$HOST" "chronyc sources -v | grep -E '$REF|MS Name'" \
       || echo "    chrony no responde en $HOST (¿está instalado y corriendo?)."
-    echo "==> Hora de la laptop (Windows, referencia w32tm):"
+    echo "==> Offset de la laptop (Windows) contra $REF:"
     if command -v w32tm >/dev/null 2>&1; then
-      w32tm /stripchart /computer:time.windows.com /samples:1 /dataonly
+      # MSYS2_ARG_CONV_EXCL evita que Git Bash reescriba "/stripchart" etc.
+      # como una ruta de archivo (bug conocido de MSYS2 con flags estilo "/x").
+      MSYS2_ARG_CONV_EXCL="*" w32tm /stripchart /computer:"$REF" /samples:3 /dataonly
     else
       echo "    Correr en PowerShell (este shell no tiene w32tm en el PATH):"
-      echo "    w32tm /stripchart /computer:time.windows.com /samples:1 /dataonly"
+      echo "    w32tm /stripchart /computer:$REF /samples:3 /dataonly"
     fi
+    echo "==> Nota: si el servicio 'Windows Time' (w32time) no está corriendo en la"
+    echo "    laptop, su reloj no se autocorrige y este offset puede crecer con el"
+    echo "    tiempo. Verificar con: w32tm /query /status"
     ;;
 
   *)
