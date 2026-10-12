@@ -32,3 +32,11 @@ credentials.json
 CLAUDE.md
 CLAUDE.local.md
 .claude/
+
+# resultados/: solo se versionan corridas curadas y documentadas
+# (resultados/<escenario>/<AAAA-MM-DD_HHMM>/, ver resultados/LEEME.md).
+# Estos son directorios de trabajo que se regeneran en cada corrida local
+# o de scripts/demo_asesor.sh, no evidencia curada:
+resultados/eventos/
+resultados/rsu/
+resultados/demo_combinado/

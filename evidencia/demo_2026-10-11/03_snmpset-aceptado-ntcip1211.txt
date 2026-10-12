@@ -1,0 +1,22 @@
+$ python3 (construye los 29 bytes OER) + snmpset prgPriorityRequestAbsolute + snmpwalk priorityRequestTable
+(ejecutado en rsu, 2026-10-11 20:16:57)
+
+== Esperando fase segura ('verde' o 'rojo_general') ==
+Fase confirmada: {'fase': 'rojo_general', 'red': True, 'yellow': False, 'green': False, 'prioridad_activa': False, 'prioridad_de': None}
+
+29 bytes OER (hex): 5a616d62756c616e6369612d64656d6f00000101010008000d6acc350a
+  priorityRequestID=90 | vehiculo_id='ambulancia-demo' | clase_tipo=1 (maxima precedencia)
+  clase_nivel=1 | estrategia=1 | t_servicio_deseado=8s | t_salida_estimada=13s
+
+== snmpset prgPriorityRequestAbsolute ==
+iso.3.6.1.4.1.1206.4.2.5.2.8.0 = ""
+
+== snmpwalk (snmpget por columna) priorityRequestTable fila 1 ==
+priorityRequestID: iso.3.6.1.4.1.1206.4.2.5.1.1.1.2.1 = INTEGER: 90
+priorityRequestVehicleID: iso.3.6.1.4.1.1206.4.2.5.1.1.1.3.1 = STRING: "ambulancia-demo"
+priorityRequestVehicleClassType: iso.3.6.1.4.1.1206.4.2.5.1.1.1.4.1 = INTEGER: 1
+priorityRequestStatusInPRS: iso.3.6.1.4.1.1206.4.2.5.1.1.1.9.1 = INTEGER: 4
+
+== consulta directa al controlador (confirma verde forzado) ==
+{'fase': 'verde', 'red': False, 'yellow': False, 'green': True, 'prioridad_activa': True, 'prioridad_de': 'ambulancia-demo'}
+(prioridad liberada a mano para dejar el banco limpio: {'fase': 'rojo_general', 'red': True, 'yellow': False, 'green': False, 'prioridad_activa': False, 'prioridad_de': None} )

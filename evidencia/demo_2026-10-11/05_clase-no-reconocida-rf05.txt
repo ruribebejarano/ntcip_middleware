@@ -1,0 +1,7 @@
+$ snmpset prgPriorityRequestAbsolute con priorityRequestVehicleClassType=5 (no reconocida)
+(ejecutado en rsu, 2026-10-11 20:17:11)
+
+priorityRequestVehicleClassType=5 (CLASES_EMERGENCIA_RECONOCIDAS={1})
+Error in packet.
+Reason: wrongValue (The set value is illegal or unsupported in some way)
+Failed object: iso.3.6.1.4.1.1206.4.2.5.2.8.0

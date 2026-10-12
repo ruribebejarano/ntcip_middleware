@@ -1,0 +1,22 @@
+$ .venv/Scripts/python.exe gateway/obu_simulator.py --broker-host 192.168.18.175 --vehiculo-id ambulancia-demo-v2i --eta-seg 8 --clase-tipo 1
+(ejecutado en la laptop, 2026-10-11 20:17:18)
+
+Solicitud de prioridad publicada en 'rsu/v2i/solicitud_prioridad' (192.168.18.175:1883): {"id_solicitud": "ambulancia-demo-v2i-20c945ab", "vehiculo_id": "ambulancia-demo-v2i", "eta_seg": 8.0, "clase_tipo": 1}
+id_solicitud=ambulancia-demo-v2i-20c945ab (evento M1_tx registrado en resultados\eventos\eventos_obu.csv)
+Esperando ~6 s para que el controlador reaccione (incluye el caso de llegar en despeje)...
+
+$ scripts/pi.sh fetch
+==> Copiando resultados/ de rsu a resultados/rsu/
+
+$ python scripts/analisis/latencia_tramos.py --dir resultados/demo_combinado
+1 solicitud(es) con los 4 eventos completos (M1_tx, M1_rx, snmp_set_tx, ctrl_fase_cambio); 17 descartada(s) por eventos incompletos.
+Resultado: resultados\demo_combinado\latencia_tramos.csv
+
+id_solicitud                      t_V2I      t_RSU    t_NTCIP    L_aprox  (ms)
+ambulancia-demo-v2i-20c945ab     -18.42       0.79       0.43     -17.20
+
+Recordatorio: L_aprox excluye t_adq y no separa t_OBU; es una cota inferior de L (RNF-01), no la medicion final -- ver el docstring de este script.
+
+== resultados/demo_combinado/latencia_tramos.csv ==
+id_solicitud,t_V2I_aprox_ms,t_RSU_aprox_ms,t_NTCIP_aprox_ms,L_aprox_ms
+ambulancia-demo-v2i-20c945ab,-18.424216,0.794283,0.425707,-17.204226

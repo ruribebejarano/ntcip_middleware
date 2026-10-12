@@ -1,0 +1,48 @@
+$ scripts/check_pi.sh
+==> Probando SSH contra el alias 'rsu' (ver ~/.ssh/config)
+    OK: la Pi responde por SSH.
+==> Estado del repo en la Pi (~/ntcip_middleware)
+## master...origin/master
+?? resultados/eventos/
+==> Entorno virtual (~/rsu-env)
+    OK: ~/rsu-env existe.
+==> Listo.
+
+$ scripts/pi.sh status agent
+● rsu-agent.service - RSU - Middleware NTCIP (agente SNMPv3 + enlace V2I) (prototipo de tesis)
+     Loaded: loaded (/etc/systemd/system/rsu-agent.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-11 19:48:20 -05; 28min ago
+ Invocation: 38ed493df66844289a27ede8a9cdc02d
+   Main PID: 3894 (python3)
+      Tasks: 3 (limit: 4810)
+
+$ scripts/pi.sh status controller
+● rsu-controller.service - RSU - Emulador del controlador de transito (prototipo de tesis)
+     Loaded: loaded (/etc/systemd/system/rsu-controller.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-11 19:48:20 -05; 28min ago
+ Invocation: 8dd95f8ac5ef4bfbb3329844b26cfd12
+   Main PID: 3879 (python3)
+      Tasks: 1 (limit: 4810)
+
+$ scripts/pi.sh status mosquitto
+● mosquitto.service - Mosquitto MQTT Broker
+     Loaded: loaded (/usr/lib/systemd/system/mosquitto.service; enabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-11 08:27:12 -05; 11h ago
+ Invocation: 9d14a533ba9b4aa299be9b9c9b34e6d8
+       Docs: man:mosquitto.conf(5)
+             man:mosquitto(8)
+
+$ scripts/pi.sh clock
+==> Offset de la Pi (rsu) contra time.cloudflare.com (vía chronyc sources, no solo la mejor fuente):
+MS Name/IP address         Stratum Poll Reach LastRx Last sample               
+^* time.cloudflare.com           3  10   377   894  +2624us[+2494us] +/-   51ms
+==> Offset de la laptop (Windows) contra time.cloudflare.com:
+Seguimiento time.cloudflare.com [162.159.200.1:123].
+Recopilando 3 muestras.
+La hora actual es 11/10/2026 20:16:24.
+20:16:24, +00.0277461s
+20:16:26, +00.0273639s
+20:16:28, +00.0239017s
+==> Nota: si el servicio 'Windows Time' (w32time) no está corriendo en la
+    laptop, su reloj no se autocorrige y este offset puede crecer con el
+    tiempo. Verificar con: w32tm /query /status

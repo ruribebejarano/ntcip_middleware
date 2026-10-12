@@ -1,0 +1,27 @@
+$ snmpset (fase segura, sin refrescar) + journalctl -u rsu-agent -u rsu-controller (línea de tiempo)
+(ejecutado en rsu, 2026-10-11 20:17:12)
+
+Fase confirmada: {'fase': 'rojo_general', 'red': True, 'yellow': False, 'green': False, 'prioridad_activa': False, 'prioridad_de': None}
+
+== snmpset prgPriorityRequestAbsolute (no se vuelve a refrescar) ==
+iso.3.6.1.4.1.1206.4.2.5.2.8.0 = ""
+Esperando ~4 s para que caduque el TTL de RNF-03 (3s)...
+{'fase': 'rojo_general', 'red': True, 'yellow': False, 'green': False, 'prioridad_activa': False, 'prioridad_de': None}
+
+== journalctl -u rsu-agent -u rsu-controller --since '-10 seconds' --no-pager ==
+Oct 11 20:17:08 ricardoub python3[3879]: [controlador] Fase -> amarillo (ciclo_normal)
+Oct 11 20:17:08 ricardoub python3[3894]: [middleware] Solicitud de 'ambulancia-rf06d' en cola (readyQueued): fase actual 'amarillo' en despeje (RF-06); se activa al terminar, si sigue vigente (TTL=3s)
+Oct 11 20:17:09 ricardoub python3[3879]: [controlador] Fase -> todo_rojo (ciclo_normal)
+Oct 11 20:17:10 ricardoub python3[3879]: [controlador] Fase -> rojo_general (ciclo_normal)
+Oct 11 20:17:10 ricardoub python3[3894]: [middleware] Fin del despeje: se activa la solicitud en cola 'ambulancia-rf06d' (RF-06) -> reenviando al controlador
+Oct 11 20:17:10 ricardoub python3[3879]: [controlador] Fase -> verde (solicitud_prioridad)
+Oct 11 20:17:10 ricardoub python3[3879]: [controlador] Prioridad solicitada por 'ambulancia-rf06d' (ETA 8s) -> fase forzada a verde por 15s
+Oct 11 20:17:11 ricardoub python3[3879]: [controlador] Fase -> rojo_general (liberacion_manual)
+Oct 11 20:17:11 ricardoub python3[3879]: [controlador] Prioridad liberada manualmente, vuelve al ciclo normal
+Oct 11 20:17:11 ricardoub python3[3879]: [controlador] Tiempos actualizados: verde=8s amarillo=3.0s todo_rojo=1.0s rojo_general=8s
+Oct 11 20:17:11 ricardoub python3[3879]: [controlador] Tiempos actualizados: verde=8s amarillo=3.0s todo_rojo=2.0s rojo_general=8s
+Oct 11 20:17:13 ricardoub python3[3879]: [controlador] Fase -> verde (solicitud_prioridad)
+Oct 11 20:17:13 ricardoub python3[3879]: [controlador] Prioridad solicitada por 'ambulancia-ttl' (ETA 8s) -> fase forzada a verde por 15s
+Oct 11 20:17:16 ricardoub python3[3894]: [middleware] Solicitud caducada por falta de actualizacion (RF-09, T_cad=3s, estaba_en_cola=False) -> liberando prioridad
+Oct 11 20:17:16 ricardoub python3[3879]: [controlador] Fase -> rojo_general (liberacion_manual)
+Oct 11 20:17:16 ricardoub python3[3879]: [controlador] Prioridad liberada manualmente, vuelve al ciclo normal
