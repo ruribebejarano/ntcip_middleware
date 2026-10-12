@@ -92,6 +92,7 @@ from common.events import (  # noqa: E402
 )
 from agent.ntcip1211 import (  # noqa: E402
     ACTIVE_PROCESSING,
+    READY_QUEUED,
     T_CAD_SEGUNDOS,
     ErrorLongitud,
     ErrorRangoCampo,
@@ -190,6 +191,16 @@ EVENTOS = EventLogger(f"rsu_{RSU_ID}")
 PRS = PriorityRequestServer()
 PRS_LOCK = threading.Lock()
 
+# agent/ntcip1211.py es logica NTCIP pura (sin nocion de common/events.py):
+# su _FilaPRS.id_solicitud es el priorityRequestID numerico (1..255, ver
+# _id_numerico_para abajo), no el id_solicitud de M1/eventos (string). Para
+# que el watchdog pueda loguear la activacion tardia de una fila en cola
+# (RF-06) con el MISMO id de evento que uso el SET/mensaje original (y asi
+# scripts/analisis/latencia_tramos.py pueda cruzarlos), se guarda aqui el
+# ultimo id de evento visto para la fila 1 -- protegido por PRS_LOCK, igual
+# que la propia fila.
+_ULTIMO_ID_EVENTO = ""
+
 # priorityRequestID es un entero 1..255 (NTCIP), pero nuestro id_solicitud
 # de V2I es un string (ver common/events.py). Se asigna un numero por
 # vehiculo_id la primera vez que se ve, y se reutiliza en mensajes
@@ -224,6 +235,24 @@ def controller_request(payload: dict, timeout: float = 2.0) -> dict:
     return json.loads(buf.decode("utf-8"))
 
 
+def _reenviar_request_priority(
+    vehiculo_id: bytes, t_servicio_deseado: int, id_solicitud_evento: str
+) -> None:
+    """Un unico punto para el SNMP SET/M1 "cmd": "request_priority" hacia el
+    controlador, reusado tanto por una activacion inmediata (fase ya segura)
+    como por la activacion tardia de una fila que esperaba en readyQueued
+    (ver verificar_caducidad_periodica)."""
+    try:
+        controller_request({
+            "cmd": "request_priority",
+            "vehiculo_id": vehiculo_id.decode("utf-8", errors="replace"),
+            "eta_seg": t_servicio_deseado,
+            "id_solicitud": id_solicitud_evento,
+        })
+    except OSError as exc:
+        print(f"[middleware] No se pudo reenviar la solicitud al controlador: {exc}")
+
+
 def procesar_solicitud_prioridad(
     s: SolicitudPrioridadAbsoluta, id_solicitud_evento: str, origen: str
 ) -> None:
@@ -231,13 +260,20 @@ def procesar_solicitud_prioridad(
     y por el mensaje V2I MQTT: aplica RF-05/RF-06 (agent/ntcip1211.py) antes
     de reenviar al controlador. `id_solicitud_evento` es el id de
     common/events.py (string); `origen` es "snmp" o "v2i", para el registro
-    de eventos. Levanta SolicitudRechazada si RF-05/RF-06 no se cumplen --
-    el llamador decide que hacer con eso (error SNMP, o solo loguear si
-    viene de MQTT, que no tiene un canal de respuesta sincrono hacia la OBU
-    todavia, ver TODO en _on_mqtt_message)."""
+    de eventos. Levanta SolicitudRechazada solo si RF-05 (clase no
+    reconocida) no se cumple -- el llamador decide que hacer con eso (error
+    SNMP, o solo loguear si viene de MQTT, que no tiene un canal de
+    respuesta sincrono hacia la OBU todavia, ver TODO en _on_mqtt_message).
+    RF-06 (limite operacional) ya NO rechaza: si el controlador esta en
+    amarillo/todo_rojo, la fila queda en readyQueued (agent/ntcip1211.py) y
+    NO se reenvia al controlador todavia -- lo hace el watchdog
+    (verificar_caducidad_periodica) cuando termine el despeje, siempre que
+    la solicitud siga vigente (TTL de RF-09)."""
+    global _ULTIMO_ID_EVENTO
     with PRS_LOCK:
         if PRS.refrescar(s.id_solicitud):
-            return  # ya habia una solicitud activa con este id: solo renovar el plazo (RF-09)
+            _ULTIMO_ID_EVENTO = id_solicitud_evento
+            return  # ya habia una solicitud activa o en cola con este id: solo renovar el plazo (RF-09)
 
         try:
             status = controller_request({"cmd": "get_status"})
@@ -247,37 +283,73 @@ def procesar_solicitud_prioridad(
                 "controlador_no_disponible", f"no se pudo consultar al controlador: {exc}"
             )
 
-        PRS.aceptar_solicitud(s, fase_actual=fase_actual)
+        fila = PRS.aceptar_solicitud(s, fase_actual=fase_actual)
+        _ULTIMO_ID_EVENTO = id_solicitud_evento
+
+    if fila.estado == READY_QUEUED:
+        print(f"[middleware] Solicitud de '{s.vehiculo_id.decode('utf-8', errors='replace')}' "
+              f"en cola (readyQueued): fase actual '{fase_actual}' en despeje "
+              f"(RF-06); se activa al terminar, si sigue vigente (TTL={T_CAD_SEGUNDOS:.0f}s)")
+        EVENTOS.log(EVT_SNMP_SET_TX, id_solicitud_evento, origen=origen,
+                    accion="en_cola_despeje", fase=fase_actual)
+        return  # no se reenvia al controlador todavia -- ver verificar_caducidad_periodica
 
     EVENTOS.log(EVT_SNMP_SET_TX, id_solicitud_evento, origen=origen, accion="request_priority")
-    try:
-        controller_request({
-            "cmd": "request_priority",
-            "vehiculo_id": s.vehiculo_id.decode("utf-8", errors="replace"),
-            "eta_seg": s.t_servicio_deseado,
-            "id_solicitud": id_solicitud_evento,
-        })
-    except OSError as exc:
-        print(f"[middleware] No se pudo reenviar la solicitud al controlador: {exc}")
+    _reenviar_request_priority(s.vehiculo_id, s.t_servicio_deseado, id_solicitud_evento)
 
 
 def verificar_caducidad_periodica() -> None:
     """Hilo en segundo plano (RF-09/RNF-03): corre mientras el proceso este
-    vivo, revisa cada medio segundo si la solicitud activa lleva mas de
-    T_CAD_SEGUNDOS sin actualizarse y, si es asi, libera la prioridad en el
-    controlador."""
+    vivo, revisa cada medio segundo:
+
+    1. Si la solicitud activa -- o en cola (readyQueued, RF-06) -- lleva
+       mas de T_CAD_SEGUNDOS sin actualizarse: caduca, y si estaba activa
+       (ya forzando verde en el controlador) se le avisa que libere.
+    2. Si no caduco y hay una fila en readyQueued, consulta la fase actual
+       del controlador: si el despeje ya termino, la activa (RF-06) y
+       recien ahi reenvia el "request_priority" que se habia pospuesto en
+       procesar_solicitud_prioridad."""
     while True:
         time.sleep(0.5)
         with PRS_LOCK:
+            fila_antes = PRS.fila(1)
+            estaba_en_cola = fila_antes.estado == READY_QUEUED
+            id_evento_fila = _ULTIMO_ID_EVENTO
             caduco_ahora = PRS.verificar_caducidad()
+            fila_activada = None
+            if not caduco_ahora and estaba_en_cola:
+                try:
+                    status = controller_request({"cmd": "get_status"})
+                    fase_actual = status.get("fase", "?")
+                except OSError as exc:
+                    print(f"[middleware] No se pudo consultar al controlador para la cola RF-06: {exc}")
+                    fase_actual = None
+                if fase_actual is not None:
+                    fila_activada = PRS.intentar_activar_cola(fase_actual)
+                    if fila_activada is not None:
+                        vehiculo_id = fila_activada.vehiculo_id
+                        t_servicio_deseado = fila_activada.t_servicio_deseado
+
         if caduco_ahora:
+            motivo = "rnf03_sin_actualizacion_en_cola" if estaba_en_cola else "rnf03_sin_actualizacion"
             print(f"[middleware] Solicitud caducada por falta de actualizacion "
-                  f"(RF-09, T_cad={T_CAD_SEGUNDOS:.0f}s) -> liberando prioridad")
-            EVENTOS.log(EVT_CADUCIDAD, "-", motivo="rnf03_sin_actualizacion")
-            try:
-                controller_request({"cmd": "clear_priority"})
-            except OSError as exc:
-                print(f"[middleware] No se pudo avisar la caducidad al controlador: {exc}")
+                  f"(RF-09, T_cad={T_CAD_SEGUNDOS:.0f}s, estaba_en_cola={estaba_en_cola}) "
+                  f"-> liberando prioridad")
+            EVENTOS.log(EVT_CADUCIDAD, id_evento_fila, motivo=motivo)
+            if not estaba_en_cola:
+                # Si estaba en cola nunca se forzo verde en el controlador
+                # (RF-06 pospuso el reenvio): no hace falta avisarle que
+                # libere algo que nunca le llego a pedir.
+                try:
+                    controller_request({"cmd": "clear_priority"})
+                except OSError as exc:
+                    print(f"[middleware] No se pudo avisar la caducidad al controlador: {exc}")
+        elif fila_activada is not None:
+            print(f"[middleware] Fin del despeje: se activa la solicitud en cola "
+                  f"'{vehiculo_id.decode('utf-8', errors='replace')}' (RF-06) -> reenviando al controlador")
+            EVENTOS.log(EVT_SNMP_SET_TX, id_evento_fila, origen="watchdog",
+                        accion="activar_cola_rf06")
+            _reenviar_request_priority(vehiculo_id, t_servicio_deseado, id_evento_fila)
 
 
 class _ValorConstanteInstance:
@@ -412,6 +484,11 @@ class PrgPriorityRequestAbsoluteInstance:
 
         id_evento = f"snmp-{solicitud.vehiculo_id.decode('utf-8', errors='replace') or 'sin-vehiculo'}"
         try:
+            # Solo RF-05 (clase no reconocida) o el controlador inalcanzable
+            # llegan aqui como SolicitudRechazada: RF-06 ya no rechaza, deja
+            # la fila en readyQueued (ver procesar_solicitud_prioridad) y
+            # el SET se acepta igual -- el resultado se sigue leyendo en
+            # priorityRequestTable, no en la respuesta de este SET.
             procesar_solicitud_prioridad(solicitud, id_evento, origen="snmp")
         except SolicitudRechazada as exc:
             raise smi_error.WrongValueError(idx=idx, name=name, msg=f"{exc.motivo}: {exc}")

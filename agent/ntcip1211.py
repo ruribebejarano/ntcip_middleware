@@ -238,20 +238,20 @@ class PriorityRequestServer:
     def aceptar_solicitud(
         self, s: SolicitudPrioridadAbsoluta, fase_actual: str
     ) -> _FilaPRS:
-        """RF-05 + RF-06: valida clase y limites antes de aceptar. Levanta
-        SolicitudRechazada si no se puede aceptar; no modifica el estado en
-        ese caso."""
+        """RF-05 + RF-06. RF-05 (clase no reconocida) sigue siendo un
+        rechazo duro: levanta SolicitudRechazada y no modifica el estado.
+
+        RF-06 (limite operacional) ya NO rechaza: si el controlador esta en
+        `amarillo` o `todo_rojo` (intervalo de seguridad en curso,
+        restriccion R-02), la solicitud queda en `readyQueued` en vez de
+        `activeProcessing`, a la espera de que termine el despeje. Sigue
+        sujeta al TTL de RF-09/RNF-03 mientras espera -- ver
+        `intentar_activar_cola` y `verificar_caducidad`."""
         if not clase_reconocida(s.clase_tipo):
             raise SolicitudRechazada(
                 "clase_no_reconocida",
                 f"priorityRequestVehicleClassType={s.clase_tipo} no esta en "
                 f"CLASES_EMERGENCIA_RECONOCIDAS={sorted(CLASES_EMERGENCIA_RECONOCIDAS)}",
-            )
-        if not respeta_limites_operacionales(fase_actual):
-            raise SolicitudRechazada(
-                "limite_operacional",
-                f"no se puede forzar una transicion durante la fase '{fase_actual}' "
-                f"(intervalo de seguridad en curso, restriccion R-02)",
             )
 
         f = self._filas[0]
@@ -262,19 +262,34 @@ class PriorityRequestServer:
         f.estrategia = s.estrategia
         f.t_servicio_deseado = s.t_servicio_deseado
         f.t_salida_estimada = s.t_salida_estimada
-        f.estado = ACTIVE_PROCESSING
+        f.estado = ACTIVE_PROCESSING if respeta_limites_operacionales(fase_actual) else READY_QUEUED
         f.t_mensaje = s.t_solicitud or int(time.time())
         f.ultima_actualizacion_monotonic = time.monotonic()
         return f
 
-    def refrescar(self, id_solicitud: int, ahora_monotonic: Optional[float] = None) -> bool:
-        """Marca la fila activa como actualizada ahora (equivalente a un
-        prgPriorityUpdate, o a una actualizacion M1 del mismo id_solicitud
-        por V2I). Devuelve False si no hay una solicitud activa con ese id.
-        `ahora_monotonic` es para pruebas; en uso real se omite y se toma
-        time.monotonic()."""
+    def intentar_activar_cola(self, fase_actual: str) -> Optional[_FilaPRS]:
+        """RF-06: si la fila 1 esta `readyQueued` y la fase actual ya no es
+        un intervalo de seguridad (termino el despeje), la pasa a
+        `activeProcessing` y renueva el TTL (RF-09) desde ese momento.
+        Devuelve la fila si la activo, o None si no habia nada que activar
+        (sigue en despeje, o no hay fila en cola). Pensado para llamarse
+        desde el watchdog periodico, despues de `verificar_caducidad` (una
+        fila que ya caduco en cola no debe reactivarse)."""
         f = self._filas[0]
-        if f.estado == ACTIVE_PROCESSING and f.id_solicitud == id_solicitud:
+        if f.estado == READY_QUEUED and respeta_limites_operacionales(fase_actual):
+            f.estado = ACTIVE_PROCESSING
+            f.ultima_actualizacion_monotonic = time.monotonic()
+            return f
+        return None
+
+    def refrescar(self, id_solicitud: int, ahora_monotonic: Optional[float] = None) -> bool:
+        """Marca la fila activa (o en cola) como actualizada ahora
+        (equivalente a un prgPriorityUpdate, o a una actualizacion M1 del
+        mismo id_solicitud por V2I). Devuelve False si no hay una solicitud
+        activa ni en cola con ese id. `ahora_monotonic` es para pruebas; en
+        uso real se omite y se toma time.monotonic()."""
+        f = self._filas[0]
+        if f.estado in (ACTIVE_PROCESSING, READY_QUEUED) and f.id_solicitud == id_solicitud:
             f.ultima_actualizacion_monotonic = (
                 ahora_monotonic if ahora_monotonic is not None else time.monotonic()
             )
@@ -292,13 +307,17 @@ class PriorityRequestServer:
             f.estado = CLOSED_CANCELED
 
     def verificar_caducidad(self, ahora_monotonic: Optional[float] = None) -> bool:
-        """RF-09 / RNF-03: si la fila activa no se actualizo en los
-        ultimos T_CAD_SEGUNDOS, la marca closedTimeToLiveError. Devuelve
-        True si acaba de caducar en esta llamada (para que el llamador
-        decida si tambien debe avisar al controlador)."""
+        """RF-09 / RNF-03: si la fila activa -- o en cola (`readyQueued`,
+        RF-06 esperando que termine el despeje) -- no se actualizo en los
+        ultimos T_CAD_SEGUNDOS, la marca closedTimeToLiveError. Una
+        solicitud en cola mas tiempo que el TTL sin que termine el despeje
+        caduca igual que una activa sin refrescar: el TTL es "vigencia de
+        la solicitud", no solo "vigencia ya forzando el controlador".
+        Devuelve True si acaba de caducar en esta llamada (para que el
+        llamador decida si tambien debe avisar al controlador)."""
         ahora = ahora_monotonic if ahora_monotonic is not None else time.monotonic()
         f = self._filas[0]
-        if f.estado != ACTIVE_PROCESSING:
+        if f.estado not in (ACTIVE_PROCESSING, READY_QUEUED):
             return False
         if ahora - f.ultima_actualizacion_monotonic > T_CAD_SEGUNDOS:
             f.estado = CLOSED_TIME_TO_LIVE_ERROR

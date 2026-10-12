@@ -1,7 +1,8 @@
 """Tests del subconjunto de NTCIP 1211 (agent/ntcip1211.py): codec OER de
-prgPriorityRequestAbsolute, y los tres casos que pide
-docs/PLAN_IMPLEMENTACION.md P3: RF-06 (limites), RF-09 (caducidad) y
-RF-05 (clase no reconocida).
+prgPriorityRequestAbsolute, y los casos que pide
+docs/PLAN_IMPLEMENTACION.md P3: RF-06 (limites, ahora cola+activacion
+automatica en vez de rechazo), RF-09 (caducidad, incluida la de una
+solicitud en cola) y RF-05 (clase no reconocida).
 
 Correr con: python -m pytest tests/test_ntcip1211.py -v
 (o python -m unittest tests.test_ntcip1211 si no hay pytest instalado).
@@ -15,6 +16,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from agent.ntcip1211 import (  # noqa: E402
+    ACTIVE_PROCESSING,
+    CLOSED_TIME_TO_LIVE_ERROR,
+    READY_QUEUED,
     TAMANO_BYTES,
     ErrorLongitud,
     ErrorRangoCampo,
@@ -118,24 +122,48 @@ class TestRF05ClaseNoReconocida(unittest.TestCase):
 
 
 class TestRF06LimitesOperacionales(unittest.TestCase):
-    def test_se_rechaza_durante_amarillo(self):
+    def test_se_encola_durante_amarillo(self):
         prs = PriorityRequestServer()
-        with self.assertRaises(SolicitudRechazada) as ctx:
-            prs.aceptar_solicitud(_solicitud_valida(), fase_actual="amarillo")
-        self.assertEqual(ctx.exception.motivo, "limite_operacional")
+        fila = prs.aceptar_solicitud(_solicitud_valida(), fase_actual="amarillo")
+        self.assertEqual(fila.estado, READY_QUEUED)
 
-    def test_se_rechaza_durante_todo_rojo(self):
+    def test_se_encola_durante_todo_rojo(self):
         prs = PriorityRequestServer()
-        with self.assertRaises(SolicitudRechazada) as ctx:
-            prs.aceptar_solicitud(_solicitud_valida(), fase_actual="todo_rojo")
-        self.assertEqual(ctx.exception.motivo, "limite_operacional")
+        fila = prs.aceptar_solicitud(_solicitud_valida(), fase_actual="todo_rojo")
+        self.assertEqual(fila.estado, READY_QUEUED)
 
     def test_se_acepta_durante_verde_o_rojo_general(self):
         prs = PriorityRequestServer()
-        prs.aceptar_solicitud(_solicitud_valida(), fase_actual="verde")
+        fila = prs.aceptar_solicitud(_solicitud_valida(), fase_actual="verde")
+        self.assertEqual(fila.estado, ACTIVE_PROCESSING)
         prs.completar()
         prs2 = PriorityRequestServer()
-        prs2.aceptar_solicitud(_solicitud_valida(), fase_actual="rojo_general")
+        fila2 = prs2.aceptar_solicitud(_solicitud_valida(), fase_actual="rojo_general")
+        self.assertEqual(fila2.estado, ACTIVE_PROCESSING)
+
+    def test_se_activa_al_terminar_el_despeje_dentro_del_ttl(self):
+        prs = PriorityRequestServer()
+        fila = prs.aceptar_solicitud(_solicitud_valida(), fase_actual="amarillo")
+        self.assertEqual(fila.estado, READY_QUEUED)
+        # Todavia en despeje: no hay nada que activar.
+        self.assertIsNone(prs.intentar_activar_cola(fase_actual="todo_rojo"))
+        self.assertEqual(fila.estado, READY_QUEUED)
+        # Termina el despeje (vuelve a verde), todavia dentro del TTL de 3s.
+        activada = prs.intentar_activar_cola(fase_actual="verde")
+        self.assertIsNotNone(activada)
+        self.assertEqual(activada.estado, ACTIVE_PROCESSING)
+        self.assertEqual(activada.id_solicitud, fila.id_solicitud)
+
+    def test_caduca_en_cola_si_el_despeje_tarda_mas_que_el_ttl(self):
+        prs = PriorityRequestServer()
+        fila = prs.aceptar_solicitud(_solicitud_valida(), fase_actual="amarillo")
+        t0 = fila.ultima_actualizacion_monotonic
+        # Sigue en despeje, y ya paso el TTL sin que se active: caduca.
+        self.assertTrue(prs.verificar_caducidad(ahora_monotonic=t0 + 3.5))
+        self.assertEqual(fila.estado, CLOSED_TIME_TO_LIVE_ERROR)
+        # Una vez caducada, aunque termine el despeje ya no se activa.
+        self.assertIsNone(prs.intentar_activar_cola(fase_actual="verde"))
+        self.assertEqual(fila.estado, CLOSED_TIME_TO_LIVE_ERROR)
 
 
 class TestRF09Caducidad(unittest.TestCase):
