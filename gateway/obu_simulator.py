@@ -47,6 +47,12 @@ def main() -> None:
     parser.add_argument("--vehiculo-id", required=True, help="Identificador del vehiculo, ej. ambulancia-1")
     parser.add_argument("--eta-seg", type=float, required=True, help="Tiempo estimado de llegada, en segundos")
     parser.add_argument(
+        "--clase-tipo", type=int, default=1,
+        help="priorityRequestVehicleClassType de NTCIP 1211 (1-10, 1=maxima precedencia). "
+             "Default 1 (reconocido como emergencia, ver RF-05 y agent/ntcip1211.py). "
+             "Usar un valor fuera de CLASES_EMERGENCIA_RECONOCIDAS para probar el rechazo.",
+    )
+    parser.add_argument(
         "--obu-id",
         default="obu",
         help="Nodo para el registro de eventos (default: 'obu'). Usar un valor "
@@ -66,6 +72,7 @@ def main() -> None:
         "id_solicitud": id_solicitud,
         "vehiculo_id": args.vehiculo_id,
         "eta_seg": args.eta_seg,
+        "clase_tipo": args.clase_tipo,
     })
     info = client.publish(TOPIC, payload, qos=1)
     info.wait_for_publish(timeout=5)
@@ -74,6 +81,7 @@ def main() -> None:
         id_solicitud,
         vehiculo_id=args.vehiculo_id,
         eta_seg=args.eta_seg,
+        clase_tipo=args.clase_tipo,
         broker_host=args.broker_host,
         broker_port=args.broker_port,
         topic=TOPIC,
