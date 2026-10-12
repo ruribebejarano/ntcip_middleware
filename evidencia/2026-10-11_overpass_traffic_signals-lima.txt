@@ -1,0 +1,84 @@
+Consulta a la Overpass API (OpenStreetMap) para contrastar la cifra de
+1,646 intersecciones semaforizadas de Lima citada en main.tex
+(\cite{MML_GMU_Controlador2025}, sec. "Fragmentación tecnológica...") con
+el numero de nodos highway=traffic_signals de OSM en un bbox aproximado de
+Lima Metropolitana.
+
+== Consulta (Overpass QL) ==
+[out:json][timeout:50];
+node["highway"="traffic_signals"](-12.30,-77.20,-11.75,-76.80);
+out count;
+
+bbox = (sur, oeste, norte, este) = (-12.30, -77.20, -11.75, -76.80)
+(bbox aproximado solicitado; cubre Lima Metropolitana y alrededores, no
+coincide exactamente con el limite administrativo de la MML -- ver nota
+mas abajo).
+
+== Endpoint ==
+POST/GET https://overpass-api.de/api/interpreter
+
+== Nota de metodo ==
+El `curl` local a overpass-api.de devolvio sistematicamente HTTP 406 (Not
+Acceptable) de Apache, incluso para un simple GET a /api/status -- parece
+un problema de la red/inspeccion TLS de esta maquina, no de la consulta
+(en un intento la conexion SI paso y Overpass respondio con un 504 "server
+probably too busy", confirmando que el servidor en si funciona). La
+consulta se resolvio entonces a traves de la herramienta de fetch del
+agente (que usa una ruta de red distinta), dos veces, con el mismo
+resultado ambas veces.
+
+== Resultado (JSON, Overpass API 0.7.62.11, timestamp_osm_base
+   2026-10-12T01:41:34Z) ==
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-10-12T01:41:34Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+    {
+      "type": "count",
+      "id": 0,
+      "tags": {
+        "nodes": "3758",
+        "ways": "0",
+        "relations": "0",
+        "total": "3758"
+      }
+    }
+  ]
+}
+
+== Comparacion ==
+OSM (bbox aproximado, highway=traffic_signals): 3,758 nodos
+MML (inventario oficial, intersecciones semaforizadas de la ciudad):
+  1,646 intersecciones (\cite{MML_GMU_Controlador2025})
+
+OSM reporta ~2.28x la cifra de la MML (3,758 / 1,646 ~ 2.28).
+
+== Lectura (hipotesis, no verificadas con datos adicionales) ==
+Las dos cifras NO son directamente comparables sin matices; posibles
+causas de la diferencia (ninguna confirmada con datos propios, solo
+hipotesis razonables dada la naturaleza de cada fuente):
+1. Convencion de etiquetado de OSM: es comun que un mismo cruce
+   semaforizado tenga VARIOS nodos highway=traffic_signals (uno por
+   aproximacion/cruce peatonal), mientras que el inventario de la MML
+   cuenta INTERSECCIONES (una unidad por cruce, no por poste/aproximacion).
+   Esto por si solo podria explicar gran parte de la diferencia.
+2. El bbox usado es un rectangulo que cubre un area mayor que el limite
+   administrativo exacto de la MML -- probablemente incluye el Callao y
+   distritos de otras provincias colindantes con Lima Metropolitana,
+   sumando semaforos que no pertenecen al inventario de la MML.
+3. OSM es un dataset colaborativo: puede tener nodos duplicados,
+   desactualizados, o semaforos peatonales/ferroviarios mal etiquetados
+   como highway=traffic_signals.
+4. El inventario de la MML (\cite{MML_GMU_Controlador2025}) podria no
+   cubrir vias bajo otras jurisdicciones (p. ej. vias nacionales no
+   administradas por la MML) que si aparecen en OSM.
+
+No se investigo cual de estas explicaciones predomina -- queda como
+pendiente si se decide usar esta comparacion en la tesis (p. ej. como
+evidencia adicional de la dificultad de obtener un inventario fiable y
+unico de la infraestructura semaforica de Lima, tema ya presente en
+ssec:problema / la fragmentacion tecnologica).
