@@ -1,0 +1,44 @@
+RF-06 reescrito (este commit): una solicitud que llega durante el despeje
+("amarillo") ya NO se rechaza -- queda en readyQueued (2) en
+priorityRequestTable, a la espera de que termine el despeje. El SET mismo
+se acepta (no hay error SNMP); el resultado se sigue leyendo despues en la
+tabla, no en la respuesta del SET.
+
+Para esta captura se acorto temporalmente phaseYellowChange/phaseRedClear
+(3.0s/2.0s -> 1.0s/1.0s, via SNMP, objetos RW ya existentes de NTCIP 1202)
+para que el despeje total quede por debajo del TTL de 3s y asi poder
+mostrar tambien la activacion automatica en la misma ventana corta de
+'amarillo' real del banco -- ver 2026-10-11_watchdog_rf06-timeline.txt para
+esa segunda parte. Se restauraron los valores originales (30/20 decimas)
+al terminar.
+
+$ ssh rsu
+$ source ~/rsu-env/bin/activate && cd ~/ntcip_middleware
+
+== Esperando fase 'amarillo' del controlador ==
+Fase confirmada: {'fase': 'amarillo', 'red': False, 'yellow': True, 'green': False, 'prioridad_activa': False, 'prioridad_de': None}
+
+== snmpset prgPriorityRequestAbsolute (clase 1, valido) durante 'amarillo' ==
+$ snmpset -v3 -u rsuLabUser -l authPriv -a SHA -A labAuthPass123 \
+          -x AES -X labPrivPass123 -n "" 127.0.0.1:1161 \
+          1.3.6.1.4.1.1206.4.2.5.2.8.0 x <29 bytes OER, vehiculo_id="ambulancia-rf06q">
+iso.3.6.1.4.1.1206.4.2.5.2.8.0 = ""
+(SET aceptado -- ya NO hay wrongValue por RF-06, a diferencia de la
+evidencia de P3 antes de este cambio)
+
+== snmpwalk priorityRequestTable fila 1 (inmediatamente despues) ==
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.1.1  = INTEGER: 1                   (priorityRequestEntryNumber)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.2.1  = INTEGER: 50                  (priorityRequestID)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.3.1  = STRING: "ambulancia-rf06q"   (priorityRequestVehicleID)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.4.1  = INTEGER: 1                   (priorityRequestVehicleClassType)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.5.1  = INTEGER: 1                   (priorityRequestVehicleClassLevel)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.6.1  = INTEGER: 1                   (priorityRequestServiceStrategyNumber)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.7.1  = INTEGER: 8                   (priorityRequestTimeOfServiceDesired)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.8.1  = INTEGER: 13                  (priorityRequestTimeOfEstimatedDeparture)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.9.1  = INTEGER: 2                   (priorityRequestStatusInPRS = readyQueued)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.10.1 = INTEGER: 1791766257          (priorityRequestTimeOfMessage, epoch)
+(filas 2-10 en blanco/idleNotValid, como en toda la implementacion: una
+sola solicitud activa a la vez, ver ssec:alcance)
+
+Confirmado: priorityRequestStatusInPRS.1 = 2 = readyQueued (y no un error
+SNMP) mientras el controlador sigue en 'amarillo'.

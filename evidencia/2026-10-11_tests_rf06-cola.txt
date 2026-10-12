@@ -1,0 +1,27 @@
+$ .venv/Scripts/python.exe -m unittest tests.test_ntcip1211 -v
+(RF-06 reescrito: en amarillo/todo_rojo la solicitud queda en readyQueued
+ y se activa sola al terminar el despeje, dentro del TTL de 3s)
+
+test_ida_y_vuelta (tests.test_ntcip1211.TestCodecOER.test_ida_y_vuelta) ... ok
+test_ida_y_vuelta_valores_limite (tests.test_ntcip1211.TestCodecOER.test_ida_y_vuelta_valores_limite)
+1/255/65535/4294967295 -- los extremos de cada rango declarado. ... ok
+test_rechaza_campo_fuera_de_rango_al_codificar (tests.test_ntcip1211.TestCodecOER.test_rechaza_campo_fuera_de_rango_al_codificar) ... ok
+test_rechaza_longitud_distinta_de_29_al_decodificar (tests.test_ntcip1211.TestCodecOER.test_rechaza_longitud_distinta_de_29_al_decodificar) ... ok
+test_rechaza_vehiculo_id_demasiado_largo (tests.test_ntcip1211.TestCodecOER.test_rechaza_vehiculo_id_demasiado_largo) ... ok
+test_tamano_fijo_29_bytes (tests.test_ntcip1211.TestCodecOER.test_tamano_fijo_29_bytes) ... ok
+test_vehiculo_id_mas_corto_se_rellena_y_se_recupera_sin_relleno (tests.test_ntcip1211.TestCodecOER.test_vehiculo_id_mas_corto_se_rellena_y_se_recupera_sin_relleno) ... ok
+test_clase_no_reconocida_se_rechaza (tests.test_ntcip1211.TestRF05ClaseNoReconocida.test_clase_no_reconocida_se_rechaza) ... ok
+test_clase_reconocida_se_acepta (tests.test_ntcip1211.TestRF05ClaseNoReconocida.test_clase_reconocida_se_acepta) ... ok
+test_caduca_en_cola_si_el_despeje_tarda_mas_que_el_ttl (tests.test_ntcip1211.TestRF06LimitesOperacionales.test_caduca_en_cola_si_el_despeje_tarda_mas_que_el_ttl) ... ok
+test_se_acepta_durante_verde_o_rojo_general (tests.test_ntcip1211.TestRF06LimitesOperacionales.test_se_acepta_durante_verde_o_rojo_general) ... ok
+test_se_activa_al_terminar_el_despeje_dentro_del_ttl (tests.test_ntcip1211.TestRF06LimitesOperacionales.test_se_activa_al_terminar_el_despeje_dentro_del_ttl) ... ok
+test_se_encola_durante_amarillo (tests.test_ntcip1211.TestRF06LimitesOperacionales.test_se_encola_durante_amarillo) ... ok
+test_se_encola_durante_todo_rojo (tests.test_ntcip1211.TestRF06LimitesOperacionales.test_se_encola_durante_todo_rojo) ... ok
+test_caduca_pasado_t_cad_sin_actualizar (tests.test_ntcip1211.TestRF09Caducidad.test_caduca_pasado_t_cad_sin_actualizar) ... ok
+test_no_caduca_si_se_refresca_a_tiempo (tests.test_ntcip1211.TestRF09Caducidad.test_no_caduca_si_se_refresca_a_tiempo) ... ok
+test_verificar_caducidad_es_no_op_sin_solicitud_activa (tests.test_ntcip1211.TestRF09Caducidad.test_verificar_caducidad_es_no_op_sin_solicitud_activa) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.010s
+
+OK

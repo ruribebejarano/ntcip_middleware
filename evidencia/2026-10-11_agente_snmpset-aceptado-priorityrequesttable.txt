@@ -1,0 +1,30 @@
+Caso base (sin cambios por este commit): SET con clase reconocida y fase ya
+segura ("rojo_general") -> se activa de inmediato (activeProcessing), sin
+pasar por readyQueued. Verifica que el camino normal sigue funcionando
+igual tras el cambio de RF-06 (ver 2026-10-11_agente_cola-amarillo-rf06.txt
+para el caso NUEVO, con la fase insegura).
+
+$ ssh rsu
+$ source ~/rsu-env/bin/activate && cd ~/ntcip_middleware
+
+== Esperando fase segura ('verde' o 'rojo_general') ==
+Fase confirmada: {'fase': 'rojo_general', 'red': True, 'yellow': False, 'green': False, 'prioridad_activa': False, 'prioridad_de': None}
+
+== snmpset prgPriorityRequestAbsolute (clase 1, fase ya segura -> activacion inmediata) ==
+$ snmpset -v3 -u rsuLabUser -l authPriv -a SHA -A labAuthPass123 \
+          -x AES -X labPrivPass123 -n "" 127.0.0.1:1161 \
+          1.3.6.1.4.1.1206.4.2.5.2.8.0 x <29 bytes OER de prgPriorityRequestAbsolute, en hex>
+iso.3.6.1.4.1.1206.4.2.5.2.8.0 = ""
+(SET aceptado: el objeto es write-only, el GET siempre devuelve cadena vacia)
+
+== snmpwalk priorityRequestTable, columnas priorityRequestVehicleID (.3) y priorityRequestStatusInPRS (.9), fila 1 ==
+$ snmpget ... 1.3.6.1.4.1.1206.4.2.5.1.1.1.3.1 1.3.6.1.4.1.1206.4.2.5.1.1.1.9.1
+priorityRequestVehicleID: iso.3.6.1.4.1.1206.4.2.5.1.1.1.3.1 = STRING: "ambulancia-ok"
+priorityRequestStatusInPRS: iso.3.6.1.4.1.1206.4.2.5.1.1.1.9.1 = INTEGER: 4
+(4 = activeProcessing, enum real de priorityRequestStatusInPRS, PRS-MIB1 clausula 9)
+
+== consulta directa al controlador (confirma que SI se forzo verde) ==
+{'fase': 'verde', 'red': False, 'yellow': False, 'green': True, 'prioridad_activa': True, 'prioridad_de': 'ambulancia-ok'}
+
+(despues de esta captura se libero la prioridad a mano con clear_priority
+para dejar el banco en estado limpio)

@@ -1,0 +1,44 @@
+Linea de tiempo real del watchdog (verificar_caducidad_periodica,
+agent/rsu_middleware.py) para la solicitud encolada de
+2026-10-11_agente_cola-amarillo-rf06.txt: se encola en 'amarillo', se
+activa sola al empezar 'rojo_general' (fin del despeje, ~2s despues,
+dentro del TTL de 3s), fuerza 'verde' en el controlador, y mas tarde
+caduca por RF-09 (nadie la refresca tras activarse) y el controlador
+vuelve al ciclo normal.
+
+Para esta prueba se acorto temporalmente phaseYellowChange=1.0s y
+phaseRedClear=1.0s (despeje total 2.0s < TTL de 3.0s) via SNMP, y se
+restauraron los valores originales (3.0s/2.0s) al terminar -- ver nota en
+2026-10-11_agente_cola-amarillo-rf06.txt.
+
+== Poll de priorityRequestStatusInPRS fila 1 cada 0.3s (SNMP, visto desde fuera) ==
+t= 0.02s  priorityRequestStatusInPRS.1 = 2    (readyQueued: encolada, controlador en 'amarillo')
+t= 2.01s  priorityRequestStatusInPRS.1 = 4    (activeProcessing: el despeje termino, el watchdog la activo)
+t= 5.12s  priorityRequestStatusInPRS.1 = 10   (closedTimeToLiveError: RF-09, nadie la refresco tras activarse)
+
+== journalctl -u rsu-agent -u rsu-controller --since "-30 seconds" --no-pager (vista interna, con motivo) ==
+Oct 11 19:51:26 ricardoub python3[3879]: [controlador] Fase -> verde (ciclo_normal)
+Oct 11 19:51:34 ricardoub python3[3879]: [controlador] Fase -> amarillo (ciclo_normal)
+Oct 11 19:51:34 ricardoub python3[3894]: [middleware] Solicitud de 'ambulancia-rf06q' en cola (readyQueued): fase actual 'amarillo' en despeje (RF-06); se activa al terminar, si sigue vigente (TTL=3s)
+Oct 11 19:51:35 ricardoub python3[3879]: [controlador] Fase -> todo_rojo (ciclo_normal)
+Oct 11 19:51:36 ricardoub python3[3879]: [controlador] Fase -> rojo_general (ciclo_normal)
+Oct 11 19:51:36 ricardoub python3[3894]: [middleware] Fin del despeje: se activa la solicitud en cola 'ambulancia-rf06q' (RF-06) -> reenviando al controlador
+Oct 11 19:51:36 ricardoub python3[3879]: [controlador] Fase -> verde (solicitud_prioridad)
+Oct 11 19:51:36 ricardoub python3[3879]: [controlador] Prioridad solicitada por 'ambulancia-rf06q' (ETA 8s) -> fase forzada a verde por 15s
+Oct 11 19:51:39 ricardoub python3[3894]: [middleware] Solicitud caducada por falta de actualizacion (RF-09, T_cad=3s, estaba_en_cola=False) -> liberando prioridad
+Oct 11 19:51:39 ricardoub python3[3879]: [controlador] Fase -> rojo_general (liberacion_manual)
+Oct 11 19:51:39 ricardoub python3[3879]: [controlador] Prioridad liberada manualmente, vuelve al ciclo normal
+
+Lectura de la linea de tiempo:
+- 19:51:34 -- SET llega en 'amarillo': RF-06 la encola (readyQueued), NO
+  se reenvia nada al controlador todavia.
+- 19:51:35/36 -- el ciclo normal del controlador sigue solo (el middleware
+  no lo esta forzando): todo_rojo -> rojo_general.
+- 19:51:36 -- el watchdog nota que la fase ya no es insegura (rojo_general
+  respeta RF-06) y que la solicitud sigue vigente (2s < TTL=3s): la activa
+  y RECIEN AHI reenvia "request_priority" -- un (1) solo reenvio total,
+  no uno fallido mas un reintento.
+- 19:51:36 -- el controlador fuerza 'verde' por la solicitud de prioridad.
+- 19:51:39 -- exactamente T_CAD=3s despues de la ACTIVACION (no de la
+  solicitud original en 19:51:34): caduca por RF-09 porque nadie volvio a
+  refrescarla, y el controlador libera y vuelve al ciclo normal.
