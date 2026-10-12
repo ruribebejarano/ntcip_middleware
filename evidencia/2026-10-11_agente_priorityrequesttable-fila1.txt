@@ -1,0 +1,19 @@
+$ snmpwalk priorityRequestTable (fila 1, tras el SET aceptado y tras caducar)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.1.1 = INTEGER: 1     (priorityRequestEntryNumber)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.2.1 = INTEGER: 9     (priorityRequestID)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.3.1 = STRING: "ambulancia-snmp"  (priorityRequestVehicleID)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.4.1 = INTEGER: 1     (priorityRequestVehicleClassType)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.5.1 = INTEGER: 5     (priorityRequestVehicleClassLevel)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.6.1 = INTEGER: 1     (priorityRequestServiceStrategyNumber)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.7.1 = INTEGER: 8     (priorityRequestTimeOfServiceDesired)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.8.1 = INTEGER: 13    (priorityRequestTimeOfEstimatedDeparture)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.9.1 = INTEGER: 10    (priorityRequestStatusInPRS = closedTimeToLiveError,
+                                                     ya caduco para cuando se tomo esta lectura)
+iso.3.6.1.4.1.1206.4.2.5.1.1.1.10.1 = INTEGER: 1791763964  (priorityRequestTimeOfMessage)
+# Las filas 2-10 quedan en idleNotValid (1) / ceros, como corresponde
+# (una sola solicitud activa a la vez, ver ssec:alcance).
+
+--- Cada campo coincide exactamente con lo codificado en los 29 bytes del SET:
+--- SolicitudPrioridadAbsoluta(id_solicitud=9, vehiculo_id=b"ambulancia-snmp",
+--- clase_tipo=1, clase_nivel=5, estrategia=1, t_servicio_deseado=8,
+--- t_salida_estimada=13, t_solicitud=1791763964)

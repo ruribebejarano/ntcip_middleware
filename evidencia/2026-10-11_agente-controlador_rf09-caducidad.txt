@@ -1,0 +1,16 @@
+$ journalctl rsu-agent.service (RF-09: caducidad tras T_CAD=3s sin actualizar)
+Oct 11 19:15:11 ricardoub python3[3509]: [middleware] Solicitud caducada por falta de
+actualizacion (RF-09, T_cad=3s) -> liberando prioridad
+
+$ journalctl rsu-controller.service (misma ventana de tiempo)
+Oct 11 19:15:03 ricardoub python3[3373]: [controlador] Fase -> verde (ciclo_normal)
+Oct 11 19:15:08 ricardoub python3[3373]: [controlador] Prioridad solicitada por
+'ambulancia-snmp' (ETA 8s) -> fase forzada a verde por 15s
+Oct 11 19:15:11 ricardoub python3[3373]: [controlador] Prioridad liberada manualmente,
+vuelve al ciclo normal
+Oct 11 19:15:11 ricardoub python3[3373]: [controlador] Fase -> amarillo (ciclo_normal)
+
+# Linea de tiempo: SET aceptado a las 19:15:08 (fase forzada a verde), y a las
+# 19:15:11 -- exactamente T_CAD=3s despues, sin ninguna actualizacion de la
+# solicitud -- el hilo de caducidad detecta el vencimiento y pide al
+# controlador liberar la prioridad, que vuelve al ciclo normal.

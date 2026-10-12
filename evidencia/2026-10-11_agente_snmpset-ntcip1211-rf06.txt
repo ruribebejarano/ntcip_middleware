@@ -1,0 +1,26 @@
+$ snmpset prgPriorityRequestAbsolute, 1er intento -> rechazado
+iso.3.6.1.4.1.1206.4.2.5.2.8.0 : Error in packet.
+Reason: wrongValue (The set value is illegal or unsupported in some way)
+Failed object: iso.3.6.1.4.1.1206.4.2.5.2.8.0
+
+$ snmpset prgPriorityRequestAbsolute, 2o intento (reintento inmediato) -> rechazado de nuevo
+iso.3.6.1.4.1.1206.4.2.5.2.8.0 : Error in packet.
+Reason: wrongValue (The set value is illegal or unsupported in some way)
+Failed object: iso.3.6.1.4.1.1206.4.2.5.2.8.0
+
+$ snmpwalk phaseStatusGroup (diagnostico tras los dos rechazos)
+iso.3.6.1.4.1.1206.4.2.1.1.4.1.1.1 = INTEGER: 1
+iso.3.6.1.4.1.1206.4.2.1.1.4.1.2.1 = INTEGER: 1   (Reds)
+iso.3.6.1.4.1.1206.4.2.1.1.4.1.3.1 = INTEGER: 0   (Yellows)
+iso.3.6.1.4.1.1206.4.2.1.1.4.1.4.1 = INTEGER: 0   (Greens)
+# red=1 es ambiguo entre "todo_rojo" (rechazado por RF-06) y "rojo_general"
+# (aceptado por RF-06): el bit de estado no distingue los dos, solo el
+# campo interno "fase" del controlador (no expuesto por SNMP, ver
+# controller/controller_emulator.py). Se repitio el intento hasta
+# confirmar fase=verde antes del 3er intento.
+
+$ consulta directa al protocolo del controlador (fase exacta, no solo el bit SNMP)
+{'fase': 'verde', 'red': False, 'yellow': False, 'green': True, 'prioridad_activa': False, 'prioridad_de': None}
+
+$ snmpset prgPriorityRequestAbsolute, 3er intento (confirmado fase=verde) -> aceptado
+iso.3.6.1.4.1.1206.4.2.5.2.8.0 = ""
