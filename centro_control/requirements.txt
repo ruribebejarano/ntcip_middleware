@@ -26,3 +26,7 @@ pyasn1-modules<0.3.0
 
 # Para gateway/obu_simulator.py (publica la solicitud V2I por MQTT):
 paho-mqtt==2.1.0
+
+# Para centro_control/panel/ (panel web de supervision, Streamlit):
+streamlit==1.65.0
+python-dotenv==1.2.4

@@ -115,8 +115,15 @@ def snmp_set(host: str, port: int, auth: AuthConfig, oid: str, value, value_type
         typed_value = Integer(int(value))
     elif value_type == "str":
         typed_value = OctetString(str(value))
+    elif value_type == "bytes":
+        # Para OCTET STRING binarios (p. ej. prgPriorityRequestAbsolute,
+        # NTCIP 1211, 29 bytes OER -- ver agent/ntcip1211.py): `value` ya
+        # debe venir como bytes/bytearray codificados por el llamador.
+        # OctetString(str(value)) corrompería los bytes crudos (tipo "str"
+        # de arriba), por eso es un tipo aparte, no una variante de "str".
+        typed_value = OctetString(bytes(value))
     else:
-        raise ValueError(f"Tipo de valor no soportado: {value_type} (usar 'int' o 'str')")
+        raise ValueError(f"Tipo de valor no soportado: {value_type} (usar 'int', 'str' o 'bytes')")
 
     engine = SnmpEngine()
     iterator = setCmd(
