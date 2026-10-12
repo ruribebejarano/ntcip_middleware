@@ -1,0 +1,159 @@
+Refinamiento de la comparación OSM/Overpass vs. inventario MML de
+intersecciones semaforizadas (continúa
+2026-10-11_overpass_traffic_signals-lima.txt, que usaba un bbox
+rectangular aproximado; esta versión usa el límite administrativo real,
+separa semáforos peatonales de vehiculares, y agrupa nodos cercanos como
+una misma intersección).
+
+== 1. Límite administrativo real (reemplaza el bbox) ==
+
+Se buscó en Nominatim (OpenStreetMap) la entidad "Provincia de Lima,
+Peru":
+  https://nominatim.openstreetmap.org/search?q=Provincia+de+Lima,+Peru&format=json&addressdetails=1
+
+Resultado relevante:
+  osm_type: relation, osm_id: 1944670, name: "Lima"
+  address.state_district: "Lima Metropolitana"
+  address.ISO3166-2-lvl6: "PE-LMA"
+  boundingbox: [-12.5199316, -11.5724356, -77.1992129, -76.6208244]
+
+Esta es la relación de límite administrativo (boundary=administrative,
+admin_level=6) que corresponde a "Lima Metropolitana" / Provincia de Lima
+-- la jurisdicción de la MML, EXCLUYE el Callao (provincia
+constitucional aparte). Se usó como área de filtro con `map_to_area` en
+vez del bbox rectangular aproximado de la consulta anterior.
+
+== 2. Conteo de nodos dentro del límite real ==
+
+Consulta:
+  [out:json][timeout:120];
+  rel(1944670);
+  map_to_area->.lima;
+  node["highway"="traffic_signals"](area.lima);
+  out count;
+
+Resultado: 3502 nodos (frente a los 3758 del bbox rectangular -- una
+reducción de 256 nodos, 6.8%, solo por acotar al límite administrativo
+real; confirma que el sobre-conteo del bbox explicaba una fracción
+pequeña de la diferencia original con la MML, no la mayor parte).
+
+== 3. Descarga de datos completos (nodos + vías) ==
+
+Consulta A (nodos, con tags y coordenadas):
+  [out:json][timeout:120];
+  rel(1944670);
+  map_to_area->.lima;
+  node["highway"="traffic_signals"](area.lima);
+  out body;
+-> 3502 nodos, 652,508 bytes.
+
+Consulta B (vías highway=* que contienen alguno de esos nodos, para
+determinar si un nodo está en un cruce vial o en una vía exclusivamente
+peatonal):
+  [out:json][timeout:180];
+  rel(1944670);
+  map_to_area->.lima;
+  node["highway"="traffic_signals"](area.lima)->.signals;
+  way(bn.signals)[highway];
+  out body;
+-> 4958 vías, 2,102,346 bytes.
+
+Nota de método: igual que en la consulta anterior, `curl`/PowerShell
+locales devolvieron sistemáticamente HTTP 406 contra overpass-api.de (ver
+2026-10-11_overpass_traffic_signals-lima.txt). Esta vez se resolvió con
+Python (`urllib.request`, reintentos con backoff) en vez de la
+herramienta de fetch del agente -- necesario porque el volumen de datos
+(2+ MB) no es viable de reproducir fielmente a través de un resumen por
+modelo; con `urllib` se descargan los bytes crudos tal cual. El primer
+intento de cada consulta grande típicamente devolvió 504 (servidor
+ocupado), resuelto en el segundo o tercer intento.
+
+== 4. Clasificación vehicular vs. peatonal ==
+
+Para cada nodo, se determinó el conjunto de valores `highway=*` de las
+vías que lo contienen (de la Consulta B). Clases "vehiculares" (transita
+un automóvil): motorway, trunk, primary, secondary, tertiary,
+unclassified, residential, living_street, service, y sus variantes *_link.
+Clases "peatonales": footway, path, pedestrian, steps, cycleway,
+bridleway, corridor.
+
+Un nodo se clasifica VEHICULAR si al menos una de sus vías padre es de
+clase vehicular; PEATONAL si todas sus vías padre son de clase peatonal
+(o si no tiene ninguna vía padre pero sí la etiqueta `crossing=traffic_signals`,
+el caso explícito que pidió el usuario: "crossing=traffic_signals sin
+intersección vial").
+
+Resultado:
+  Vehiculares: 3370 (96.2%)
+  Peatonales:  132 (3.8%)
+  Sin clasificar (ninguna vía highway=* los referencia en el dataset
+  descargado, y tampoco tienen la etiqueta crossing=traffic_signals): 0
+
+== 5. Agrupamiento de nodos vehiculares a <40 m (misma intersección) ==
+
+Método: proyección equirectangular local (válida para distancias <1 km),
+`scipy.spatial.cKDTree.query_pairs(r=40)` para encontrar todos los pares
+de nodos a menos de 40 m, y componentes conexas (Union-Find) sobre ese
+grafo de pares -- cada componente conexa es una "intersección".
+
+Resultado:
+  Intersecciones resultantes (clusters): 1411
+    - con un solo nodo: 468
+    - con 2+ nodos (uno por acceso, útil para ubicar la línea de
+      detención de cada acceso -- ver ssec:zonas/ssec:registro de
+      main.tex): 943
+    - tamaño máximo de un cluster: 17 nodos
+    - distribución: 1 nodo: 468 | 2: 418 | 3: 219 | 4: 219 | 5: 35 |
+      6: 33 | 7: 8 | 8: 8 | 9: 1 | 14: 1 | 17: 1
+
+CAVEAT metodológico (agrupamiento por enlace simple / "chaining"): el
+agrupamiento por componentes conexas con un radio fijo puede fusionar de
+más si hay una cadena continua de nodos a <40 m entre consecutivos, aunque
+el diámetro total del grupo supere holgadamente los 40 m (p. ej. una
+avenida con semáforos muy seguidos). Se verificó el diámetro máximo
+(distancia Haversine entre el par más alejado) de cada cluster multi-nodo:
+de los 943 clusters con 2+ nodos, solo 7 (0.7%) superan 80 m de diámetro,
+y solo 2 (0.2%) superan 100 m. El efecto es, por tanto, marginal sobre el
+total (afecta a menos del 1% de los clusters), pero existe -- el cluster
+más grande (17 nodos) mide 177.8 m de diámetro máximo entre sus nodos, lo
+que podría representar una intersección compleja real (p. ej. un óvalo o
+cruce de varias vías) o dos intersecciones cercanas fusionadas por error;
+no se verificó visualmente caso por caso.
+
+Detalle completo de los 1411 clusters (id, número de nodos, ids de OSM,
+centroide):
+  evidencia/2026-10-12_overpass_clusters-interseccion-detalle.csv
+
+== 6. Comparación final contra el inventario MML ==
+
+  MML (inventario oficial, intersecciones semaforizadas de la ciudad,
+  \cite{MML_GMU_Controlador2025}): 1646
+  OSM (nodos vehiculares agrupados a <40 m, límite administrativo real
+  de Lima Metropolitana): 1411
+
+  Razón OSM/MML: 0.857 (85.7%)
+  Diferencia: -235 intersecciones (OSM reporta ~14.3% MENOS que la MML)
+
+Esto invierte la lectura de la comparación anterior (bbox sin filtrar,
+que daba ~2.28x de SOBRE-conteo): una vez acotado al límite administrativo
+real, separados los semáforos peatonales, y agrupados los nodos por
+acceso en una sola intersección, OSM queda, en cambio, por DEBAJO del
+inventario oficial de la MML en ~14%. Es un resultado más plausible y más
+útil para la tesis: sugiere que OSM tiene cobertura incompleta de la red
+semafórica de Lima (semáforos reales sin mapear), en vez de la lectura
+inicial e inválida de "OSM exagera el conteo por mal etiquetado".
+Consistente con el diagnóstico de fragmentación tecnológica que ya cita
+main.tex (\cite{MML_GMU_Controlador2025}): si ni siquiera la cartografía
+abierta tiene un inventario completo y confiable, eso refuerza el
+argumento de falta de un sistema de información único y centralizado de
+la red semafórica de Lima.
+
+== 7. Intersecciones con un nodo por acceso ==
+
+943 de las 1411 intersecciones (66.8%) tienen 2 o más nodos
+`highway=traffic_signals` -- uno por acceso/aproximación -- lo que en
+principio permitiría, para esas intersecciones, ubicar la línea de
+detención de cada acceso por separado a partir de OSM (coordenadas reales
+del semáforo de cada acceso), en vez de solo el centroide de la
+intersección. Las 468 intersecciones restantes (33.2%) solo tienen un
+nodo lumped que representa el cruce completo.
