@@ -669,9 +669,18 @@ def build_snmp_engine() -> engine.SnmpEngine:
         ),
         # --- NTCIP 1211 v02 real (BORRADOR SIN VERIFICAR, ver docstring del
         # modulo y agent/ntcip1211.py) ---
+        # La norma declara este objeto ACCESS write-only, pero pysnmp no
+        # reconoce ese nivel de acceso (solo chequea 'readonly'/'readwrite'/
+        # 'readcreate' en SNMPv2-SMI.py; cualquier otro string, incluido
+        # 'writeonly', bloquea tambien el SET -- confirmado con un snmpset
+        # real que devolvio notWritable). Se declara 'readwrite' para que el
+        # SET funcione, y se preserva la semantica write-only en la propia
+        # instancia: getValue() siempre devuelve una cadena vacia (ver
+        # PrgPriorityRequestAbsoluteInstance), nunca el ultimo valor
+        # escrito.
         prgPriorityRequestAbsolute=MibScalar(
             PRGPRIORITYREQUESTABSOLUTE_OID, OctetString()
-        ).setMaxAccess("writeonly"),
+        ).setMaxAccess("readwrite"),
         prgPriorityRequestAbsoluteInstance=_PrgPriorityRequestAbsoluteInstance(
             PRGPRIORITYREQUESTABSOLUTE_OID, (0,), OctetString()
         ),
