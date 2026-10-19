@@ -302,8 +302,11 @@ class PriorityRequestServer:
             f.estado = CLOSED_COMPLETED
 
     def cancelar(self) -> None:
+        """Cancelacion por M3 (RF-04): cierra la fila tanto si ya estaba
+        forzando el controlador (activeProcessing) como si esperaba en cola
+        el fin del despeje (readyQueued, RF-06)."""
         f = self._filas[0]
-        if f.estado == ACTIVE_PROCESSING:
+        if f.estado in (ACTIVE_PROCESSING, READY_QUEUED):
             f.estado = CLOSED_CANCELED
 
     def verificar_caducidad(self, ahora_monotonic: Optional[float] = None) -> bool:

@@ -46,9 +46,14 @@ Cuatro enlaces que este proceso conecta:
    operacionales) antes de reenviar. Los objetos de phaseStatusGroupTable y
    phaseTable siempre reflejan en vivo el estado y los tiempos reales del
    controlador (consulta en cada GET, no hay cache local).
-3. OBU -> RSU (V2I): un mensaje MQTT en MQTT_TOPIC (publicado por
-   gateway/obu_simulator.py) dispara el mismo pedido de prioridad que un
-   SNMP SET manual desde el centro de control.
+3. OBU -> RSU (V2I), dos caminos:
+   - M1/M3 en rsu/{RSU_ID}/solicitudes (gateway/obu_emulada.py, esquema
+     E2 de la tesis): M1 crea o renueva la solicitud, M3 la cancela, y la
+     RSU responde M2 (recibida/concedida/rechazada/cancelada) en el
+     Response Topic de MQTT 5. Ver docs/LAZO_EMULADO.md.
+   - Legado (P0-P3): un mensaje en MQTT_TOPIC (gateway/obu_simulator.py)
+     dispara el mismo pedido de prioridad que un SNMP SET manual desde el
+     centro de control, sin respuesta ni cancelacion.
 4. Caducidad (RF-09/RNF-03): un hilo en segundo plano verifica cada medio
    segundo si la solicitud activa lleva mas de T_CAD_SEGUNDOS sin
    actualizarse (ver agent/ntcip1211.py) y, si es asi, libera la prioridad
@@ -87,11 +92,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from common.events import (  # noqa: E402
     EVT_CADUCIDAD,
     EVT_M1_RX,
+    EVT_M2_TX,
+    EVT_M3_RX,
     EVT_SNMP_SET_TX,
     EventLogger,
 )
 from agent.ntcip1211 import (  # noqa: E402
     ACTIVE_PROCESSING,
+    CLOSED_CANCELED,
+    CLOSED_TIME_TO_LIVE_ERROR,
     READY_QUEUED,
     T_CAD_SEGUNDOS,
     ErrorLongitud,
@@ -104,7 +113,11 @@ from agent.ntcip1211 import (  # noqa: E402
     decodificar as ntcip1211_decodificar,
 )
 
-SNMP_LISTEN_ADDRESS = ("0.0.0.0", 1161)  # mismo puerto que rsu_snmpv3_agent.py -- no correr ambos juntos
+# Puertos y broker configurables por variable de entorno, para poder correr
+# dos RSU en la misma maquina (banco emulado) o apuntar a otro broker
+# (Mosquitto central, EMQX) sin tocar el codigo. Los valores por defecto son
+# los de siempre: nada cambia si no se definen.
+SNMP_LISTEN_ADDRESS = ("0.0.0.0", int(os.environ.get("SNMP_PORT", "1161")))  # mismo puerto que rsu_snmpv3_agent.py -- no correr ambos juntos
 
 USER_NAME = "rsuLabUser"
 AUTH_KEY = "labAuthPass123"  # SOLO laboratorio
@@ -172,10 +185,15 @@ PRIORITYREQUEST_COLUMNAS = [
 NUM_FILAS_PRIORITY_REQUEST = 10  # fijo por la norma ("number of rows... is 10")
 
 CONTROLLER_HOST = "127.0.0.1"
-CONTROLLER_PORT = 9000
+CONTROLLER_PORT = int(os.environ.get("CONTROLLER_PORT", "9000"))
 
-MQTT_BROKER_HOST = "127.0.0.1"  # mosquitto local, en la propia RSU
-MQTT_BROKER_PORT = 1883
+# Broker MQTT. Por defecto, el mosquitto de la propia RSU (como hasta P3);
+# con MQTT_BROKER_HOST se apunta al broker central del diseno (E2+E4,
+# ssec:sel_direccionamiento), que es la arquitectura de la tesis.
+MQTT_BROKER_HOST = os.environ.get("MQTT_BROKER_HOST", "127.0.0.1")
+MQTT_BROKER_PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
+# Tema LEGADO (P0-P3): un solo tema para todas las RSU, mensaje con
+# eta_seg. Se mantiene para gateway/obu_simulator.py y scripts/demo_asesor.sh.
 MQTT_TOPIC = "rsu/v2i/solicitud_prioridad"
 
 # Identificador de esta RSU en el banco de pruebas (hay dos, ver CLAUDE.md).
@@ -184,6 +202,17 @@ MQTT_TOPIC = "rsu/v2i/solicitud_prioridad"
 # se genera para las solicitudes de prioridad hechas a mano por SNMP.
 RSU_ID = os.environ.get("RSU_ID", "1")
 EVENTOS = EventLogger(f"rsu_{RSU_ID}")
+
+# Tema por RSU del esquema E2 (ssec:sel_direccionamiento y ssec:rsu_sw de
+# main.tex): la OBU publica M1/M3 en rsu/{id}/solicitudes y la RSU responde
+# M2 en el Response Topic de MQTT 5 que trae cada mensaje
+# (veh/{id}/respuestas), con el mismo Correlation Data.
+MQTT_TOPIC_SOLICITUDES = f"rsu/{RSU_ID}/solicitudes"
+
+# M1 no trae ETA (tab:mensajes): la RSU completa
+# priorityRequestTimeOfServiceDesired con un valor NOMINAL (ssec:mw_1211,
+# "L_zona / v_d"), declarado como estimacion y no como medicion.
+T_SERVICIO_NOMINAL_S = int(os.environ.get("T_SERVICIO_NOMINAL_S", "10"))
 
 # Estado del PRS (NTCIP 1211): una sola fila activa a la vez, ver
 # agent/ntcip1211.py. Compartido entre el camino SNMP SET y el camino MQTT
@@ -270,10 +299,23 @@ def procesar_solicitud_prioridad(
     (verificar_caducidad_periodica) cuando termine el despeje, siempre que
     la solicitud siga vigente (TTL de RF-09)."""
     global _ULTIMO_ID_EVENTO
+    renovar_en_controlador = False
     with PRS_LOCK:
         if PRS.refrescar(s.id_solicitud):
             _ULTIMO_ID_EVENTO = id_solicitud_evento
-            return  # ya habia una solicitud activa o en cola con este id: solo renovar el plazo (RF-09)
+            renovar_en_controlador = PRS.fila(1).estado == ACTIVE_PROCESSING
+    if renovar_en_controlador:
+        # La actualizacion (M1 con seq+1) renueva el plazo RF-09 en la RSU
+        # Y la prioridad en el controlador: sin esto, el controlador emulado
+        # soltaba el verde a los PRIORITY_HOLD_SECONDS (15 s) aunque la OBU
+        # siguiera renovando -- visto con un vehiculo detenido 20 s en cola
+        # (escenario detenido_en_cola, bitacora 2026-10-19). Si la OBU deja
+        # de renovar, la caducidad RF-09 libera igual a los 3 s.
+        _reenviar_request_priority(s.vehiculo_id, s.t_servicio_deseado, id_solicitud_evento)
+        return
+    with PRS_LOCK:
+        if PRS.refrescar(s.id_solicitud):
+            return  # en cola (readyQueued, RF-06): solo renovar el plazo (RF-09)
 
         try:
             status = controller_request({"cmd": "get_status"})
@@ -336,6 +378,9 @@ def verificar_caducidad_periodica() -> None:
                   f"(RF-09, T_cad={T_CAD_SEGUNDOS:.0f}s, estaba_en_cola={estaba_en_cola}) "
                   f"-> liberando prioridad")
             EVENTOS.log(EVT_CADUCIDAD, id_evento_fila, motivo=motivo)
+            topic_resp = _RESPUESTA_POR_ID.pop(id_evento_fila, None)
+            if topic_resp:
+                _publicar_m2(id_evento_fila, "cancelada", topic_resp, None, motivo="caducidad")
             if not estaba_en_cola:
                 # Si estaba en cola nunca se forzo verde en el controlador
                 # (RF-06 pospuso el reenvio): no hace falta avisarle que
@@ -350,6 +395,14 @@ def verificar_caducidad_periodica() -> None:
             EVENTOS.log(EVT_SNMP_SET_TX, id_evento_fila, origen="watchdog",
                         accion="activar_cola_rf06")
             _reenviar_request_priority(vehiculo_id, t_servicio_deseado, id_evento_fila)
+            # Pasos 5-8 de fig:secuencia: la RSU informa el verde por M2 en
+            # cuanto lo obtiene, sin esperar al siguiente M1 de la OBU (que
+            # llegaria hasta 1 s despues, RNF-02).
+            topic_resp = _RESPUESTA_POR_ID.get(id_evento_fila)
+            if topic_resp:
+                id_num = _ID_NUMERICO_POR_SOLICITUD.get(id_evento_fila)
+                if id_num is not None:
+                    _publicar_m2(id_evento_fila, _estado_m2(id_num), topic_resp, None, origen="watchdog")
 
 
 class _ValorConstanteInstance:
@@ -515,6 +568,18 @@ class _PriorityRequestColumnaInstance:
         return self.syntax.clone(valor)
 
 
+_MQTT_CLIENT: mqtt.Client | None = None
+
+# Ultimo contador de secuencia visto por id_solicitud (M1/M3, tab:mensajes):
+# deteccion de duplicados a nivel de aplicacion (ssec:seg_replay), p. ej.
+# ante una reentrega QoS 1 tras una reconexion.
+_ULTIMA_SEQ: dict[str, int] = {}
+# Response Topic de cada solicitud V2I vigente, para avisar por M2 una
+# cancelacion que la propia RSU decide (caducidad, RF-09).
+_RESPUESTA_POR_ID: dict[str, str] = {}
+_ID_NUMERICO_POR_SOLICITUD: dict[str, int] = {}
+
+
 def _on_mqtt_connect(client, _userdata, _flags, reason_code, _properties=None):
     print(f"[middleware] Conectado al broker MQTT ({MQTT_BROKER_HOST}:{MQTT_BROKER_PORT}), "
           f"reason_code={reason_code}")
@@ -525,15 +590,180 @@ def _on_mqtt_connect(client, _userdata, _flags, reason_code, _properties=None):
     # start_mqtt_listener(), lo que dejaba al middleware "sordo" tras
     # cualquier reconexion sin ningun error visible (ver bitacora
     # 2026-10-11_arranque-servicios-y-smoke-test.md).
-    client.subscribe(MQTT_TOPIC, qos=1)
+    client.subscribe([(MQTT_TOPIC, 1), (MQTT_TOPIC_SOLICITUDES, 1)])
 
 
 def _on_mqtt_message(_client, _userdata, msg) -> None:
     try:
         data = json.loads(msg.payload.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        print(f"[middleware] Mensaje V2I invalido en '{msg.topic}': {exc}")
+        return
+
+    tipo = data.get("tipo") if isinstance(data, dict) else None
+    if msg.topic == MQTT_TOPIC or tipo is None:
+        _procesar_m1_legado(msg, data)
+    elif tipo == "M1":
+        _procesar_m1(msg, data)
+    elif tipo == "M3":
+        _procesar_m3(msg, data)
+    else:
+        print(f"[middleware] Tipo de mensaje V2I desconocido en '{msg.topic}': {tipo!r}")
+
+
+# ---------------------------------------------------------------------------
+# M1/M2/M3 (tab:mensajes de main.tex) por el tema de esta RSU
+# ---------------------------------------------------------------------------
+
+
+def _respuesta_de(msg) -> tuple[str | None, bytes | None]:
+    """Response Topic y Correlation Data de MQTT 5 (None si no vienen)."""
+    props = getattr(msg, "properties", None)
+    topic = getattr(props, "ResponseTopic", None) if props is not None else None
+    corr = getattr(props, "CorrelationData", None) if props is not None else None
+    return topic, corr
+
+
+def _publicar_m2(id_solicitud: str, estado: str, response_topic: str | None,
+                 correlation: bytes | None, seq_ref: int | None = None, **extra) -> None:
+    """M2 EstadoPrioridad: identificador, estado (recibida, concedida,
+    rechazada, cancelada) y fase activa (tab:mensajes)."""
+    if not response_topic or _MQTT_CLIENT is None:
+        return
+    try:
+        fase = controller_request({"cmd": "get_status"}).get("fase", "?")
+    except OSError:
+        fase = "?"
+    cuerpo = {"tipo": "M2", "id_solicitud": id_solicitud, "estado": estado, "fase": fase,
+              "rsu_id": RSU_ID, "ts_ms": int(time.time() * 1000)}
+    if seq_ref is not None:
+        cuerpo["seq_ref"] = seq_ref
+    cuerpo.update(extra)
+    props = mqtt.Properties(mqtt.PacketTypes.PUBLISH)
+    if correlation is not None:
+        props.CorrelationData = correlation
+    _MQTT_CLIENT.publish(response_topic, json.dumps(cuerpo), qos=1, properties=props)
+    EVENTOS.log(EVT_M2_TX, id_solicitud, estado=estado, fase=fase, seq_ref=seq_ref, topic=response_topic)
+
+
+def _estado_m2(id_numerico: int) -> str:
+    """Estado de la solicitud segun la fila del PRS y la fase real del
+    controlador (RF-08): 'concedida' solo cuando el controlador ya esta en
+    verde con la solicitud activa."""
+    with PRS_LOCK:
+        fila = PRS.fila(1)
+        estado_prs = fila.estado if fila.id_solicitud == id_numerico else None
+    if estado_prs == ACTIVE_PROCESSING:
+        try:
+            fase = controller_request({"cmd": "get_status"}).get("fase")
+        except OSError:
+            fase = None
+        return "concedida" if fase == "verde" else "recibida"
+    if estado_prs == READY_QUEUED:
+        return "recibida"
+    return "cancelada"
+
+
+def _es_duplicado(id_solicitud: str, seq: int) -> bool:
+    ultima = _ULTIMA_SEQ.get(id_solicitud)
+    if ultima is not None and seq <= ultima:
+        return True
+    _ULTIMA_SEQ[id_solicitud] = seq
+    return False
+
+
+def _procesar_m1(msg, data: dict) -> None:
+    response_topic, correlation = _respuesta_de(msg)
+    try:
+        id_solicitud = str(data["id_solicitud"])
+        vehiculo_id = str(data["vehiculo_id"])
+        seq = int(data["seq"])
+        clase_tipo = int(data.get("clase", 1))
+    except (KeyError, TypeError, ValueError) as exc:
+        print(f"[middleware] M1 invalido en '{msg.topic}': {exc}")
+        return
+
+    duplicado = _es_duplicado(id_solicitud, seq)
+    EVENTOS.log(EVT_M1_RX, id_solicitud, seq=seq, vehiculo_id=vehiculo_id,
+                interseccion_id=data.get("interseccion_id"), acceso=data.get("acceso"),
+                velocidad_kmh=data.get("velocidad_kmh"), ts_obu_ms=data.get("ts_ms"),
+                duplicado=duplicado, topic=msg.topic)
+    if duplicado:
+        print(f"[middleware] M1 duplicado ({id_solicitud}, seq={seq}): ignorado")
+        return
+    if response_topic:
+        _RESPUESTA_POR_ID[id_solicitud] = response_topic
+
+    if id_solicitud not in _ID_NUMERICO_POR_SOLICITUD:
+        _ID_NUMERICO_POR_SOLICITUD[id_solicitud] = _id_numerico_para(f"m1:{id_solicitud}")
+    id_numerico = _ID_NUMERICO_POR_SOLICITUD[id_solicitud]
+
+    # Traduccion M1 -> NTCIP 1211 (RF-07), mismo mapeo que el camino legado
+    # salvo t_servicio_deseado: M1 no trae ETA, se usa el valor nominal.
+    solicitud = SolicitudPrioridadAbsoluta(
+        id_solicitud=id_numerico,
+        vehiculo_id=vehiculo_id.encode("utf-8")[:17],
+        clase_tipo=clase_tipo,
+        clase_nivel=10,
+        estrategia=1,
+        t_servicio_deseado=T_SERVICIO_NOMINAL_S,
+        t_salida_estimada=min(65535, T_SERVICIO_NOMINAL_S + 5),
+        t_solicitud=int(time.time()),
+    )
+    try:
+        procesar_solicitud_prioridad(solicitud, id_solicitud, origen="v2i")
+    except SolicitudRechazada as exc:
+        print(f"[middleware] M1 de '{vehiculo_id}' rechazado ({exc.motivo}): {exc}")
+        EVENTOS.log(EVT_SNMP_SET_TX, id_solicitud, origen="v2i", accion="rechazada", motivo=exc.motivo)
+        _publicar_m2(id_solicitud, "rechazada", response_topic, correlation, seq_ref=seq, motivo=exc.motivo)
+        return
+
+    _publicar_m2(id_solicitud, _estado_m2(id_numerico), response_topic, correlation, seq_ref=seq)
+
+
+def _procesar_m3(msg, data: dict) -> None:
+    """M3 CancelacionPrioridad (RF-04): libera la prioridad en el
+    controlador si la solicitud estaba activa; si estaba en cola (RF-06),
+    solo la cierra, porque al controlador todavia no se le pidio nada."""
+    response_topic, correlation = _respuesta_de(msg)
+    try:
+        id_solicitud = str(data["id_solicitud"])
+        seq = int(data["seq"])
+    except (KeyError, TypeError, ValueError) as exc:
+        print(f"[middleware] M3 invalido en '{msg.topic}': {exc}")
+        return
+    duplicado = _es_duplicado(id_solicitud, seq)
+    EVENTOS.log(EVT_M3_RX, id_solicitud, seq=seq, motivo=data.get("motivo"),
+                ts_obu_ms=data.get("ts_ms"), duplicado=duplicado, topic=msg.topic)
+    if duplicado:
+        return
+
+    id_numerico = _ID_NUMERICO_POR_SOLICITUD.get(id_solicitud)
+    era_activa = False
+    with PRS_LOCK:
+        fila = PRS.fila(1)
+        if id_numerico is not None and fila.id_solicitud == id_numerico:
+            era_activa = fila.estado == ACTIVE_PROCESSING
+            PRS.cancelar()
+    if era_activa:
+        print(f"[middleware] M3 de '{id_solicitud}' ({data.get('motivo')}) -> liberando prioridad")
+        EVENTOS.log(EVT_SNMP_SET_TX, id_solicitud, origen="v2i", accion="clear_priority_m3")
+        try:
+            controller_request({"cmd": "clear_priority", "id_solicitud": id_solicitud})
+        except OSError as exc:
+            print(f"[middleware] No se pudo liberar la prioridad en el controlador: {exc}")
+    _RESPUESTA_POR_ID.pop(id_solicitud, None)
+    _publicar_m2(id_solicitud, "cancelada", response_topic, correlation, seq_ref=seq, motivo="m3")
+
+
+def _procesar_m1_legado(msg, data: dict) -> None:
+    """Camino de P0-P3 (gateway/obu_simulator.py, demo_asesor.sh): un M1
+    simplificado con eta_seg, sin seq ni Response Topic. Sin cambios de
+    comportamiento respecto de la version anterior."""
+    try:
         vehiculo_id = data["vehiculo_id"]
         eta_seg = data.get("eta_seg", 0)
-    except (json.JSONDecodeError, KeyError) as exc:
+    except (KeyError, TypeError) as exc:
         print(f"[middleware] Mensaje V2I invalido en '{msg.topic}': {exc}")
         return
 
@@ -574,22 +804,24 @@ def _on_mqtt_message(_client, _userdata, msg) -> None:
     try:
         procesar_solicitud_prioridad(solicitud, id_solicitud, origen="v2i")
     except SolicitudRechazada as exc:
-        # El V2I (MQTT) no tiene hoy un canal de respuesta de error hacia la
-        # OBU (M2 solo informa "concedida"/"rechazada" con otro motivo, ver
-        # tab:mensajes) -- por ahora se loguea y se descarta, sin reenviar
-        # al controlador.
         print(f"[middleware] Solicitud V2I de '{vehiculo_id}' rechazada ({exc.motivo}): {exc}")
         EVENTOS.log(EVT_SNMP_SET_TX, id_solicitud, origen="v2i", accion="rechazada", motivo=exc.motivo)
 
 
 def start_mqtt_listener() -> mqtt.Client:
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="rsu-middleware")
+    global _MQTT_CLIENT
+    # MQTT 5 (ssec:sel_protocolo_app): Response Topic y Correlation Data
+    # para el par M1/M2. Los mensajes legados (MQTT 3.1.1 del simulador
+    # antiguo) se siguen recibiendo igual: el broker traduce entre versiones.
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"rsu-middleware-{RSU_ID}",
+                         protocol=mqtt.MQTTv5)
     client.on_connect = _on_mqtt_connect
     client.on_message = _on_mqtt_message
     client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, keepalive=30)
     client.loop_start()
-    print(f"[middleware] Escuchando solicitudes V2I en "
-          f"mqtt://{MQTT_BROKER_HOST}:{MQTT_BROKER_PORT}/{MQTT_TOPIC}")
+    _MQTT_CLIENT = client
+    print(f"[middleware] Escuchando solicitudes V2I en mqtt://{MQTT_BROKER_HOST}:{MQTT_BROKER_PORT} "
+          f"temas '{MQTT_TOPIC_SOLICITUDES}' (M1/M3) y '{MQTT_TOPIC}' (legado)")
     return client
 
 

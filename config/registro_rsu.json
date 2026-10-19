@@ -1,0 +1,83 @@
+{
+  "version": "2026-10-19-banco-emulado",
+  "descripcion": "Copia local estatica del registro de RSU (esquema E4, ssec:registro de main.tex) para el banco de pruebas EMULADO.",
+  "origen": {
+    "centros": "Centroides reales de dos clusters de semaforos de OpenStreetMap (evidencia/2026-10-12_overpass_clusters-interseccion-detalle.csv, cluster_id 24 y 902), separados unos 436 m sobre la misma via.",
+    "rumbos_via_principal": "Calculados como el rumbo entre los dos centroides (no medidos sobre la geometria de la via en OSM).",
+    "rumbos_transversales": "SUPUESTOS perpendiculares a la via principal; reemplazar por los de Overpass antes de usarlos como dato.",
+    "grupo_semaforico": "Valores de relleno (1 = via principal, 2 = transversal); el plan semaforico real lo entrega el CCGT.",
+    "codigo_mml": "Sin cruzar con el inventario de la MML."
+  },
+  "rsu": [
+    {
+      "rsu_id": "1",
+      "interseccion_id": "OSM-C24",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.103551833333334,
+        "lon": -77.03156646666667
+      },
+      "accesos": [
+        {
+          "acceso_id": "S",
+          "rumbo_llegada_deg": 349.5,
+          "grupo_semaforico": 1,
+          "nota": "via principal, llegada desde el sur"
+        },
+        {
+          "acceso_id": "N",
+          "rumbo_llegada_deg": 169.5,
+          "grupo_semaforico": 1,
+          "nota": "via principal, llegada desde el norte"
+        },
+        {
+          "acceso_id": "O",
+          "rumbo_llegada_deg": 79.5,
+          "grupo_semaforico": 2,
+          "nota": "transversal SUPUESTA perpendicular"
+        },
+        {
+          "acceso_id": "E",
+          "rumbo_llegada_deg": 259.5,
+          "grupo_semaforico": 2,
+          "nota": "transversal SUPUESTA perpendicular"
+        }
+      ]
+    },
+    {
+      "rsu_id": "2",
+      "interseccion_id": "OSM-C902",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.099695500000001,
+        "lon": -77.03229606666666
+      },
+      "accesos": [
+        {
+          "acceso_id": "S",
+          "rumbo_llegada_deg": 349.5,
+          "grupo_semaforico": 1,
+          "nota": "via principal, llegada desde el sur"
+        },
+        {
+          "acceso_id": "N",
+          "rumbo_llegada_deg": 169.5,
+          "grupo_semaforico": 1,
+          "nota": "via principal, llegada desde el norte"
+        },
+        {
+          "acceso_id": "O",
+          "rumbo_llegada_deg": 79.5,
+          "grupo_semaforico": 2,
+          "nota": "transversal SUPUESTA perpendicular"
+        },
+        {
+          "acceso_id": "E",
+          "rumbo_llegada_deg": 259.5,
+          "grupo_semaforico": 2,
+          "nota": "transversal SUPUESTA perpendicular"
+        }
+      ]
+    }
+  ]
+}

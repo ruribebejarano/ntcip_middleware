@@ -64,10 +64,11 @@ EVT_M1_TX = "M1_tx"              # OBU publica la solicitud de prioridad
 EVT_M1_RX = "M1_rx"              # RSU recibe la solicitud por MQTT
 EVT_SNMP_SET_TX = "snmp_set_tx"  # RSU traduce y escribe hacia el controlador
 EVT_CTRL_FASE_CAMBIO = "ctrl_fase_cambio"  # el controlador cambia de fase
-EVT_M2_TX = "M2_tx"              # RSU publica el estado de la solicitud (no implementado aun, ver TODO en agent/rsu_middleware.py)
-EVT_M2_RX = "M2_rx"              # OBU recibe el estado de la solicitud (idem)
-EVT_M3_TX = "M3_tx"              # OBU cancela la solicitud (idem, no implementado)
-EVT_CADUCIDAD = "caducidad"      # la RSU cancela por caducidad sin M3 (idem)
+EVT_M2_TX = "M2_tx"              # RSU publica el estado de la solicitud (M2, tema de respuesta de la OBU)
+EVT_M2_RX = "M2_rx"              # OBU recibe M2; extra: rtt_ms del par M1/M2 (reloj de la OBU)
+EVT_M3_TX = "M3_tx"              # OBU cancela la solicitud (RF-04); extra: motivo
+EVT_M3_RX = "M3_rx"              # RSU recibe la cancelacion
+EVT_CADUCIDAD = "caducidad"      # la RSU cancela por caducidad sin M3 (RF-09)
 
 
 class EventLogger:

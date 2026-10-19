@@ -16,6 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from agent.ntcip1211 import (  # noqa: E402
+    CLOSED_CANCELED,
     ACTIVE_PROCESSING,
     CLOSED_TIME_TO_LIVE_ERROR,
     READY_QUEUED,
@@ -186,6 +187,23 @@ class TestRF09Caducidad(unittest.TestCase):
     def test_verificar_caducidad_es_no_op_sin_solicitud_activa(self):
         prs = PriorityRequestServer()
         self.assertFalse(prs.verificar_caducidad())
+
+
+class TestRF04CancelacionM3(unittest.TestCase):
+    def test_cancela_solicitud_activa(self):
+        prs = PriorityRequestServer()
+        prs.aceptar_solicitud(_solicitud_valida(), fase_actual="verde")
+        prs.cancelar()
+        self.assertEqual(prs.fila(1).estado, CLOSED_CANCELED)
+        self.assertIsNone(prs.fila_activa())
+
+    def test_cancela_solicitud_en_cola(self):
+        prs = PriorityRequestServer()
+        prs.aceptar_solicitud(_solicitud_valida(), fase_actual="amarillo")
+        prs.cancelar()
+        self.assertEqual(prs.fila(1).estado, CLOSED_CANCELED)
+        # Una fila cancelada en cola no debe activarse al terminar el despeje.
+        self.assertIsNone(prs.intentar_activar_cola("verde"))
 
 
 if __name__ == "__main__":
