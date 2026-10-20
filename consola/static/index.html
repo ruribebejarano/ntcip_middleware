@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consola del centro de control</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="app">
+  <header class="barra-estado" id="barra-estado">
+    <div class="indicador" id="ind-broker" data-estado="desconocido"><span class="punto"></span><span class="texto">Broker</span></div>
+    <div class="indicador" id="ind-rsu" data-estado="desconocido"><span class="punto"></span><span class="texto">RSU</span></div>
+    <div class="indicador" id="ind-snmp" data-estado="desconocido"><span class="punto"></span><span class="texto">SNMPv3</span></div>
+    <div class="indicador" id="ind-controlador" data-estado="desconocido"><span class="punto"></span><span class="texto">Controlador</span></div>
+    <div class="indicador" id="ind-reloj" data-estado="desconocido"><span class="punto"></span><span class="texto">Relojes</span></div>
+    <div class="espaciador"></div>
+    <div class="hora-local" id="hora-local">--:--:--</div>
+  </header>
+
+  <nav class="menu-lateral" id="menu-lateral">
+    <button class="item-menu activo" data-vista="monitoreo">Monitoreo en vivo</button>
+    <button class="item-menu" data-vista="ensayos">Ensayos y métricas</button>
+    <button class="item-menu" data-vista="comandos">Registro de comandos</button>
+  </nav>
+
+  <main class="contenido">
+
+    <section id="vista-monitoreo" class="vista activa">
+      <div class="fila-metricas" id="fila-metricas-monitoreo">
+        <div class="metrica"><div class="metrica-etiqueta">Solicitudes activas</div><div class="metrica-valor" id="m-solicitudes-activas">0</div></div>
+        <div class="metrica"><div class="metrica-etiqueta">L última solicitud</div><div class="metrica-valor" id="m-latencia">—</div><div class="metrica-nota">umbral RNF-01: 1000 ms</div></div>
+        <div class="metrica"><div class="metrica-etiqueta">RTT M1/M2 último</div><div class="metrica-valor" id="m-rtt-ultimo">—</div></div>
+        <div class="metrica"><div class="metrica-etiqueta">RTT p95 (sesión)</div><div class="metrica-valor" id="m-rtt-p95">—</div></div>
+        <div class="metrica"><div class="metrica-etiqueta">PDR (sesión)</div><div class="metrica-valor" id="m-pdr">—</div></div>
+        <div class="metrica"><div class="metrica-etiqueta">Fase RSU</div><div class="metrica-valor" id="m-fase">—</div></div>
+      </div>
+
+      <div class="rejilla-monitoreo">
+        <div class="panel panel-mapa">
+          <div class="panel-titulo">Corredor (RSU, geocercas y accesos)</div>
+          <svg id="svg-mapa" viewBox="-400 -400 800 800" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+
+        <div class="panel panel-lateral">
+          <div class="subpanel">
+            <div class="panel-titulo">Semáforo RSU (NTCIP 1202)</div>
+            <div class="semaforo" id="semaforo">
+              <div class="luz roja" data-color="roja"></div>
+              <div class="luz amarilla" data-color="amarilla"></div>
+              <div class="luz verde" data-color="verde"></div>
+            </div>
+            <div class="nota-chica" id="semaforo-nota">sin datos</div>
+          </div>
+          <div class="subpanel">
+            <div class="panel-titulo">priorityRequestTable (NTCIP 1211) · fila activa</div>
+            <table class="tabla-chica" id="tabla-prs"><tbody></tbody></table>
+          </div>
+          <div class="subpanel">
+            <div class="panel-titulo">OBU emulada</div>
+            <dl class="ficha" id="ficha-obu">
+              <div><dt>Velocidad</dt><dd id="obu-vel">—</dd></div>
+              <div><dt>Distancia</dt><dd id="obu-dist">—</dd></div>
+              <div><dt>Intersección / acceso</dt><dd id="obu-interseccion">—</dd></div>
+              <div><dt>Solicitud</dt><dd id="obu-solicitud">—</dd></div>
+              <div><dt>seq</dt><dd id="obu-seq">—</dd></div>
+              <div><dt>Último M2</dt><dd id="obu-m2">—</dd></div>
+              <div><dt>RTT</dt><dd id="obu-rtt">—</dd></div>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel panel-pruebas">
+        <div class="panel-titulo">Pruebas del lazo (gateway/obu_emulada.py)</div>
+        <div class="botonera" id="botonera-pruebas">
+          <button data-prueba="lazo_completo">Lazo completo</button>
+          <button data-prueba="dos_intersecciones">Dos intersecciones</button>
+          <button data-prueba="clase_no_reconocida">Clase no reconocida</button>
+          <button data-prueba="caducidad">Caducidad</button>
+          <button data-prueba="vehiculo_detenido">Vehículo detenido</button>
+          <button id="btn-detener-prueba" class="boton-peligro" disabled>Detener</button>
+        </div>
+        <div class="nota-chica" id="prueba-estado">Ninguna prueba en curso.</div>
+      </div>
+
+      <div class="rejilla-registros">
+        <div class="panel panel-registro">
+          <div class="panel-titulo">Tráfico MQTT</div>
+          <div class="registro" id="registro-mqtt" tabindex="0"></div>
+        </div>
+        <div class="panel panel-registro">
+          <div class="panel-titulo">Eventos del lazo (OBU / RSU / controlador)</div>
+          <div class="registro" id="registro-eventos" tabindex="0"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="vista-ensayos" class="vista">
+      <div class="panel">
+        <div class="panel-titulo">Corrida</div>
+        <div class="fila-controles">
+          <select id="select-corrida"></select>
+          <button id="btn-refrescar-corridas">Refrescar</button>
+          <input id="input-nota-export" type="text" placeholder="nota para la figura/tabla (banco, condiciones)">
+          <button id="btn-exportar-figuras">Exportar figuras (PDF)</button>
+          <span class="nota-chica" id="exportar-estado"></span>
+        </div>
+        <pre class="config-json" id="config-corrida"></pre>
+      </div>
+
+      <div class="fila-metricas" id="fila-metricas-ensayos"></div>
+
+      <div class="rejilla-graficos">
+        <div class="panel"><div class="panel-titulo">(a) CDF del RTT M1/M2</div><svg class="grafico" id="g-cdf" viewBox="0 0 420 260"></svg></div>
+        <div class="panel"><div class="panel-titulo">(b) Latencia por tramo</div><svg class="grafico" id="g-tramos" viewBox="0 0 420 260"></svg></div>
+        <div class="panel"><div class="panel-titulo">(c) Espera del despeje según fase de llegada</div><svg class="grafico" id="g-despeje" viewBox="0 0 420 260"></svg></div>
+        <div class="panel"><div class="panel-titulo">(d) RTT a lo largo de la solicitud</div><svg class="grafico" id="g-serie" viewBox="0 0 420 260"></svg></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-titulo">Detalle por solicitud</div>
+        <div class="tabla-scroll"><table class="tabla-datos" id="tabla-solicitudes"><thead></thead><tbody></tbody></table></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-titulo">Comparar condiciones</div>
+        <div class="fila-controles">
+          <select id="select-comparar" multiple size="6"></select>
+          <div id="etiquetas-comparar"></div>
+          <button id="btn-comparar">Comparar</button>
+        </div>
+        <div class="rejilla-graficos" id="rejilla-comparar"></div>
+        <div class="tabla-scroll"><table class="tabla-datos" id="tabla-comparar"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="vista-comandos" class="vista">
+      <div class="panel">
+        <div class="panel-titulo">Registro de comandos (auditoría)</div>
+        <div class="fila-controles">
+          <select id="filtro-canal">
+            <option value="">Todos los canales</option>
+            <option value="MQTT">MQTT</option>
+            <option value="SNMPv3">SNMPv3</option>
+            <option value="TCP RSU->controlador">TCP RSU→controlador</option>
+            <option value="SSH">SSH</option>
+            <option value="proceso local">proceso local</option>
+          </select>
+          <input id="filtro-texto" type="text" placeholder="buscar por id de solicitud, tema u OID">
+          <button id="btn-filtrar-comandos">Filtrar</button>
+          <a id="btn-descargar-comandos" href="/api/comandos/descargar" download>Descargar .jsonl</a>
+        </div>
+      </div>
+      <div class="rejilla-comandos">
+        <div class="panel panel-lista-comandos">
+          <div class="tabla-scroll"><table class="tabla-datos" id="tabla-comandos"><thead>
+            <tr><th>Hora</th><th>Origen → destino</th><th>Canal</th><th>Resumen</th></tr>
+          </thead><tbody></tbody></table></div>
+        </div>
+        <div class="panel panel-detalle-comando">
+          <div class="panel-titulo">Detalle</div>
+          <pre id="detalle-comando">Seleccionar una fila.</pre>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="js/sse.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/graficos.js"></script>
+<script src="js/mapa.js"></script>
+<script src="js/monitoreo.js"></script>
+<script src="js/ensayos.js"></script>
+<script src="js/comandos.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

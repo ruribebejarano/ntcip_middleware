@@ -30,3 +30,9 @@ paho-mqtt==2.1.0
 # Para centro_control/panel/ (panel web de supervision, Streamlit):
 streamlit==1.65.0
 python-dotenv==1.2.4
+
+# Para consola/ (consola web del centro de control, FastAPI -- ver
+# docs/CONSOLA.md). No reemplaza centro_control/panel/ (Streamlit), que se
+# mantiene tal cual.
+fastapi==0.153.0
+uvicorn==0.54.0

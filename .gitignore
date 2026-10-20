@@ -43,3 +43,8 @@ resultados/rsu/
 resultados/demo_combinado/
 # cache de centro_control/panel/ (ver eventos_panel.py), se regenera solo:
 resultados/panel_vivo/
+resultados/obu_vivo/
+resultados/demo_lazo_tmp/
+# registro de auditoria de consola/ (ver docs/CONSOLA.md): se regenera solo,
+# no es evidencia curada.
+resultados/consola/
