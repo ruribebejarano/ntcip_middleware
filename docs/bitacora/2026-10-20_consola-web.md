@@ -62,20 +62,26 @@ registrar, ninguno inventado, ambos verificados en el banco local:
    durante sesiones de varios minutos contra el agente local. Documentado
    en `docs/CONSOLA.md`; no debería afectar a Linux (sin
    `ProactorEventLoop`), pero conviene re-probar si se porta.
-2. **Hallazgo pre-existente, NO corregido aquí (fuera de alcance de este
-   cambio):** `scripts/analisis/graficos_campana.py::fig_tramos()` falla
-   con `ValueError` de matplotlib (`List of boxplot statistics and
-   positions values must have same length`) cuando una corrida no tiene
-   NINGÚN dato de `t_V2I`, `t_RSU` ni `L` (p. ej. al exportar figuras de
-   una corrida cuyos eventos de la RSU todavía no se trajeron con
-   `scripts/pi.sh fetch`). Reproducido también desde la línea de
-   comandos, sin la consola de por medio. La consola solo invoca el
-   script tal cual y propaga el error (se ve en el botón "Exportar
-   figuras"); no se modificó `graficos_campana.py` porque es código de
-   medición del Capítulo IV, fuera del alcance de esta tarea — queda
-   pendiente decidir el arreglo (p. ej. omitir `fig_tramos`/`fig_panel`
-   cuando las tres series están vacías) con el asesor o en un cambio
-   aparte.
+2. **Hallazgo pre-existente, corregido a pedido explícito (2026-10-20,
+   sesión siguiente):** `scripts/analisis/graficos_campana.py::fig_tramos()`
+   fallaba con `ValueError` de matplotlib (`List of boxplot statistics
+   and positions values must have same length`) cuando una corrida no
+   tiene NINGÚN dato de `t_V2I`, `t_RSU` ni `L` (p. ej. al exportar
+   figuras de una corrida cuyos eventos de la RSU todavía no se trajeron
+   con `scripts/pi.sh fetch`) — reproducido también desde la línea de
+   comandos, sin la consola de por medio. Arreglado con un `if not
+   datos:` antes de llamar a `ax.boxplot()` (dibuja "sin datos de tramo"
+   en vez de reventar). Al corregir eso apareció un SEGUNDO fallo en la
+   misma cadena, en el `print` final del resumen de `main()`
+   (`TypeError: unsupported format string passed to NoneType` al
+   formatear `percentil(m['L'], 50)` cuando es `None`): también
+   corregido, con el mismo criterio (mensaje "sin datos" en vez de
+   formatear `None`). Pruebas de regresión en
+   `tests/test_graficos_campana.py` (incluye una que corre el script
+   completo por subproceso y verifica código de salida 0). Verificado de
+   punta a punta: CLI directa, llamada desde
+   `consola/backend/analisis.exportar_figuras()`, y la suite completa de
+   pytest (65 pruebas).
 
 ## Evidencia
 Probado contra el banco local emulado (controlador + RSU + consola en la
@@ -100,8 +106,6 @@ reproduce igual con `centro_control/panel/`) — solo se documenta por si
 se repite y confunde una futura sesión de depuración.
 
 ## Pendiente
-- Decidir con el asesor el arreglo de `graficos_campana.py::fig_tramos()`
-  para corridas sin datos de tramo (hallazgo 2 de arriba).
 - Probar la consola contra la Raspberry Pi real cuando vuelva a estar en
   línea (en esta sesión estaba offline en Tailscale).
 - La fila de métricas en vivo de "Monitoreo" (L, RTT, PDR de sesión) es
