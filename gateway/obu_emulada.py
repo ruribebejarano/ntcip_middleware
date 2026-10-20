@@ -26,6 +26,12 @@ Eventos (common/events.py, RF-10): M1_tx, M3_tx, M2_rx (con rtt_ms). M1_tx
 lleva ademas la verdad de terreno de la muestra, para la tasa de acierto de
 acceso.
 
+Estado local para el panel (--estado-local): en cada muestra la OBU escribe
+su posicion, su asignacion y el estado de su solicitud en un archivo JSON de
+la propia laptop, que lee la pagina "Lazo V2I en vivo" del panel. La
+posicion NO se publica por MQTT (ssec:minimizacion): ese archivo es solo una
+vista local para la demo, equivalente a mirar la pantalla del telefono.
+
 Uso (broker en la RSU o broker central; sin TLS en esta etapa):
     python3 gateway/obu_emulada.py --broker-host 192.168.18.175 \\
         --trayectoria resultados/trayectorias/avenida_ab_s1.csv
@@ -38,6 +44,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import sys
 import threading
 import time
@@ -48,7 +55,7 @@ import paho.mqtt.client as mqtt
 
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ))
-from common.events import EVT_M1_TX, EVT_M2_RX, EVT_M3_TX, EventLogger  # noqa: E402
+from common.events import EVT_M1_TX, EVT_M2_RX, EVT_M3_TX, EVT_MUESTRA, EventLogger  # noqa: E402
 from gateway.geometria import (  # noqa: E402
     ACTUALIZAR_M1,
     EMITIR_M1,
@@ -78,6 +85,7 @@ class ObuEmulada:
         # RF-05 es un rechazo definitivo (clase no reconocida): tras un M2
         # "rechazada" la OBU deja de actualizar esa solicitud.
         self.rechazadas: set[str] = set()
+        self.ultimo_m2: dict = {}
 
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
                                   client_id=f"obu-{self.vehiculo_id}", protocol=mqtt.MQTTv5)
@@ -104,6 +112,8 @@ class ObuEmulada:
         estado = data.get("estado")
         if estado == "rechazada":
             self.rechazadas.add(id_sol)
+        self.ultimo_m2 = {"id_solicitud": id_sol, "estado": estado, "fase": data.get("fase"),
+                          "rtt_ms": rtt_ms, "ts": time.time()}
         if self.ultimo_estado.get(id_sol) != estado:
             print(f"  M2 <- {id_sol} estado={estado} fase={data.get('fase')}"
                   + (f" rtt={rtt_ms:.1f} ms" if rtt_ms is not None else ""))
@@ -156,6 +166,37 @@ class ObuEmulada:
         print(f"[t={fila['t_s']:>6}s] M3 -> rsu/{dec.asignacion.rsu_id} ({dec.motivo}) {self.id_actual}")
         self.id_actual = None
 
+    def _escribir_estado(self, fila: dict, n: int, total: int) -> None:
+        """Vista local para el panel (ver docstring del modulo). Escritura
+        atomica: el panel nunca lee un JSON a medio escribir."""
+        if not self.args.estado_local:
+            return
+        a = self.seguidor.actual
+        estado = {
+            "ts": time.time(), "vehiculo_id": self.vehiculo_id,
+            "trayectoria": str(Path(self.args.trayectoria).resolve()),
+            "muestra": n, "muestras": total, "t_s": float(fila["t_s"]),
+            "lat": float(fila["lat"]), "lon": float(fila["lon"]),
+            "rumbo_deg": float(fila["rumbo_deg"]), "velocidad_kmh": float(fila["velocidad_kmh"]),
+            "asignacion": None if a is None else {
+                "rsu_id": a.rsu_id, "interseccion_id": a.interseccion_id,
+                "acceso": a.acceso_id, "distancia_m": round(a.distancia_m, 1)},
+            "solicitud": self.id_actual, "seq": self.seq if self.id_actual else None,
+            "rechazada": self.id_actual in self.rechazadas if self.id_actual else False,
+            "ultimo_m2": self.ultimo_m2,
+            "r_g_m": self.p.r_g_m, "r_i_m": self.p.r_i_m,
+            "registro": str(Path(self.args.registro).resolve()),
+            "terminado": n >= total,
+        }
+        ruta = Path(self.args.estado_local)
+        try:
+            ruta.parent.mkdir(parents=True, exist_ok=True)
+            tmp = ruta.with_suffix(".tmp")
+            tmp.write_text(json.dumps(estado), encoding="utf-8")
+            os.replace(tmp, ruta)
+        except OSError:
+            pass  # el panel puede tener el archivo abierto un instante (Windows): se reintenta en la proxima muestra
+
     def correr(self) -> None:
         self.client.connect(self.args.broker_host, self.args.broker_port, keepalive=30)
         self.client.loop_start()
@@ -168,11 +209,18 @@ class ObuEmulada:
 
         t0_mono = time.monotonic()
         t0_tray = float(filas[0]["t_s"])
-        for fila in filas:
+        for n, fila in enumerate(filas, 1):
             objetivo = t0_mono + (float(fila["t_s"]) - t0_tray) / self.args.factor
             espera = objetivo - time.monotonic()
             if espera > 0:
                 time.sleep(espera)
+            # t_OBU (de la muestra al envio del M1, ssec:metricas): se
+            # registra ANTES de la decision de geometria, para que
+            # scripts/analisis/lazo_emulado.py pueda emparejar esta fila con
+            # el M1_tx (o ACTUALIZAR_M1) que dispare, si alguno, por t_tray_s
+            # (ver docstring de EVT_MUESTRA en common/events.py). Con el
+            # reloj de la propia OBU: no depende de sincronizar relojes.
+            self.eventos.log(EVT_MUESTRA, "-", t_tray_s=float(fila["t_s"]))
             for dec in self.seguidor.actualizar(float(fila["lat"]), float(fila["lon"]),
                                                 float(fila["rumbo_deg"])):
                 if self.id_actual in self.rechazadas and dec.accion in (ACTUALIZAR_M1, EMITIR_M3):
@@ -183,6 +231,7 @@ class ObuEmulada:
                     self._m1(dec, fila)
                 elif dec.accion == EMITIR_M3:
                     self._m3(dec, fila)
+            self._escribir_estado(fila, n, len(filas))
 
         time.sleep(self.args.espera_final)
         self.client.loop_stop()
@@ -206,6 +255,8 @@ def main() -> None:
     ap.add_argument("--r-i", type=float, default=ParametrosGeometria.r_i_m, help="radio de candidatura R_i, m")
     ap.add_argument("--espera-final", type=float, default=2.0, help="s a esperar M2 pendientes al terminar")
     ap.add_argument("--obu-id", default="obu", help="nodo del registro de eventos (eventos_<obu-id>.csv)")
+    ap.add_argument("--estado-local", default=str(RAIZ / "resultados" / "obu_vivo" / "estado.json"),
+                    help="JSON local que lee el panel en vivo ('' para no escribirlo)")
     ObuEmulada(ap.parse_args()).correr()
 
 

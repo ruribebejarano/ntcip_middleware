@@ -69,6 +69,23 @@ EVT_M2_RX = "M2_rx"              # OBU recibe M2; extra: rtt_ms del par M1/M2 (r
 EVT_M3_TX = "M3_tx"              # OBU cancela la solicitud (RF-04); extra: motivo
 EVT_M3_RX = "M3_rx"              # RSU recibe la cancelacion
 EVT_CADUCIDAD = "caducidad"      # la RSU cancela por caducidad sin M3 (RF-09)
+EVT_MUESTRA = "muestra"          # OBU lee una fila de la trayectoria, antes de
+                                  # decidir geometria (gateway/obu_emulada.py).
+                                  # id_solicitud = "-" (no hay una activa
+                                  # necesariamente); extra: t_tray_s, que es la
+                                  # clave para emparejar esta fila con el M1_tx
+                                  # (o ACTUALIZAR_M1) que haya disparado, si
+                                  # alguno. Permite medir t_OBU = M1_tx - muestra
+                                  # con el reloj de la propia OBU (docs/MEDICION_LATENCIA.md).
+EVT_BROKER_RX = "broker_rx"      # scripts/testigo_broker.py: un suscriptor mas
+                                  # corriendo en la MISMA maquina que el broker,
+                                  # registra la llegada de cada M1/M2/M3 con el
+                                  # reloj del broker. extra: tipo (M1/M2/M3),
+                                  # seq (o seq_ref para M2), topic. Permite
+                                  # estimar t_up y t_down (docs/MEDICION_LATENCIA.md);
+                                  # es una COTA SUPERIOR del tiempo real del
+                                  # broker, porque el propio testigo agrega
+                                  # procesamiento (deserializar, loguear).
 
 
 class EventLogger:
