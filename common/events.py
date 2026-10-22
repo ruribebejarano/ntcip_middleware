@@ -77,6 +77,18 @@ EVT_MUESTRA = "muestra"          # OBU lee una fila de la trayectoria, antes de
                                   # (o ACTUALIZAR_M1) que haya disparado, si
                                   # alguno. Permite medir t_OBU = M1_tx - muestra
                                   # con el reloj de la propia OBU (docs/MEDICION_LATENCIA.md).
+
+# --- Arquitectura centralizada (2026-10-22): el servidor decide, ver
+# servidor/gestor_mision.py. id_solicitud en estos eventos puede ser
+# mision_id (mision_armada/ruta_*/MP_rx/mision_desarmada) o id_solicitud de
+# M1 (M1_tx/conflicto_arbitrado) segun el evento, documentado en cada caso.
+EVT_MISION_ARMADA = "mision_armada"            # servidor crea la mision (MI recibido); extra: obu_id, clase, destino
+EVT_RUTA_CALCULADA = "ruta_calculada"          # servidor calculo la ruta y la lista de RSU/accesos (MR); extra: n_paradas, longitud_m
+EVT_RUTA_RECALCULADA = "ruta_recalculada"      # desvio detectado: nueva ruta; extra: motivo, n_paradas_antes, n_paradas_despues
+EVT_MP_RX = "MP_rx"                             # servidor recibe una posicion de la OBU; extra: lat, lon, velocidad_kmh, rumbo_deg
+EVT_CONFLICTO_ARBITRADO = "conflicto_arbitrado"  # servidor/conflictos.py decidio entre misiones; extra: rsu_id, ganador, en_espera
+EVT_MISION_DESARMADA = "mision_desarmada"      # fin de mision (MF, tiempo maximo, o boton); extra: motivo
+
 EVT_BROKER_RX = "broker_rx"      # scripts/testigo_broker.py: un suscriptor mas
                                   # corriendo en la MISMA maquina que el broker,
                                   # registra la llegada de cada M1/M2/M3 con el

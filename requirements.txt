@@ -1,5 +1,15 @@
 paho-mqtt==2.1.0
 
+# Arquitectura centralizada (2026-10-22): servidor/rutas.py enruta con
+# NetworkX puro sobre un grafo cacheado en disco (data/*.graphml) -- no
+# requiere osmnx para CORRER el servidor. osmnx solo hace falta para
+# REGENERAR ese cache (scripts/datos/regenerar_grafo.py); se deja fuera de
+# este archivo a propósito porque trae dependencias pesadas (geopandas,
+# shapely, pyproj...) que no hacen falta en la Raspberry Pi ni en CI para
+# correr las pruebas con el grafo sintético. Instalar aparte si se va a
+# regenerar el grafo real: pip install osmnx
+networkx==3.3
+
 # pysnmp: NO usar la ultima version estable de PyPI (7.1.29, publicada
 # 2026-08-21). Esa version tiene un bug conocido en el modelo de seguridad
 # USM: la combinacion auth SHA-1 + privacidad AES-128 (la que exige esta

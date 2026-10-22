@@ -48,3 +48,8 @@ resultados/demo_lazo_tmp/
 # registro de auditoria de consola/ (ver docs/CONSOLA.md): se regenera solo,
 # no es evidencia curada.
 resultados/consola/
+
+# cache de descarga de osmnx/Overpass (scripts/datos/regenerar_grafo.py):
+# se regenera solo; lo que SI se versiona es el .graphml ya cacheado en
+# data/, no esta carpeta de respuestas crudas de la API.
+cache/
