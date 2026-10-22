@@ -1,8 +1,15 @@
-"""Lee el estado local de la OBU emulada (resultados/obu_vivo/estado.json,
-escrito por gateway/obu_emulada.py) cada 0.5 s. La posicion NUNCA viaja por
-MQTT (ssec:minimizacion de main.tex): esta es la unica fuente de la
-posicion del vehiculo para el mapa de la consola, igual que en
-centro_control/panel/pages/1_Lazo_V2I_en_vivo.py."""
+"""*** LEGADO (pre-arquitectura centralizada, 2026-10-22) ***
+Lee el estado local de la OBU emulada (resultados/obu_vivo/estado.json).
+Desde la migración a la arquitectura centralizada, gateway/obu_emulada.py
+YA NO escribe ese archivo (la posición viaja en MP hacia el servidor, que
+es quien calcula la asignación de RSU/acceso; ver servidor/gestor_mision.py
+y docs/CONTRATO_OBU.md) -- este módulo queda sin alimentación y el panel
+que lo usa (consola/backend/mapa.py, centro_control/panel/pages/1_Lazo_V2I_en_vivo.py)
+no muestra nada nuevo hasta que se adapte para leer la MR/ME del servidor
+en su lugar (ver "pendiente" en docs/bitacora/2026-10-22_arquitectura-centralizada.md).
+No se borra: sigue siendo válido para reproducir corridas del esquema
+anterior (E2+E4) si se vuelve a correr la versión vieja de obu_emulada.py
+desde el historial de git."""
 
 from __future__ import annotations
 

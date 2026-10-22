@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
 """Simulador de OBU (unidad de a bordo) -- lado V2I del lazo EVP.
 
+*** LEGADO (P0-P3, pre-arquitectura centralizada, 2026-10-22) ***
+Publica un M1 directo a la RSU (`rsu/v2i/solicitud_prioridad`) con un ETA a
+mano, sin pasar por el servidor central ni por una misión armada. Sigue
+funcionando (agent/rsu_middleware.py mantiene ese camino sin cambios, ver
+`_procesar_m1_legado`), pero ya NO representa el diseño vigente de la OBU:
+ver gateway/obu_emulada.py para el cliente delgado (MI/MP/MF hacia el
+servidor, que es quien decide a qué RSU y cuándo). Se conserva solo para
+las pruebas que ya dependían de este camino directo (demo_asesor.sh).
+
 *** SIMULADOR, NO ES LA OBU REAL ***
 Publica por MQTT una solicitud de prioridad semaforica hacia la RSU, tal
 como haria mas adelante la aplicacion del operador (OE4, ver CLAUDE.md) una

@@ -88,6 +88,11 @@ EVT_RUTA_RECALCULADA = "ruta_recalculada"      # desvio detectado: nueva ruta; e
 EVT_MP_RX = "MP_rx"                             # servidor recibe una posicion de la OBU; extra: lat, lon, velocidad_kmh, rumbo_deg
 EVT_CONFLICTO_ARBITRADO = "conflicto_arbitrado"  # servidor/conflictos.py decidio entre misiones; extra: rsu_id, ganador, en_espera
 EVT_MISION_DESARMADA = "mision_desarmada"      # fin de mision (MF, tiempo maximo, o boton); extra: motivo
+EVT_MI_TX = "MI_tx"                             # OBU publica el inicio de mision; extra: clase, destino_lat, destino_lon
+EVT_MF_TX = "MF_tx"                             # OBU publica el fin de mision; extra: motivo
+EVT_MP_TX = "MP_tx"                             # OBU publica una posicion (reemplaza a M1_tx/M3_tx del lado OBU); extra: lat, lon, velocidad_kmh, rumbo_deg, seq
+EVT_MR_RX = "MR_rx"                             # OBU recibe la ruta calculada por el servidor; extra: n_paradas, longitud_m
+EVT_ME_RX = "ME_rx"                             # OBU recibe un cambio de estado de la mision; extra: proximo, conflicto
 
 EVT_BROKER_RX = "broker_rx"      # scripts/testigo_broker.py: un suscriptor mas
                                   # corriendo en la MISMA maquina que el broker,
