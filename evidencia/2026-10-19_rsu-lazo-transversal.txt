@@ -1,0 +1,3 @@
+Oct 19 12:05:01 ricardoub python3[2939]: [middleware] Solicitud de 'ses-48c80b' en cola (readyQueued): fase actual 'todo_rojo' en despeje (RF-06); se activa al terminar, si sigue vigente (TTL=3s)
+Oct 19 12:05:03 ricardoub python3[2939]: [middleware] Fin del despeje: se activa la solicitud en cola 'ses-48c80b' (RF-06) -> reenviando al controlador
+Oct 19 12:05:14 ricardoub python3[2939]: [middleware] M3 de 'ses-48c80b-5b7c4493' (cruce) -> liberando prioridad

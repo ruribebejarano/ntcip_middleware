@@ -37,6 +37,15 @@ Alineado con el alcance vigente de la tesis (`main.tex`, secciones
   iniciar una copia local estática de la lista de RSU y de la geometría de
   accesos, y selecciona localmente la RSU y el acceso; no depende de IP
   pública, VPN ni de resolución por el centro de control.
+  **[REVISAR: decisión servidor vs OBU, 2026-10-22]** Esto describe el
+  esquema anterior a la decisión de modo semiautomático y ruta por servidor
+  (`E:\Tesis\prompt_modo_semiautomatico_ruta.md`): con esa decisión, es el
+  **servidor central** el que decide qué RSU y cuándo, a partir de la ruta
+  que calcula al armar la misión; la OBU deja de seleccionar la RSU y el
+  acceso por su cuenta, y la geocerca pasa de criterio de decisión a
+  verificación final de que la posición real coincide con el acceso
+  esperado. Ver la nota equivalente en `CLAUDE.md` y el inventario de qué
+  habría que adaptar en el código.
 
 ## Arquitectura de esta versión
 

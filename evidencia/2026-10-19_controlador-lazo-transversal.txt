@@ -1,0 +1,18 @@
+Oct 19 12:04:08 ricardoub python3[2922]: [controlador] Fase -> amarillo (ciclo_normal)
+Oct 19 12:05:01 ricardoub python3[2922]: [controlador] Fase -> todo_rojo (ciclo_normal)
+Oct 19 12:05:03 ricardoub python3[2922]: [controlador] Fase -> rojo_general (ciclo_normal)
+Oct 19 12:05:03 ricardoub python3[2922]: [controlador] Fase -> verde (solicitud_prioridad)
+Oct 19 12:05:03 ricardoub python3[2922]: [controlador] Prioridad solicitada por 'ses-48c80b' (ETA 10s) -> fase forzada a verde por 15s
+Oct 19 12:05:04 ricardoub python3[2922]: [controlador] Prioridad solicitada por 'ses-48c80b' (ETA 10s) -> fase forzada a verde por 15s
+Oct 19 12:05:05 ricardoub python3[2922]: [controlador] Prioridad solicitada por 'ses-48c80b' (ETA 10s) -> fase forzada a verde por 15s
+Oct 19 12:05:06 ricardoub python3[2922]: [controlador] Prioridad solicitada por 'ses-48c80b' (ETA 10s) -> fase forzada a verde por 15s
+Oct 19 12:05:07 ricardoub python3[2922]: [controlador] Prioridad solicitada por 'ses-48c80b' (ETA 10s) -> fase forzada a verde por 15s
+Oct 19 12:05:08 ricardoub python3[2922]: [controlador] Prioridad solicitada por 'ses-48c80b' (ETA 10s) -> fase forzada a verde por 15s
+Oct 19 12:05:09 ricardoub python3[2922]: [controlador] Prioridad solicitada por 'ses-48c80b' (ETA 10s) -> fase forzada a verde por 15s
+Oct 19 12:05:10 ricardoub python3[2922]: [controlador] Prioridad solicitada por 'ses-48c80b' (ETA 10s) -> fase forzada a verde por 15s
+Oct 19 12:05:11 ricardoub python3[2922]: [controlador] Prioridad solicitada por 'ses-48c80b' (ETA 10s) -> fase forzada a verde por 15s
+Oct 19 12:05:12 ricardoub python3[2922]: [controlador] Prioridad solicitada por 'ses-48c80b' (ETA 10s) -> fase forzada a verde por 15s
+Oct 19 12:05:13 ricardoub python3[2922]: [controlador] Prioridad solicitada por 'ses-48c80b' (ETA 10s) -> fase forzada a verde por 15s
+Oct 19 12:05:14 ricardoub python3[2922]: [controlador] Fase -> rojo_general (liberacion_manual)
+Oct 19 12:05:14 ricardoub python3[2922]: [controlador] Prioridad liberada manualmente, vuelve al ciclo normal
+Oct 19 12:05:14 ricardoub python3[2922]: [controlador] Fase -> verde (ciclo_normal)

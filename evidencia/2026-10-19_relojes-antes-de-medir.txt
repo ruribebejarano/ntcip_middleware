@@ -1,0 +1,13 @@
+==> Offset de la Pi (rsu) contra time.cloudflare.com (vía chronyc sources, no solo la mejor fuente):
+MS Name/IP address         Stratum Poll Reach LastRx Last sample               
+^+ time.cloudflare.com           3  10   377   579  -8670us[-8670us] +/-   53ms
+==> Offset de la laptop (Windows) contra time.cloudflare.com:
+Seguimiento time.cloudflare.com [162.159.200.1:123].
+Recopilando 3 muestras.
+La hora actual es 19/10/2026 12:02:31.
+12:02:31, +00.0084971s
+12:02:33, +00.0075056s
+12:02:35, +00.0079183s
+==> Nota: si el servicio 'Windows Time' (w32time) no está corriendo en la
+    laptop, su reloj no se autocorrige y este offset puede crecer con el
+    tiempo. Verificar con: w32tm /query /status

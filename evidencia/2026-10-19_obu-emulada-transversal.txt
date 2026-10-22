@@ -1,0 +1,7 @@
+OBU emulada ses-48c80b: 76 muestras de resultados/trayectorias/transversal_a_s1.csv a x1.0 (R_g=150 m, R_i=300 m)
+[t=  41.0s] M1 nueva -> rsu/1 OSM-C24/O a 142 m (ses-48c80b-5b7c4493)
+  M2 <- ses-48c80b-5b7c4493 estado=recibida fase=todo_rojo rtt=14.2 ms
+  M2 <- ses-48c80b-5b7c4493 estado=concedida fase=verde
+[t=  54.0s] M3 -> rsu/1 (cruce) ses-48c80b-5b7c4493
+  M2 <- ses-48c80b-5b7c4493 estado=cancelada fase=verde rtt=11.1 ms
+Fin: M1 enviados=13, M3 enviados=1, M2 recibidos=15 (eventos en resultados\eventos\eventos_obu.csv)

@@ -183,3 +183,38 @@ las tres incertidumbres pueda consumir tiempo indefinido.
 
 **R6 es la tarea más barata de adelantar y la más cara de descubrir tarde.**
 Probar el lector esta semana no cuesta nada y evita perder la S6 completa.
+
+---
+
+## Pendientes — modo semiautomático y ruta por servidor (añadido 2026-10-22)
+
+**[REVISAR: este cronograma no se ha actualizado desde el 13 de septiembre y
+sigue organizado alrededor de la malla Wi-SUN (OE4 de esta tabla); la
+decisión de arquitectura centralizada por 4G y modo semiautomático
+(`E:\Tesis\prompt_cambio_4G.md`, `E:\Tesis\prompt_modo_semiautomatico_ruta.md`)
+todavía no está reflejada aquí. Las ubicaciones de semana que siguen son una
+propuesta de encaje dentro de la estructura S1–S10 vigente, a confirmar con
+el asesor, no fechas ya acordadas.]**
+
+- **Script de ruta con OSMnx → lista ordenada de RSU.** Calcular la ruta
+  óptima OBU → destino sobre el grafo vial de OSM (OSMnx + NetworkX) y
+  cruzarla con `config/registro_rsu.json` para obtener la lista ordenada de
+  RSU y accesos. **[REVISAR: encajaría en la Fase III (S6–S7), junto al
+  resto del trabajo de la OBU/servidor, antes de la campaña de medición de
+  S7.]**
+- **Gestión de misión en el servidor.** Armado/desarme de la misión,
+  cálculo y recálculo de ruta ante desvío, envío de solicitudes con la
+  anticipación de RF8 y cancelación de las RSU que salen de la ruta.
+  **[REVISAR: depende del script de ruta anterior; mismo encaje S6–S7.]**
+- **Mapa de misión en la consola.** Extender `consola/backend/mapa.py` y
+  `consola/static/js/mapa.js` para mostrar la ruta de la misión, las RSU
+  coloreadas por estado y la posición en vivo del vehículo.
+  **[REVISAR: encajaría junto a la campaña de medición de S7, para poder
+  usarla como evidencia de la Prueba 6 del plan de pruebas.]**
+- **App Android mínima con mapa y ruta.** Botón "Iniciar/Terminar
+  emergencia" con selector de destino, indicador del próximo semáforo y
+  mapa con la ruta del servidor (sustituye a la OBU emulada de
+  `gateway/obu_emulada.py` para la validación final). **[REVISAR: la
+  bitácora `2026-10-19_lazo-obu-emulada.md` ya señala esta sustitución como
+  "decisión abierta con el asesor"; si se confirma, encajaría en la Fase
+  III o al inicio de la Fase IV, S8, según el tiempo disponible.]**

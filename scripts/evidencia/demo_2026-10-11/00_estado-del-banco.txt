@@ -1,0 +1,14 @@
+$ scripts/check_pi.sh
+bash: scripts/check_pi.sh: No such file or directory
+
+$ scripts/pi.sh status agent
+bash: scripts/pi.sh: No such file or directory
+
+$ scripts/pi.sh status controller
+bash: scripts/pi.sh: No such file or directory
+
+$ scripts/pi.sh status mosquitto
+bash: scripts/pi.sh: No such file or directory
+
+$ scripts/pi.sh clock
+bash: scripts/pi.sh: No such file or directory
