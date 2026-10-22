@@ -71,3 +71,5 @@ PDR 1,0 (210/210), RTT M1/M2 mediano 2,6 ms. Solo validó la lógica antes de pa
 - Opcional: segunda RSU en la laptop contra el mismo broker, para cerrar las solicitudes a `rsu/2`.
 - Reemplazar los rumbos transversales supuestos por los de Overpass.
 - Llevar M1/M2/M3 al broker con TLS (P4).
+
+> Nota 2026-10-22: superado por la arquitectura centralizada, ver `2026-10-22_arquitectura-centralizada.md`.

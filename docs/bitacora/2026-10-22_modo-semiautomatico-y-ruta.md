@@ -88,3 +88,5 @@ No aplica todavía.
   servidor, no solo a la OBU) y `consola/` (mapa de misión) — inventario
   detallado en la respuesta del asistente a
   `E:\Tesis\prompt_modo_semiautomatico_ruta.md`, punto 2.
+
+> Nota 2026-10-22: superado por la arquitectura centralizada, ver `2026-10-22_arquitectura-centralizada.md`.

@@ -33,86 +33,114 @@ Alineado con el alcance vigente de la tesis (`main.tex`, secciones
   detención, no con un tiempo estimado de llegada.
 - **Sin NTCIP 1209** (datos de detección): no hay sensor físico ni dato de
   tránsito general que exponer en el banco de pruebas.
-- **Direccionamiento OBU → RSU por el esquema E2+E4**: la OBU descarga al
-  iniciar una copia local estática de la lista de RSU y de la geometría de
-  accesos, y selecciona localmente la RSU y el acceso; no depende de IP
-  pública, VPN ni de resolución por el centro de control.
-  **[REVISAR: decisión servidor vs OBU, 2026-10-22]** Esto describe el
-  esquema anterior a la decisión de modo semiautomático y ruta por servidor
-  (`E:\Tesis\prompt_modo_semiautomatico_ruta.md`): con esa decisión, es el
-  **servidor central** el que decide qué RSU y cuándo, a partir de la ruta
-  que calcula al armar la misión; la OBU deja de seleccionar la RSU y el
-  acceso por su cuenta, y la geocerca pasa de criterio de decisión a
-  verificación final de que la posición real coincide con el acceso
-  esperado. Ver la nota equivalente en `CLAUDE.md` y el inventario de qué
-  habría que adaptar en el código.
+- **Direccionamiento por servidor central (arquitectura vigente desde
+  2026-10-22):** el servidor calcula la ruta (`servidor/rutas.py`) al armar
+  la misión y decide qué RSU y cuándo, cruzando esa ruta con
+  `config/registro_rsu.json` (que vive **solo** en el servidor). La OBU no
+  descarga ninguna copia del registro ni decide la RSU/el acceso por su
+  cuenta: es un cliente delgado (`gateway/obu_emulada.py`) que arma/desarma
+  la misión y publica su posición. La geocerca de
+  `gateway/geometria.py` (clase `SeguidorAcceso`) se reutiliza tal cual,
+  pero ahora corre en el servidor como **verificación final**, no como
+  criterio de decisión. Ver `docs/CONTRATO_OBU.md` (especificación de
+  mensajes) y `docs/bitacora/2026-10-22_arquitectura-centralizada.md`
+  (justificación y evolución del diseño).
+  - **Etapa previa del desarrollo (válida como antecedente, no vigente):**
+    el prototipo inicial usaba el esquema E2+E4 (la OBU decidía
+    localmente, con una copia local estática del registro). Esa etapa
+    quedó documentada y su evidencia se conserva en `evidencia/` y
+    `resultados/` — ver `docs/bitacora/2026-10-19_lazo-obu-emulada.md` y
+    `docs/bitacora/2026-10-22_modo-semiautomatico-y-ruta.md` (ambas con
+    una nota al final señalando que fueron superadas por la arquitectura
+    centralizada).
 
 ## Arquitectura de esta versión
 
 ```
-┌──────────────────────────── PC (laptop, cualquier SO) ───────────────────┐
-│                                                                            │
-│   centro_control/software_gestion.py    gateway/obu_simulator.py         │
-│   (rol: centro de control)               (rol: OBU / vehículo, simulada) │
-│            │  SNMPv3 GET/SET                │  MQTT publish              │
-└────────────┼───────────────────────────────┼─────────────────────────────┘
-             │                                │
-             │        Wi-Fi / LAN (canal V2I) │
-             │                                │
-┌────────────┼────────────────────────────────┼──────── Raspberry Pi (RSU) ─┐
-│            ▼                                ▼                            │
-│    agent/rsu_middleware.py    ◄────   mosquitto (broker MQTT local)       │
+┌──────────────────── OBU (laptop/celular, cliente delgado) ───────────────┐
+│   gateway/obu_emulada.py — arma/desarma la misión (MI/MF),               │
+│   publica posición a 1 Hz (MP); recibe ruta (MR) y estado (ME)           │
+└──────────────────────────────┬───────────────────────────────────────────┘
+                                │ MQTT (broker central)
+                                ▼
+┌──────────────────── SERVIDOR CENTRAL (único decisor) ─────────────────────┐
+│   servidor/main.py (proceso MQTT 5)                                       │
+│     servidor/rutas.py       — ruta óptima + lista ordenada de RSU/accesos │
+│                                (cruzada con config/registro_rsu.json)     │
+│     servidor/gestor_mision.py — ciclo de vida de la misión, ETA (RF8),    │
+│                                geocerca (gateway/geometria.py, reusada)   │
+│     servidor/conflictos.py  — arbitraje entre misiones                   │
+└──────────────────────────────┬───────────────────────────────────────────┘
+                                │ M1 (solicitud, con anticipación) / M3
+                                │ (cancelación) hacia la RSU; M2 de vuelta
+                                ▼
+┌──────────────────────── Raspberry Pi (RSU) ───────────────────────────────┐
+│    agent/rsu_middleware.py    ◄────   mosquitto (broker MQTT, central)    │
 │    - Agente SNMPv3 (pysnmp)                                               │
-│    - Suscriptor MQTT (V2I)                                                │
-│            │                                                              │
+│    - Acepta M1/M3 SOLO del servidor (ACL del broker, scripts/seguridad/)  │
 │            │ TCP local (protocolo propietario emulado)                   │
 │            ▼                                                              │
 │    controller/controller_emulator.py                                     │
 │    (rol: controlador de tránsito — EMULADO, sin hardware real)            │
 └────────────────────────────────────────────────────────────────────────────┘
+
+centro_control/software_gestion.py (SNMPv3 GET/SET directo a la RSU) sigue
+existiendo en paralelo, sin relación con el servidor central: es la consola
+de gestión NTCIP clásica (ver "Los enlaces" más abajo).
 ```
 
-### Los tres enlaces
+### Los enlaces
 
-1. **Centro de control ↔ RSU** — SNMPv3 (USM: auth SHA-1 / privacidad
-   AES-128). El centro de control hace `GET` sobre `faseActualTest` (fase
-   vigente del semáforo) y puede hacer `SET` sobre `solicitudPrioridadTest`
-   (forzar/liberar prioridad a mano). Implementado en
-   `agent/rsu_middleware.py`; el lado del centro de control es
-   `centro_control/software_gestion.py` — una consola con logs que
-   **monitorea continuamente y envía comandos**, simulando un software de
-   gestión real (ver `docs/SOFTWARE_GESTION.md`).
-2. **RSU → Controlador** — protocolo propio simulado (JSON Lines sobre TCP
-   local). Cuando llega un `SET` de prioridad o una solicitud V2I por MQTT,
-   el middleware le pide al controlador que fuerce/libere la fase verde.
+1. **OBU ↔ Servidor central** — MQTT 5, con TLS 1.3 + mTLS en el diseño
+   objetivo (ver `scripts/seguridad/`). `gateway/obu_emulada.py` arma la
+   misión (MI), publica la posición a 1 Hz (MP) y recibe la ruta (MR) y el
+   estado (ME) que calcula `servidor/gestor_mision.py`. Ver
+   `docs/CONTRATO_OBU.md` para el esquema completo de mensajes.
+2. **Servidor central → RSU** — MQTT, mismo broker. El servidor envía M1
+   (solicitud, con anticipación por ETA) y M3 (cancelación) a
+   `rsu/{rsu_id}/solicitudes`; la RSU responde M2 por el Response Topic de
+   MQTT 5. Implementado en `servidor/main.py` (lado servidor) y
+   `agent/rsu_middleware.py` (lado RSU, sin cambios de comportamiento más
+   allá de aceptar estos campos).
+3. **RSU → Controlador** — protocolo propio simulado (JSON Lines sobre TCP
+   local). Cuando llega un M1 o un `SET` SNMP de prioridad, el middleware
+   le pide al controlador que fuerce/libere la fase verde.
    `controller/controller_emulator.py` hace de controlador real mientras no
    haya acceso al hardware (ver `CLAUDE.md`, riesgo R5).
-3. **OBU → RSU (V2I)** — MQTT. `gateway/obu_simulator.py` simula la futura
-   aplicación del operador: publica una solicitud de prioridad con
-   `vehiculo_id` y `eta_seg` hacia el tópico que escucha el middleware.
-   Dispara exactamente el mismo camino hacia el controlador que un `SET`
-   manual desde el centro de control (leg 2).
+4. **Centro de control ↔ RSU** — SNMPv3 (USM: auth SHA-1 / privacidad
+   AES-128), sin relación con el servidor central: es una consola de
+   gestión clásica que hace `GET`/`SET` directo sobre la RSU
+   (`centro_control/software_gestion.py`, ver `docs/SOFTWARE_GESTION.md`).
 
 Los OID expuestos (`1.3.6.1.4.1.99999.1.1.0` y `.1.2.0`, bajo un número de
 empresa **no registrado**) son ficticios y genéricos — no corresponden a
 ningún estándar de MIB en particular todavía. Ver el docstring de
 `agent/rsu_middleware.py`.
 
-## Cómo correr todo (Raspberry Pi + PC)
+## Cómo correr todo (arquitectura centralizada)
 
 Ver **[docs/GUIA_COMANDOS.md](docs/GUIA_COMANDOS.md)** para los comandos
-exactos, en orden, incluyendo la configuración mínima de `mosquitto` para
-que acepte conexiones desde la PC.
+exactos, en orden, y
+**[evidencia/2026-10-22_arquitectura-centralizada/](evidencia/2026-10-22_arquitectura-centralizada/)**
+para tres escenarios ya corridos de punta a punta (lazo completo,
+conflicto, desvío) con sus scripts de orquestación
+(`correr_e2e*.sh`) como referencia directa de los comandos.
 
-Resumen (3 procesos, 2 máquinas):
+Resumen (5 procesos; el servidor y el broker pueden vivir en la misma
+máquina, o en la laptop mientras no haya un servidor dedicado):
 
-| Proceso | Máquina | Rol |
+| Proceso | Dónde | Rol |
 |---|---|---|
+| `mosquitto` | Servidor/laptop | Broker MQTT central (TLS 1.3 + mTLS en el diseño objetivo, ver `scripts/seguridad/`) |
+| `servidor/main.py` | Servidor/laptop | Único decisor: ruta, ETA, geocerca, conflictos |
 | `controller/controller_emulator.py` | Raspberry Pi | Controlador de tránsito (emulado) |
-| `agent/rsu_middleware.py` | Raspberry Pi | RSU: agente SNMP + adaptador + suscriptor V2I |
-| `mosquitto` | Raspberry Pi | Broker MQTT local (canal V2I) |
-| `centro_control/software_gestion.py` | PC | Centro de control: monitoreo continuo + comandos, con logs |
-| `gateway/obu_simulator.py` | PC | OBU simulada (publica solicitud V2I) |
+| `agent/rsu_middleware.py` | Raspberry Pi | RSU: agente SNMP + adaptador + M1/M3 del servidor |
+| `gateway/obu_emulada.py` | Laptop/celular | OBU (cliente delgado: MI/MP/MF, recibe MR/ME) |
+
+`centro_control/software_gestion.py` (SNMPv3 GET/SET directo a la RSU) y
+`gateway/obu_simulator.py` (M1 directo a la RSU, esquema legado P0-P3)
+siguen funcionando para las pruebas que ya dependían de ellos, pero no son
+parte del flujo de la arquitectura centralizada — ver sus docstrings.
 
 ## Fuera de alcance por ahora
 
@@ -121,8 +149,14 @@ confiabilidad y la MIB estandarizada real:
 
 - **Seguridad**: las credenciales USM (`labAuthPass123`/`labPrivPass123`)
   son de laboratorio, en claro en el código, sin rotación ni gestión de
-  claves. TLSTM (RFC 6353) no está evaluado. `mosquitto` se configura con
-  `allow_anonymous true` para el banco de pruebas — no autentica ni cifra.
+  claves. TLSTM (RFC 6353) no está evaluado. El banco de pruebas corre hoy
+  con `allow_anonymous true` en `mosquitto` (sin autenticar ni cifrar);
+  `scripts/seguridad/` tiene la CA propia (probada: generación, emisión y
+  revocación de certificados con `openssl`) y la configuración de
+  Mosquitto con TLS 1.3 + mTLS + ACL, pero **no se probó contra un broker
+  real** en este entorno de desarrollo — ver
+  `docs/bitacora/2026-10-22_arquitectura-centralizada.md` para los
+  comandos exactos pendientes.
 - **Confiabilidad**: no hay reintentos, colas ni manejo de pérdida de
   conexión entre el middleware y el controlador o el broker MQTT más allá
   de lo que dan por defecto `socket`/`paho-mqtt`. Si el controlador emulado
@@ -150,11 +184,21 @@ confiabilidad y la MIB estandarizada real:
 - [x] Middleware integrado (`agent/rsu_middleware.py`): agente SNMPv3 +
       adaptador hacia el controlador + suscriptor MQTT para V2I. Probado
       end-to-end (SNMP GET/SET/monitoreo ↔ controlador emulado).
-- [x] Simulador de OBU (`gateway/obu_simulator.py`): publica solicitudes de
-      prioridad V2I por MQTT.
-- [ ] Prueba end-to-end de los 3 enlaces juntos, en hardware real (Raspberry
-      Pi + PC en la misma red) — ver `docs/GUIA_COMANDOS.md`. Lo integrado
-      hasta ahora se probó en una sola máquina de desarrollo.
+- [x] Simulador de OBU (`gateway/obu_simulator.py`, esquema legado): publica
+      solicitudes de prioridad V2I por MQTT.
+- [x] **Arquitectura centralizada (2026-10-22)**: `servidor/` (ruta, ETA,
+      geocerca, conflictos) + `gateway/obu_emulada.py` como cliente delgado
+      + `agent/rsu_middleware.py` aceptando M1/M3 del servidor. Prueba de
+      punta a punta local con 3 escenarios (lazo completo, conflicto,
+      desvío) sobre MQTT real — ver
+      `evidencia/2026-10-22_arquitectura-centralizada/`.
+- [ ] CA/TLS/mTLS reales contra un broker en ejecución (la CA en sí se
+      probó, el broker con esa configuración no — ver
+      `scripts/seguridad/`).
+- [ ] Prueba end-to-end de los enlaces juntos, en hardware real (Raspberry
+      Pi + servidor/laptop en la misma red) — ver `docs/GUIA_COMANDOS.md`.
+      Lo integrado hasta ahora se probó en una sola máquina de desarrollo
+      (sin Raspberry Pi disponible en este entorno).
 - [ ] Validación manual del lector OBD-II con app comercial (Torque / Car
       Scanner) antes de que `gateway/obu_simulator.py` deje de ser un
       simulador y pase a leer datos reales.
@@ -165,14 +209,23 @@ confiabilidad y la MIB estandarizada real:
 ## Estructura del proyecto
 
 ```
+servidor/        Servidor central (único decisor, 2026-10-22): rutas.py
+                 (ruta + lista de RSU/accesos), gestor_mision.py (ciclo de
+                 vida, ETA, geocerca), conflictos.py (arbitraje), main.py
 agent/           Agente SNMPv3 (rsu_snmpv3_agent.py, mínimo) y middleware
-                 integrado (rsu_middleware.py: SNMP + V2I + adaptador)
+                 integrado (rsu_middleware.py: SNMP + M1/M3 del servidor + adaptador)
 controller/      Emulador del controlador de tránsito (protocolo propio simulado)
-gateway/         Simulador de OBU (obu_simulator.py) — futuro gateway OBD-II real
+gateway/         OBU emulada (obu_emulada.py, cliente delgado) y geometría
+                 de accesos (geometria.py, reusada por el servidor)
 centro_control/  Software de gestión central (software_gestion.py):
-                 monitoreo continuo + comandos, con logs
+                 monitoreo continuo + comandos, con logs (independiente del servidor)
+consola/         Consola web de monitoreo (FastAPI); el mapa en vivo de la
+                 misión está pendiente de adaptarse a MR/ME, ver docs/CONSOLA.md
+scripts/seguridad/  CA propia, ACL y configuración TLS/mTLS de Mosquitto (P4)
+scripts/datos/   Regeneración del grafo vial cacheado (data/*.graphml)
+data/            Grafo vial cacheado para servidor/rutas.py (ver data/LEEME.md)
 docs/            Documentación técnica y de tesis
-tests/           (vacío por ahora) Pruebas automatizadas del agente y del middleware
+tests/           Pruebas automatizadas (agente, middleware, servidor)
 ```
 
 ## Advertencia de seguridad
