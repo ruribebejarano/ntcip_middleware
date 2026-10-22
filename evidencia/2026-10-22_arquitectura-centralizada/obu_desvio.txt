@@ -1,0 +1,38 @@
+OBU emulada obu-e2e-desvio: 45 muestras de evidencia/2026-10-22_arquitectura-centralizada/trayectoria_desvio_e2e.csv a x8.0
+MI -> misión armada (obu_id=obu-e2e-desvio, clase=1, destino=(-12.10209, -77.03200))
+  MR <- ruta de 2 RSU, 867.3 m: ['SINT-1', 'SINT-2']
+  ME <- proximo=SINT-1 estado=pendiente conflicto=False
+  ME <- proximo=SINT-1 estado=pendiente conflicto=False
+  ME <- proximo=SINT-1 estado=pendiente conflicto=False
+  ME <- proximo=SINT-1 estado=pendiente conflicto=False
+  ME <- proximo=SINT-1 estado=pendiente conflicto=False
+  ME <- proximo=SINT-1 estado=pendiente conflicto=False
+  ME <- proximo=SINT-1 estado=pendiente conflicto=False
+  ME <- proximo=SINT-1 estado=solicitada conflicto=False
+  ME <- proximo=SINT-1 estado=concedida conflicto=False
+  ME <- proximo=SINT-1 estado=concedida conflicto=False
+  ME <- proximo=SINT-1 estado=concedida conflicto=False
+  ME <- proximo=SINT-1 estado=concedida conflicto=False
+  ME <- proximo=SINT-1 estado=concedida conflicto=False
+  ME <- proximo=SINT-1 estado=concedida conflicto=False
+  ME <- proximo=SINT-1 estado=concedida conflicto=False
+  ME <- proximo=SINT-1 estado=concedida conflicto=False
+  MR <- ruta de 1 RSU, 578.2 m: ['SINT-2']
+  MR <- ruta de 1 RSU, 578.2 m: ['SINT-2']
+  MR <- ruta de 1 RSU, 578.2 m: ['SINT-2']
+  ME <- proximo=SINT-2 estado=pendiente conflicto=False
+  ME <- proximo=SINT-2 estado=pendiente conflicto=False
+  ME <- proximo=SINT-2 estado=pendiente conflicto=False
+  ME <- proximo=SINT-2 estado=pendiente conflicto=False
+  ME <- proximo=SINT-2 estado=pendiente conflicto=False
+  ME <- proximo=SINT-2 estado=pendiente conflicto=False
+  ME <- proximo=SINT-2 estado=pendiente conflicto=False
+  ME <- proximo=SINT-2 estado=pendiente conflicto=False
+  ME <- proximo=SINT-2 estado=pendiente conflicto=False
+  ME <- proximo=SINT-2 estado=pendiente conflicto=False
+  ME <- proximo=SINT-2 estado=pendiente conflicto=False
+  ME <- proximo=SINT-2 estado=solicitada conflicto=False
+  ME <- proximo=SINT-2 estado=solicitada conflicto=False
+  ME <- proximo=None estado=None conflicto=False
+MF -> fin de misión (destino)
+Fin: 45 MP enviados (eventos en resultados\eventos\eventos_obu-e2e-desvio.csv)

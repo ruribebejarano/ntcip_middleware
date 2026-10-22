@@ -176,6 +176,32 @@ def construir_grafo_sintetico() -> nx.DiGraph:
     return G
 
 
+def construir_grafo_cruce_sintetico() -> nx.DiGraph:
+    """*** GRAFO SINTÉTICO, SOLO PARA PRUEBAS/DEMOS -- coordenadas inventadas ***
+
+    Una cruz de 4 brazos (S-X-N vertical, O-X-E horizontal) que se cruzan
+    en X, para ensayar el arbitraje de conflictos (servidor/conflictos.py)
+    con dos misiones que llegan al MISMO punto por accesos con rumbos de
+    llegada distintos (0° y 90°). Usado por tests/test_gestor_mision.py y
+    por evidencia/2026-10-22_arquitectura-centralizada/ (escenario de
+    conflicto de la fase 3.8)."""
+    G = nx.DiGraph()
+    nodos = {
+        "S": (-12.1087, -77.0320), "X": (-12.1074, -77.0320), "N": (-12.1061, -77.0320),
+        "O": (-12.1074, -77.033329), "E": (-12.1074, -77.030671),
+    }
+    for nid, (lat, lon) in nodos.items():
+        G.add_node(nid, x=lon, y=lat)
+    for a, b in (("S", "X"), ("X", "N"), ("O", "X"), ("X", "E")):
+        lat1, lon1 = nodos[a]
+        lat2, lon2 = nodos[b]
+        x, y = proyeccion_local(lat2, lon2, lat1, lon1)
+        d = math.hypot(x, y)
+        G.add_edge(a, b, length=d)
+        G.add_edge(b, a, length=d)
+    return G
+
+
 # ---------------------------------------------------------------------------
 # Enrutamiento
 # ---------------------------------------------------------------------------

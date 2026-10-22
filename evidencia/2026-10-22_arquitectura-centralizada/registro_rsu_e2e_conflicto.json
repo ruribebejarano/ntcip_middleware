@@ -1,0 +1,29 @@
+{
+  "version": "2026-10-22-sintetico-e2e-conflicto",
+  "descripcion": "Registro SINTETICO (coordenadas inventadas) para la prueba de punta a punta del escenario de CONFLICTO (dos misiones, mismo cruce, accesos incompatibles).",
+  "rsu": [
+    {
+      "rsu_id": "X-RSU",
+      "interseccion_id": "X",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.1074,
+        "lon": -77.032
+      },
+      "accesos": [
+        {
+          "acceso_id": "S",
+          "rumbo_llegada_deg": 0.0,
+          "grupo_semaforico": 1,
+          "nota": "sintetico, llega del sur"
+        },
+        {
+          "acceso_id": "O",
+          "rumbo_llegada_deg": 90.0,
+          "grupo_semaforico": 2,
+          "nota": "sintetico, llega del oeste"
+        }
+      ]
+    }
+  ]
+}

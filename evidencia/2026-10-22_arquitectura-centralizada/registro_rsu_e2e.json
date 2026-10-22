@@ -1,0 +1,40 @@
+{
+  "version": "2026-10-22-sintetico-e2e",
+  "descripcion": "Registro SINTETICO (coordenadas inventadas) solo para la prueba de punta a punta local de la arquitectura centralizada. No es config/registro_rsu.json real.",
+  "rsu": [
+    {
+      "rsu_id": "SINT-1",
+      "interseccion_id": "SINT-C",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.1074,
+        "lon": -77.032
+      },
+      "accesos": [
+        {
+          "acceso_id": "S",
+          "rumbo_llegada_deg": 0.0,
+          "grupo_semaforico": 1,
+          "nota": "sintetico"
+        }
+      ]
+    },
+    {
+      "rsu_id": "SINT-2",
+      "interseccion_id": "SINT-F",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.1035,
+        "lon": -77.032
+      },
+      "accesos": [
+        {
+          "acceso_id": "S",
+          "rumbo_llegada_deg": 0.0,
+          "grupo_semaforico": 1,
+          "nota": "sintetico"
+        }
+      ]
+    }
+  ]
+}

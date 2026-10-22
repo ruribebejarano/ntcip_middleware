@@ -1,0 +1,7 @@
+Emulador de controlador de transito escuchando en 127.0.0.1:9005
+(protocolo propietario simulado, JSON Lines -- ver cabecera del modulo)
+RSU_ID=1 -- registro de eventos en resultados\eventos\eventos_ctrl_1.csv
+Tiempos: verde=8s amarillo=3.0s todo_rojo=2.0s rojo_general=8s
+Ctrl+C para detener.
+
+[controlador] Fase -> amarillo (ciclo_normal)

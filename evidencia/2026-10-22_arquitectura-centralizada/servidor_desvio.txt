@@ -1,0 +1,8 @@
+=== Servidor central (arquitectura centralizada) ===
+SERVIDOR_ID=central -- registro de eventos en resultados\eventos\eventos_servidor.csv
+[servidor] GRAFO_SINTETICO=recta: usando el grafo sintético recto de pruebas (coordenadas inventadas)
+[servidor] AVISO: sin mTLS -- variables SERVIDOR_TLS_CA/CERT/KEY no definidas (ver scripts/seguridad/generar_ca.py y docs/bitacora/2026-10-22_arquitectura-centralizada.md)
+[servidor] Escuchando en mqtt://127.0.0.1:1883 (obu/+/mision, obu/+/posicion, servidor/central/respuestas)
+Ctrl+C para detener.
+
+[servidor] Conectado al broker (127.0.0.1:1883), reason_code=Success

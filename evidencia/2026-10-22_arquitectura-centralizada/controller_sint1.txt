@@ -1,0 +1,17 @@
+Emulador de controlador de transito escuchando en 127.0.0.1:9001
+(protocolo propietario simulado, JSON Lines -- ver cabecera del modulo)
+RSU_ID=1 -- registro de eventos en resultados\eventos\eventos_ctrl_1.csv
+Tiempos: verde=8s amarillo=3.0s todo_rojo=2.0s rojo_general=8s
+Ctrl+C para detener.
+
+[controlador] Fase -> verde (poll)
+[controlador] Prioridad solicitada por 'obu-e2e-1' (ETA 8s) -> fase forzada a verde por 15s
+[controlador] Prioridad solicitada por 'obu-e2e-1' (ETA 15s) -> fase forzada a verde por 15s
+[controlador] Prioridad solicitada por 'obu-e2e-1' (ETA 15s) -> fase forzada a verde por 15s
+[controlador] Prioridad solicitada por 'obu-e2e-1' (ETA 15s) -> fase forzada a verde por 15s
+[controlador] Prioridad solicitada por 'obu-e2e-1' (ETA 15s) -> fase forzada a verde por 15s
+[controlador] Prioridad solicitada por 'obu-e2e-1' (ETA 15s) -> fase forzada a verde por 15s
+[controlador] Prioridad solicitada por 'obu-e2e-1' (ETA 15s) -> fase forzada a verde por 15s
+[controlador] Prioridad solicitada por 'obu-e2e-1' (ETA 15s) -> fase forzada a verde por 15s
+[controlador] Prioridad liberada manualmente, vuelve al ciclo normal
+[controlador] Fase -> amarillo (ciclo_normal)

@@ -63,7 +63,10 @@ TOPIC_RESPUESTAS_SERVIDOR = f"servidor/{SERVIDOR_ID}/respuestas"
 
 REGISTRO_RSU_PATH = os.environ.get("REGISTRO_RSU_PATH", str(RAIZ / "config" / "registro_rsu.json"))
 GRAFO_PATH = os.environ.get("GRAFO_PATH", str(RAIZ / "data" / "grafo_san_miguel_real.graphml"))
-GRAFO_SINTETICO = os.environ.get("GRAFO_SINTETICO", "0") == "1"  # para correr sin data/*.graphml
+# "0"/"" (real, data/*.graphml) | "1" o "recta" (recta sintetica, pruebas/demo
+# de lazo simple) | "cruce" (cruce sintetico, demo del arbitraje de
+# conflictos -- ver evidencia/2026-10-22_arquitectura-centralizada/)
+GRAFO_SINTETICO = os.environ.get("GRAFO_SINTETICO", "0").strip().lower()
 
 # mTLS opcional (P4, ver scripts/seguridad/generar_ca.py). Si no se definen
 # estas tres variables, se conecta sin TLS (como hoy agent/rsu_middleware.py).
@@ -204,9 +207,12 @@ def _procesar_m2(data: dict) -> None:
 
 
 def _cargar_grafo():
-    if GRAFO_SINTETICO:
-        print("[servidor] GRAFO_SINTETICO=1: usando el grafo sintético de pruebas (coordenadas inventadas)")
+    if GRAFO_SINTETICO in ("1", "recta"):
+        print("[servidor] GRAFO_SINTETICO=recta: usando el grafo sintético recto de pruebas (coordenadas inventadas)")
         return rutas_mod.construir_grafo_sintetico()
+    if GRAFO_SINTETICO == "cruce":
+        print("[servidor] GRAFO_SINTETICO=cruce: usando el grafo sintético de cruce (demo de conflictos)")
+        return rutas_mod.construir_grafo_cruce_sintetico()
     ruta = Path(GRAFO_PATH)
     if not ruta.exists():
         raise SystemExit(

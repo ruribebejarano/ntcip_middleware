@@ -1,0 +1,9 @@
+OBU emulada obu-e2e-a: 15 muestras de evidencia/2026-10-22_arquitectura-centralizada/trayectoria_cruce_a_e2e.csv a x8.0
+MI -> misión armada (obu_id=obu-e2e-a, clase=1, destino=(-12.10618, -77.03200))
+  MR <- ruta de 1 RSU, 289.1 m: ['X-RSU']
+  ME <- proximo=X-RSU estado=solicitada conflicto=False
+  ME <- proximo=X-RSU estado=concedida conflicto=False
+  ME <- proximo=X-RSU estado=en_espera conflicto=True
+  ME <- proximo=None estado=None conflicto=False
+MF -> fin de misión (destino)
+Fin: 15 MP enviados (eventos en resultados\eventos\eventos_obu-e2e-a.csv)

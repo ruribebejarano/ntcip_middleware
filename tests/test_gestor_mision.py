@@ -23,7 +23,7 @@ from servidor.gestor_mision import (
     ESTADO_SOLICITADA,
     GestorMision,
 )
-from servidor.rutas import construir_grafo_sintetico
+from servidor.rutas import construir_grafo_cruce_sintetico, construir_grafo_sintetico
 
 REGISTRO_SINTETICO = [
     Interseccion("SINT-1", "SINT-C", -12.1074, -77.0320, (Acceso("S", 0.0, 1),)),
@@ -151,25 +151,9 @@ def test_m2_actualiza_estado_y_reenvia_me():
 # --- Conflicto: dos misiones, una misma RSU, accesos incompatibles --------
 
 
-def _grafo_cruce() -> nx.DiGraph:
-    """*** GRAFO SINTETICO, SOLO PARA ESTA PRUEBA -- coordenadas inventadas ***
-    Una cruz de 4 brazos (S-X-N vertical, O-X-E horizontal) que se cruzan en
-    X, para poder generar dos misiones que llegan al MISMO punto por
-    accesos con rumbos de llegada distintos (0 grados y 90 grados)."""
-    G = nx.DiGraph()
-    nodos = {
-        "S": (-12.1087, -77.0320), "X": (-12.1074, -77.0320), "N": (-12.1061, -77.0320),
-        "O": (-12.1074, -77.033329), "E": (-12.1074, -77.030671),
-    }
-    for nid, (lat, lon) in nodos.items():
-        G.add_node(nid, x=lon, y=lat)
-    for a, b in (("S", "X"), ("X", "N"), ("O", "X"), ("X", "E")):
-        lat1, lon1 = nodos[a]
-        lat2, lon2 = nodos[b]
-        x, y = proyeccion_local(lat2, lon2, lat1, lon1)
-        d = math.hypot(x, y)
-        G.add_edge(a, b, length=d)
-        G.add_edge(b, a, length=d)
+def _grafo_cruce():
+    G = construir_grafo_cruce_sintetico()
+    nodos = {nid: (data["y"], data["x"]) for nid, data in G.nodes(data=True)}
     return G, nodos
 
 
