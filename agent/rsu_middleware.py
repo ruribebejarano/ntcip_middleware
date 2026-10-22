@@ -46,14 +46,30 @@ Cuatro enlaces que este proceso conecta:
    operacionales) antes de reenviar. Los objetos de phaseStatusGroupTable y
    phaseTable siempre reflejan en vivo el estado y los tiempos reales del
    controlador (consulta en cada GET, no hay cache local).
-3. OBU -> RSU (V2I), dos caminos:
-   - M1/M3 en rsu/{RSU_ID}/solicitudes (gateway/obu_emulada.py, esquema
-     E2 de la tesis): M1 crea o renueva la solicitud, M3 la cancela, y la
-     RSU responde M2 (recibida/concedida/rechazada/cancelada) en el
-     Response Topic de MQTT 5. Ver docs/LAZO_EMULADO.md.
-   - Legado (P0-P3): un mensaje en MQTT_TOPIC (gateway/obu_simulator.py)
-     dispara el mismo pedido de prioridad que un SNMP SET manual desde el
-     centro de control, sin respuesta ni cancelacion.
+3. Servidor central -> RSU (arquitectura centralizada, 2026-10-22), dos
+   caminos por el mismo tema rsu/{RSU_ID}/solicitudes:
+   - M1/M3 del SERVIDOR (servidor/gestor_mision.py vía servidor/main.py):
+     M1 crea o renueva la solicitud (ahora con anticipación por ETA, no
+     solo al cruzar la geocerca local de la OBU: la geocerca se evalúa EN
+     EL SERVIDOR, ver gateway/geometria.py), M3 la cancela, y la RSU
+     responde M2 (recibida/en cola/concedida/rechazada/cancelada) en el
+     Response Topic de MQTT 5 que trae el propio mensaje -- sin cambios en
+     esa mecánica, solo cambia QUIÉN la usa. Ver docs/LAZO_EMULADO.md y
+     docs/CONTRATO_OBU.md.
+   - Legado (P0-P3, antes de la arquitectura centralizada): M1/M3 directo
+     de gateway/obu_emulada.py (la OBU decidía la RSU/acceso localmente) o
+     un mensaje en MQTT_TOPIC (gateway/obu_simulator.py), sin respuesta ni
+     cancelación. Esta RSU sigue aceptando ambos formatos por compatibilidad
+     con pruebas y evidencia ya levantada (ver evidencia/), pero el diseño
+     vigente de la tesis es que SOLO el servidor publique en este tema.
+   *** Seguridad: la restricción de que solo el servidor pueda publicar en
+   `rsu/+/solicitudes` se hace cumplir en el BROKER (ACL de Mosquitto +
+   identidad mTLS, ver scripts/seguridad/), NO en este código -- este
+   proceso no tiene manera de verificar, a partir del payload JSON, quién
+   lo publicó. Si el broker no tiene esa ACL configurada (ver el estado
+   real en docs/bitacora/2026-10-22_arquitectura-centralizada.md),
+   cualquier publicador en este tema puede activar una solicitud, igual
+   que en el esquema anterior. ***
 4. Caducidad (RF-09/RNF-03): un hilo en segundo plano verifica cada medio
    segundo si la solicitud activa lleva mas de T_CAD_SEGUNDOS sin
    actualizarse (ver agent/ntcip1211.py) y, si es asi, libera la prioridad
@@ -673,10 +689,18 @@ def _es_duplicado(id_solicitud: str, seq: int) -> bool:
 
 
 def _procesar_m1(msg, data: dict) -> None:
+    """M1 (tab:mensajes): desde la arquitectura centralizada lo publica el
+    servidor (servidor/gestor_mision.py::_cuerpo_m1), con campos minimos
+    id_solicitud/clase/acceso/t_servicio -- ya no "vehiculo_id" (acepta
+    "obu_id" o "mision_id" en su lugar, solo para el registro de eventos y
+    el id_solicitud numerico de NTCIP 1211) ni "interseccion_id" (la RSU ya
+    sabe cual es su propia interseccion). El camino legado
+    (gateway/obu_emulada.py anterior a 2026-10-22) sigue aceptandose: si
+    llega "vehiculo_id" se usa ese; si no, "obu_id"/"mision_id"."""
     response_topic, correlation = _respuesta_de(msg)
     try:
         id_solicitud = str(data["id_solicitud"])
-        vehiculo_id = str(data["vehiculo_id"])
+        vehiculo_id = str(data.get("vehiculo_id") or data.get("obu_id") or data.get("mision_id") or "desconocido")
         seq = int(data["seq"])
         clase_tipo = int(data.get("clase", 1))
     except (KeyError, TypeError, ValueError) as exc:
@@ -698,16 +722,20 @@ def _procesar_m1(msg, data: dict) -> None:
         _ID_NUMERICO_POR_SOLICITUD[id_solicitud] = _id_numerico_para(f"m1:{id_solicitud}")
     id_numerico = _ID_NUMERICO_POR_SOLICITUD[id_solicitud]
 
-    # Traduccion M1 -> NTCIP 1211 (RF-07), mismo mapeo que el camino legado
-    # salvo t_servicio_deseado: M1 no trae ETA, se usa el valor nominal.
+    # Traduccion M1 -> NTCIP 1211 (RF-07): t_servicio_deseado usa el ETA
+    # real que calculo el servidor (campo "t_servicio", RF8) si vino en el
+    # mensaje; si no (camino legado, o un M1 sin ese campo), se usa el
+    # valor nominal de siempre.
+    t_servicio_deseado = int(data.get("t_servicio", T_SERVICIO_NOMINAL_S)) or T_SERVICIO_NOMINAL_S
+    t_servicio_deseado = max(1, min(65535, t_servicio_deseado))
     solicitud = SolicitudPrioridadAbsoluta(
         id_solicitud=id_numerico,
         vehiculo_id=vehiculo_id.encode("utf-8")[:17],
         clase_tipo=clase_tipo,
         clase_nivel=10,
         estrategia=1,
-        t_servicio_deseado=T_SERVICIO_NOMINAL_S,
-        t_salida_estimada=min(65535, T_SERVICIO_NOMINAL_S + 5),
+        t_servicio_deseado=t_servicio_deseado,
+        t_salida_estimada=min(65535, t_servicio_deseado + 5),
         t_solicitud=int(time.time()),
     )
     try:
