@@ -53,3 +53,8 @@ resultados/consola/
 # se regenera solo; lo que SI se versiona es el .graphml ya cacheado en
 # data/, no esta carpeta de respuestas crudas de la API.
 cache/
+
+# CA y certificados propios (scripts/seguridad/generar_ca.py, P4): son
+# credenciales (la CA incluye la clave privada). Cada despliegue genera
+# los suyos; nunca se commitea deploy/pki/.
+deploy/pki/
