@@ -129,16 +129,33 @@ def cargar_grafo(ruta: Path | str = GRAFO_REAL_DEFAULT) -> nx.DiGraph:
     """Carga un grafo cacheado en disco (GraphML, generado por OSMnx o por
     construir_grafo_sintetico() + guardar_grafo()) con NetworkX puro -- no
     requiere osmnx instalado. GraphML guarda todos los atributos como texto;
-    esta función normaliza 'x'/'y' (nodos) y 'length' (aristas) a float."""
-    G = nx.read_graphml(str(ruta))
-    for _, data in G.nodes(data=True):
+    esta función normaliza 'x'/'y' (nodos) y 'length' (aristas) a float.
+
+    Un grafo real exportado por OSMnx es un MultiDiGraph (puede traer más de
+    una arista entre el mismo par de nodos, p. ej. una avenida con
+    separador físico modelada como dos vías de un solo sentido con la misma
+    geometría aproximada). calcular_ruta() necesita un DiGraph simple para
+    acumular 'length' arista por arista; aquí se colapsa cada par (u, v) a
+    su arista más corta."""
+    G_leido = nx.read_graphml(str(ruta))
+    for _, data in G_leido.nodes(data=True):
         if "x" in data:
             data["x"] = float(data["x"])
         if "y" in data:
             data["y"] = float(data["y"])
-    for _, _, data in G.edges(data=True):
+    for _, _, data in G_leido.edges(data=True):
         if "length" in data:
             data["length"] = float(data["length"])
+
+    if not G_leido.is_multigraph():
+        return G_leido
+
+    G = nx.DiGraph()
+    G.add_nodes_from(G_leido.nodes(data=True))
+    for u, v, data in G_leido.edges(data=True):
+        if G.has_edge(u, v) and G[u][v].get("length", math.inf) <= data.get("length", math.inf):
+            continue
+        G.add_edge(u, v, **data)
     return G
 
 

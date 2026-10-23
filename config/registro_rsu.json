@@ -1,6 +1,6 @@
 {
   "version": "2026-10-19-banco-emulado",
-  "descripcion": "Copia local estatica del registro de RSU (esquema E4, ssec:registro de main.tex) para el banco de pruebas EMULADO.",
+  "descripcion": "Registro de RSU (ssec:registro de main.tex) para el banco de pruebas EMULADO. Con la arquitectura centralizada (E3) vive solo en el servidor (servidor/rutas.py); la OBU ya no descarga ninguna copia.",
   "origen": {
     "centros": "Centroides reales de dos clusters de semaforos de OpenStreetMap (evidencia/2026-10-12_overpass_clusters-interseccion-detalle.csv, cluster_id 24 y 902), separados unos 436 m sobre la misma via.",
     "rumbos_via_principal": "Calculados como el rumbo entre los dos centroides (no medidos sobre la geometria de la via en OSM).",

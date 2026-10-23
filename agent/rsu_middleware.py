@@ -204,8 +204,8 @@ CONTROLLER_HOST = "127.0.0.1"
 CONTROLLER_PORT = int(os.environ.get("CONTROLLER_PORT", "9000"))
 
 # Broker MQTT. Por defecto, el mosquitto de la propia RSU (como hasta P3);
-# con MQTT_BROKER_HOST se apunta al broker central del diseno (E2+E4,
-# ssec:sel_direccionamiento), que es la arquitectura de la tesis.
+# con MQTT_BROKER_HOST se apunta al broker central del diseno vigente
+# (arquitectura centralizada, E3, ssec:sel_direccionamiento de main.tex).
 MQTT_BROKER_HOST = os.environ.get("MQTT_BROKER_HOST", "127.0.0.1")
 MQTT_BROKER_PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
 # Tema LEGADO (P0-P3): un solo tema para todas las RSU, mensaje con
@@ -219,8 +219,9 @@ MQTT_TOPIC = "rsu/v2i/solicitud_prioridad"
 RSU_ID = os.environ.get("RSU_ID", "1")
 EVENTOS = EventLogger(f"rsu_{RSU_ID}")
 
-# Tema por RSU del esquema E2 (ssec:sel_direccionamiento y ssec:rsu_sw de
-# main.tex): la OBU publica M1/M3 en rsu/{id}/solicitudes y la RSU responde
+# Tema por RSU (ssec:sel_direccionamiento y ssec:rsu_sw de main.tex): con
+# la arquitectura vigente (E3), SOLO el servidor publica M1/M3 en
+# rsu/{id}/solicitudes (ver nota de seguridad arriba); la RSU responde
 # M2 en el Response Topic de MQTT 5 que trae cada mensaje
 # (veh/{id}/respuestas), con el mismo Correlation Data.
 MQTT_TOPIC_SOLICITUDES = f"rsu/{RSU_ID}/solicitudes"

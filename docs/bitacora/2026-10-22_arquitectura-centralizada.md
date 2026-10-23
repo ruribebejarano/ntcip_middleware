@@ -192,10 +192,11 @@ docstring de `scripts/seguridad/generar_ca.py`).
   listas (`scripts/seguridad/`) pero no se probaron contra un broker real
   en ejecución. Comandos exactos en el docstring de
   `scripts/seguridad/generar_ca.py`.
-- **Coordenadas reales del escenario de referencia** (Cía. de Bomberos San
+- ~~**Coordenadas reales del escenario de referencia** (Cía. de Bomberos San
   Miguel N.º 83 → Hospital Centro Médico Naval): confirmarlas y, si quedan
   fuera de la caja actual, volver a correr
-  `scripts/datos/regenerar_grafo.py` con un área mayor.
+  `scripts/datos/regenerar_grafo.py` con un área mayor.~~ Resuelto el
+  2026-10-23, ver `docs/bitacora/2026-10-23_grafo_escenario_referencia.md`.
 - **Consola de monitoreo** (`consola/`, `centro_control/panel/`): el mapa
   en vivo seguía leyendo `resultados/obu_vivo/estado.json`, que
   `gateway/obu_emulada.py` ya no escribe. Quedó marcado como legado (ver

@@ -273,7 +273,8 @@ class SeguidorAcceso:
 
 
 # ---------------------------------------------------------------------------
-# Registro de RSU (copia local estatica, esquema E4, ssec:registro)
+# Registro de RSU (ssec:registro). Con la arquitectura centralizada (E3)
+# se carga en el servidor (servidor/rutas.py), no en la OBU.
 # ---------------------------------------------------------------------------
 
 
