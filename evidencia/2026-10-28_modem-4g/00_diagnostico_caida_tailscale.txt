@@ -1,0 +1,75 @@
+PS C:\Users\ricar> tailscale status
+100.121.77.97  laptopricardoub  ruribebejarano-netizen@  windows  -                                                     
+100.105.28.51  rsu-01           ruribebejarano-netizen@  linux    active; direct 192.168.18.176:41641; offline, last seen 4m ago, tx 41812 rx 6457412
+PS C:\Users\ricar> ssh ricardoub@192.168.18.176
+ricardoub@192.168.18.176's password:
+Permission denied, please try again.
+ricardoub@192.168.18.176's password:
+Linux ricardoub 6.18.39+rpt-rpi-2712 #1 SMP PREEMPT Debian 1:6.18.39-1+rpt1 (2026-07-29) aarch64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+Last login: Wed Oct 28 17:54:08 2026 from 192.168.18.220
+ricardoub@ricardoub:~ $ ip route
+default via 192.168.0.1 dev usb0 proto dhcp src 192.168.0.100 metric 100
+default via 192.168.18.1 dev wlan0 proto dhcp src 192.168.18.176 metric 600
+192.168.0.0/24 dev usb0 proto kernel scope link src 192.168.0.100 metric 100
+192.168.18.0/24 dev wlan0 proto kernel scope link src 192.168.18.176 metric 600
+ricardoub@ricardoub:~ $ ping -I usb0 -c 3 8.8.8.8
+PING 8.8.8.8 (8.8.8.8) from 192.168.0.100 usb0: 56(84) bytes of data.
+
+--- 8.8.8.8 ping statistics ---
+3 packets transmitted, 0 received, 100% packet loss, time 2033ms
+
+ricardoub@ricardoub:~ $ sudo systemctl status tailscaled
+[sudo] password for ricardoub:
+● tailscaled.service - Tailscale node agent
+     Loaded: loaded (/usr/lib/systemd/system/tailscaled.service; enabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-11 08:27:07 -05; 2 weeks 3 days ago
+ Invocation: dd231ce213d84f4c8a2e05f5c1b46ee3
+       Docs: https://tailscale.com/docs/
+   Main PID: 1270 (tailscaled)
+     Status: "Connected; ruribebejarano-netizen@github; 100.105.28.51 fd7a:115c:a1e0::ea01:1cce"
+      Tasks: 12 (limit: 4810)
+        CPU: 2.174s
+     CGroup: /system.slice/tailscaled.service
+             └─1270 /usr/sbin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled>
+
+Oct 28 17:56:19 ricardoub tailscaled[1270]: all connection attempts failed (HTTP: TLS forced: no port 80 dialed, HTTPS:>
+Oct 28 17:56:19 ricardoub tailscaled[1270]: connection attempts aborted by context: context deadline exceeded
+Oct 28 17:56:19 ricardoub tailscaled[1270]: connection attempts aborted by context: context deadline exceeded
+Oct 28 17:56:19 ricardoub tailscaled[1270]: connection attempts aborted by context: context deadline exceeded
+Oct 28 17:56:19 ricardoub tailscaled[1270]: connection attempts aborted by context: context deadline exceeded
+Oct 28 17:56:23 ricardoub tailscaled[1270]: magicsock: [0x578f4749c580] derp.Recv(derp-16): derphttp.Client.Recv connec>
+Oct 28 17:56:24 ricardoub tailscaled[1270]: control: controlhttp: forcing port 443 dial due to recent noise dial
+Oct 28 17:56:25 ricardoub tailscaled[1270]: Received error: PollNetMap: Post "https://controlplane.tailscale.com/machin>
+Oct 28 17:56:26 ricardoub tailscaled[1270]: netcheck: netcheck: UDP is blocked, trying HTTPS
+Oct 28 17:56:26 ricardoub tailscaled[1270]: netcheck: UDP is blocked, trying ICMP
+ ESCOD
+● tailscaled.service - Tailscale node agent
+     Loaded: loaded (/usr/lib/systemd/system/tailscaled.service; enabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-11 08:27:07 -05; 2 weeks 3 days ago
+ Invocation: dd231ce213d84f4c8a2e05f5c1b46ee3
+       Docs: https://tailscale.com/docs/
+   Main PID: 1270 (tailscaled)
+     Status: "Connected; ruribebejarano-netizen@github; 100.105.28.51 fd7a:115c:a1e0::ea01:1cce"
+      Tasks: 12 (limit: 4810)
+        CPU: 2.174s
+     CGroup: /system.slice/tailscaled.service
+             └─1270 /usr/sbin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled>
+
+Oct 28 17:56:19 ricardoub tailscaled[1270]: all connection attempts failed (HTTP: TLS forced: no port 80 dialed, HTTPS:>
+Oct 28 17:56:19 ricardoub tailscaled[1270]: connection attempts aborted by context: context deadline exceeded
+Oct 28 17:56:19 ricardoub tailscaled[1270]: connection attempts aborted by context: context deadline exceeded
+Oct 28 17:56:19 ricardoub tailscaled[1270]: connection attempts aborted by context: context deadline exceeded
+Oct 28 17:56:19 ricardoub tailscaled[1270]: connection attempts aborted by context: context deadline exceeded
+Oct 28 17:56:23 ricardoub tailscaled[1270]: magicsock: [0x578f4749c580] derp.Recv(derp-16): derphttp.Client.Recv connec>
+Oct 28 17:56:24 ricardoub tailscaled[1270]: control: controlhttp: forcing port 443 dial due to recent noise dial
+Oct 28 17:56:25 ricardoub tailscaled[1270]: Received error: PollNetMap: Post "https://controlplane.tailscale.com/machin>
+Oct 28 17:56:26 ricardoub tailscaled[1270]: netcheck: netcheck: UDP is blocked, trying HTTPS
+Oct 28 17:56:26 ricardoub tailscaled[1270]: netcheck: UDP is blocked, trying ICMP
+~

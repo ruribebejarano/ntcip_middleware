@@ -1,0 +1,36 @@
+Wed 28 Oct 18:38:49 -05 2026
+usb0             UNKNOWN        192.168.0.100/24 2800:4b0:440c:3f68:2089:84ff:fe6a:96ab/64 fe80::2089:84ff:fe6a:96ab/64 
+default via 192.168.18.1 dev wlan0 proto dhcp src 192.168.18.176 metric 600 
+default via 192.168.0.1 dev usb0 proto dhcp src 192.168.0.100 metric 900 
+192.168.0.0/24 dev usb0 proto kernel scope link src 192.168.0.100 metric 900 
+192.168.18.0/24 dev wlan0 proto kernel scope link src 192.168.18.176 metric 600 
+2800:4b0:440c:3f68::/64 dev usb0 proto ra metric 100 pref medium
+fd7a:115c:a1e0::ea01:1cce dev tailscale0 proto kernel metric 256 pref medium
+fe80::/64 dev tailscale0 proto kernel metric 256 pref medium
+fe80::/64 dev wlan0 proto kernel metric 1024 pref medium
+fe80::/64 dev usb0 proto kernel metric 1024 pref medium
+PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=59 time=126 ms
+64 bytes from 8.8.8.8: icmp_seq=2 ttl=59 time=51.2 ms
+64 bytes from 8.8.8.8: icmp_seq=3 ttl=59 time=69.1 ms
+64 bytes from 8.8.8.8: icmp_seq=4 ttl=59 time=61.0 ms
+64 bytes from 8.8.8.8: icmp_seq=5 ttl=59 time=37.2 ms
+64 bytes from 8.8.8.8: icmp_seq=6 ttl=59 time=68.9 ms
+64 bytes from 8.8.8.8: icmp_seq=7 ttl=59 time=36.0 ms
+64 bytes from 8.8.8.8: icmp_seq=8 ttl=59 time=55.9 ms
+64 bytes from 8.8.8.8: icmp_seq=9 ttl=59 time=39.0 ms
+64 bytes from 8.8.8.8: icmp_seq=10 ttl=59 time=59.0 ms
+
+--- 8.8.8.8 ping statistics ---
+10 packets transmitted, 10 received, 0% packet loss, time 9003ms
+rtt min/avg/max/mdev = 36.013/60.299/125.635/24.698 ms
+179.6.137.254
+
+100.105.28.51  rsu-01           ruribebejarano-netizen@  linux    -                                                            
+100.121.77.97  laptopricardoub  ruribebejarano-netizen@  windows  active; direct 192.168.18.220:41641, tx 14940468 rx 2057244  
+7: usb0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UNKNOWN mode DEFAULT group default qlen 1000
+    link/ether 22:89:84:6a:96:ab brd ff:ff:ff:ff:ff:ff
+    RX:  bytes packets errors dropped  missed   mcast           
+         53946     299      2       0       0       0 
+    TX:  bytes packets errors dropped carrier collsns           
+         72185     414      0       0       0       0 

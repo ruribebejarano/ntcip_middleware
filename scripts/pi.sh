@@ -12,8 +12,13 @@
 #   scripts/pi.sh logs     <servicio> [host]   (Ctrl+C para salir)
 #   scripts/pi.sh fetch    [host]
 #   scripts/pi.sh clock    [host]
+#   scripts/pi.sh red      <subcomando> [host] [-- extra...]
 #
 # <servicio>: agent | controller | mosquitto
+# <subcomando> de "red" (ejecuta scripts/red_4g.sh EN la Pi, ver
+#   docs/MODEM_4G.md sección 4): modo-normal | modo-campana | estado |
+#   evidencia. Lo que vaya después de [host] se pasa tal cual a
+#   red_4g.sh (p. ej. "scripts/pi.sh red modo-campana rsu --sin-wifi").
 # [host]: alias SSH, "rsu" por defecto; "rsu2" para la segunda RSU, si ya
 #         tiene su propio alias en ~/.ssh/config (ver docs/CONEXION_RASPBERRY.md).
 #
@@ -118,6 +123,15 @@ case "$cmd" in
     else
       scp -r "$HOST:$REMOTE_DIR/resultados/." "$DEST/"
     fi
+    ;;
+
+  red)
+    SUBCOMANDO="${2:-}"
+    [ -z "$SUBCOMANDO" ] && { echo "Falta <subcomando> (modo-normal|modo-campana|estado|evidencia)" >&2; exit 1; }
+    HOST="${3:-$DEFAULT_HOST}"
+    EXTRA_ARGS=("${@:4}")
+    echo "==> scripts/red_4g.sh $SUBCOMANDO en $HOST"
+    ssh -t "$HOST" "cd $REMOTE_DIR && bash scripts/red_4g.sh $SUBCOMANDO ${EXTRA_ARGS[*]}"
     ;;
 
   clock)

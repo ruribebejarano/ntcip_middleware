@@ -29,7 +29,7 @@ Orden de prioridad, si algo se atrasa: **OE3 y OE6 (lazo OBU → RSU → control
 
 | Hito | Prompt | Evidencia a capturar |
 |---|---|---|
-| RSU por 4G (SIM7670G) hacia el broker remoto | P6 | Foto del montaje RPi + módulo 4G; `ip addr` mostrando la IP de CGNAT (100.64.x.x); conexión TLS al broker por 4G |
+| RSU por 4G (SIM7670G) hacia el broker remoto — **operativo desde 2026-10-28**, ver `docs/MODEM_4G.md` y `docs/bitacora/2026-10-28_modem-4g.md` | P6 | Foto del montaje RPi + módulo 4G (pendiente); `ip addr`/`scripts/pi.sh red estado` mostrando la IP del operador (**privada `10.x`, no `100.64.x.x`** — ese rango es el de la red superpuesta Tailscale, no el de CGNAT del operador celular; corregido tras la puesta en marcha real); conexión TLS al broker por 4G (pendiente, ver gate G3 de `CRONOGRAMA.md`) |
 | Lectura OBD-II real de velocidad (PID 0x0D) | P7 | Foto del lector conectado al vehículo; log de velocidades |
 | **Campaña de latencia V2I** (sección 4.3) | P6 | Corridas en `resultados/v2i/`; figuras generadas |
 
