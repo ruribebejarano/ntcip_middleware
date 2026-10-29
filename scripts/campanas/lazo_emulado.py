@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
-"""Campana del lazo con OBU EMULADA: genera trayectorias sinteticas, las
+"""*** OBSOLETO desde la arquitectura centralizada (2026-10-22, commits
+3.2-3.8) *** Usar scripts/campanas/lazo_centralizado.py en su lugar.
+
+Este script asume el esquema ANTERIOR: la OBU decide localmente y emite
+M1 directo a la RSU (gateway/obu_emulada.py de esa etapa). Desde la
+migracion, la OBU solo emite MI/MP/MF y es servidor/main.py quien decide
+y emite M1/M3 hacia la RSU -- este runner no levanta el servidor central
+en absoluto, asi que el analisis que espera (M1_tx de la OBU) no
+encuentra nada util contra el gateway/obu_emulada.py actual. Se deja el
+archivo (no se borra, es evidencia de la etapa anterior -- ver
+docs/bitacora/2026-10-19_lazo-obu-emulada.md) pero no se actualiza mas.
+
+Docstring original, valido solo para esa etapa anterior:
+
+Campana del lazo con OBU EMULADA: genera trayectorias sinteticas, las
 reproduce una por una contra el broker y deja todo listo para el analisis.
 
 *** TRAYECTORIAS FICTICIAS (ver scripts/trayectorias/generar.py) ***

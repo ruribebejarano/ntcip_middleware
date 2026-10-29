@@ -1,0 +1,54 @@
+{
+  "dos_relojes_confiable": true,
+  "n_misiones": 20,
+  "n_paradas": 20,
+  "resultados": {
+    "concedida": 7,
+    "rechazada": 0,
+    "sin_verde": 9,
+    "sin_respuesta": 4
+  },
+  "cola_despeje": 16,
+  "t_OBU_srv_ms": {
+    "n": 300,
+    "media": 0.4442423333333333,
+    "mediana": 0.4242,
+    "p95": 0.6541,
+    "max": 0.8568,
+    "min": -0.488
+  },
+  "t_RSU_ms": {
+    "n": 15,
+    "media": 8.714033333333333,
+    "mediana": 2.3384,
+    "p95": 27.5512,
+    "max": 27.5512,
+    "min": 1.2842
+  },
+  "RTT_srv_ms": {
+    "n": 15,
+    "media": 17.234613333333336,
+    "mediana": 8.4973,
+    "p95": 45.7139,
+    "max": 45.7139,
+    "min": 4.4004
+  },
+  "L_ms": {
+    "n": 16,
+    "media": 260.54435,
+    "mediana": 5.4571,
+    "p95": 4002.3182,
+    "max": 4002.3182,
+    "min": 2.5907
+  },
+  "anticipacion_real_s": {
+    "n": 7,
+    "media": 10.244705271428572,
+    "mediana": 10.7562878,
+    "p95": 11.1094567,
+    "max": 11.1094567,
+    "min": 8.4406506
+  },
+  "anticipacion_minima_s_rf8": 8.0,
+  "rnf01_cumple_p95": false
+}

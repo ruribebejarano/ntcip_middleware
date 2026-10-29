@@ -47,10 +47,18 @@ Decisiones de alcance que siguen vigentes:
    prescindible y no el núcleo.
 
 2. **Sin barrido de condiciones ni escalamiento más allá del escenario de
-   referencia.** Una campaña de medición por escenario (lazo, conflicto,
-   desvío — ver `evidencia/2026-10-22_arquitectura-centralizada/`), no una
-   matriz exhaustiva. El barrido pasa explícitamente a trabajo futuro en
-   las conclusiones.
+   referencia.** Una campaña de medición por escenario (lazo y desvío —
+   ver `evidencia/2026-10-22_arquitectura-centralizada/`), no una matriz
+   exhaustiva. El barrido pasa explícitamente a trabajo futuro en las
+   conclusiones. **Actualizado 2026-10-28** [REVISAR con asesor]: el
+   escenario `conflicto` (dos misiones simultáneas con accesos
+   incompatibles de la misma RSU) se probó de punta a punta el
+   2026-10-22 (ver esa misma evidencia) y el código de arbitraje
+   (`servidor/conflictos.py`) sigue verificado con pruebas unitarias, pero
+   se decidió sacarlo de la campaña de medición y del Capítulo 4: es un
+   caso demasiado específico para el alcance de esta tesis. Ver
+   `docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md` y la
+   redacción propuesta de limitaciones/trabajo futuro ahí mismo.
 
 3. **El Capítulo 4 se redacta en paralelo, no al final.** Cada campaña de
    medición se escribe en la semana en que se ejecuta. No hay un bloque final de
@@ -78,7 +86,7 @@ en esta sesión):
 | OE1 — Arquitectura y límites (incluye la decisión de servidor central, 2026-10-22) | Especificación del esquema OBU→servidor→RSU implementada en código (`servidor/`) y documentada (`docs/bitacora/2026-10-22_arquitectura-centralizada.md`); falta la reescritura formal de `ssec:sel_direccionamiento` en `main.tex` (a cargo de la redacción en paralelo, fuera de este repositorio) |
 | OE2 — Plataforma física RSU | ~50 % (entorno Linux y venv listos; módem 4G SIM7670G **operativo desde 2026-10-28** —datos extremo a extremo por `usb0`, ver `docs/MODEM_4G.md` y `docs/bitacora/2026-10-28_modem-4g.md`—; interfaz Ethernet sin probar; pendiente repetir la campaña de OE5 contra este enlace real) |
 | OE3 — Middleware NTCIP | ~60 % (agente SNMPv3 funcional sobre objetos **reales** de NTCIP 1202 —`phaseStatusGroupTable`, `phaseTable`, subárbol `1.3.6.1.4.1.1206.4.2.1`, ya no el OID de prueba `99999`— y 1211 —`priorityRequestTable`, `prgPriorityRequestAbsolute`, `agent/ntcip1211.py`—; MIB reconstruidas, no las oficiales de NEMA; acepta M1/M3 del servidor desde el 2026-10-22, sin cambios de comportamiento en RF-05/06/09. **Corregido 2026-10-28**: esta fila describía todavía el estado previo a P2/P3 de `docs/PLAN_IMPLEMENTACION.md`, ya superado en el código) |
-| OE4 — OBU (cliente delgado) + servidor central | Cliente delgado (`gateway/obu_emulada.py`) y servidor (`servidor/`: ruta, gestión de misión, conflictos) implementados y probados de punta a punta con tres escenarios (lazo, conflicto, desvío); pendiente: TLS/mTLS contra un broker real, Raspberry Pi física, app Android (ver `docs/CONTRATO_OBU.md`) |
+| OE4 — OBU (cliente delgado) + servidor central | Cliente delgado (`gateway/obu_emulada.py`) y servidor (`servidor/`: ruta, gestión de misión, conflictos) implementados y probados de punta a punta el 2026-10-22 con tres escenarios (lazo, conflicto, desvío); el arbitraje de conflictos (`servidor/conflictos.py`) queda verificado con pruebas unitarias pero, por decisión de alcance del 2026-10-28 [REVISAR con asesor], fuera de la campaña de medición de OE5 y del Capítulo 4 (ver `docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md`); pendiente: TLS/mTLS contra un broker real, Raspberry Pi física, app Android (ver `docs/CONTRATO_OBU.md`) |
 | OE5 — Caracterizar el canal y validar el lazo completo (fusiona el OE5/OE6 anteriores) | Validación emulada completa (sin hardware real) de los tres escenarios de la arquitectura centralizada; falta repetir contra hardware real (Raspberry Pi) y con TLS/mTLS |
 
 ---
@@ -186,9 +194,10 @@ una ubicación propuesta, no confirmada.
   **(OE2)**.
 
 ### S9 · 9–15 noviembre
-- Repetir los tres escenarios de
-  `evidencia/2026-10-22_arquitectura-centralizada/` (lazo, conflicto,
-  desvío) contra la Raspberry Pi real y con TLS/mTLS **(OE2, OE4, OE5)**.
+- Repetir los escenarios de la campaña de OE5 (lazo y desvío —
+  `conflicto` queda fuera de alcance desde el 2026-10-28, ver decisión de
+  alcance #2 al inicio de este documento) contra la Raspberry Pi real y
+  con TLS/mTLS **(OE2, OE4, OE5)**.
 - Redacción de las secciones del Capítulo 4 correspondientes a OE2 y la
   seguridad de OE4.
 - 🚦 **Decisión G3 — alcance de la seguridad real.** Si TLS/mTLS contra un

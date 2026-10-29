@@ -1,0 +1,7 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1793236636690468300,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""amarillo"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1793236640200719300,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""todo_rojo"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1793236642291547100,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1793236642306903400,ctrl_1,ctrl_fase_cambio,mis-521f08b5-C,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""obu-desvio-r04"",""eta_seg"":8}"
+1793236650691319400,ctrl_1,ctrl_fase_cambio,mis-521f08b5-C,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""liberacion_manual""}"
+1793236650695915800,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""verde"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"

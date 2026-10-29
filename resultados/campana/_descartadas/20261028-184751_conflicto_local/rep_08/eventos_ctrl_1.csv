@@ -1,0 +1,4 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1793231631358592300,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""amarillo"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1793231634434733500,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""todo_rojo"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1793231647356501200,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"

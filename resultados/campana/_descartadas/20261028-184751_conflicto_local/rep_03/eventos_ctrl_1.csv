@@ -1,0 +1,7 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1793231398402234800,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""amarillo"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1793231401781063700,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""todo_rojo"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1793231403833728600,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1793231403849894500,ctrl_1,ctrl_fase_cambio,mis-7cd2af93-X,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""obu-conflicto-b-r"",""eta_seg"":8}"
+1793231414608491900,ctrl_1,ctrl_fase_cambio,mis-7cd2af93-X,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""liberacion_manual""}"
+1793231414608946400,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""verde"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"

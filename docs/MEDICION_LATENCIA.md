@@ -1,5 +1,16 @@
 # Medición de la latencia del lazo de priorización
 
+**Vigente desde 2026-10-28: ver la sección 8.** Las secciones 1-7
+describen el esquema ANTERIOR a la arquitectura centralizada (la OBU
+emitía M1 directo a la RSU, `scripts/campanas/lazo_emulado.py` +
+`scripts/analisis/lazo_emulado.py`): se conservan como referencia
+histórica y porque siguen siendo válidas para quien use ese esquema
+legado (`gateway/obu_simulator.py`), pero **no son el flujo vigente**. La
+sección 8 documenta las métricas de la arquitectura centralizada
+(`servidor/` decide; `scripts/campanas/lazo_centralizado.py` +
+`scripts/analisis/lazo_centralizado.py`), que es lo que hay que usar para
+cualquier campaña nueva.
+
 Este documento describe cómo se mide hoy la latencia del lazo OBU → broker →
 RSU → controlador → M2 de vuelta, con la OBU emulada (`gateway/obu_emulada.py`,
 ver `docs/LAZO_EMULADO.md`). Todo lo que sigue sale directamente de
@@ -317,3 +328,170 @@ resultados hace falta ejecutar el procedimiento de esta sección contra un
 broker real (Mosquitto, con `set_tcp_nodelay true`) y una RSU real (Pi o
 banco local, `docs/LAZO_EMULADO.md`); no se generaron números nuevos para
 este documento.
+
+## 8. Arquitectura centralizada (2026-10-22) — vigente
+
+Con `servidor/` como único decisor, la OBU ya no emite M1: solo
+MI/MP/MF. `servidor/gestor_mision.py` es quien decide y emite M1/M3 a la
+RSU. Esto cambia qué evento marca cada tramo y quién lo registra. Todo lo
+que sigue sale de `common/events.py`, `servidor/gestor_mision.py`,
+`servidor/main.py`, `agent/rsu_middleware.py`,
+`controller/controller_emulator.py` y
+`scripts/analisis/lazo_centralizado.py`.
+
+### 8.1 Dos niveles de agrupación
+
+- **Misión** (`mision_id`, p. ej. `mis-0716b5ef`): un recorrido de una
+  OBU. `EVT_MISION_ARMADA` (nodo `servidor`) liga `mision_id` con el
+  `obu_id` que la originó.
+- **Parada** (`id_solicitud = "<mision_id>-<interseccion_id>"`, p. ej.
+  `mis-0716b5ef-C`): una RSU dentro de esa misión. Es la clave de
+  agrupación de `EVT_M1_TX`/`EVT_M1_RX`/`EVT_SNMP_SET_TX`/
+  `EVT_CTRL_FASE_CAMBIO`/`EVT_M2_RX`/`EVT_M3_TX` para esa parada — el
+  mismo rol que `id_solicitud` tenía en el esquema anterior (sección 1.2),
+  solo que ahora lo genera el servidor, no la OBU.
+
+### 8.2 Qué registra cada evento nuevo
+
+| Evento | Quién (archivo, función) | Nodo / reloj | Nota |
+|---|---|---|---|
+| `MI_tx`, `MP_tx`, `MF_tx` | `gateway/obu_emulada.py` | `<obu_id>` | `id_solicitud="-"` (la OBU no conoce `mision_id`); `MP_tx.extra.seq` es el contador 1 Hz de posición. |
+| `MR_rx`, `ME_rx` | `gateway/obu_emulada.py` | `<obu_id>` | Ruta y estado que llegan del servidor; no usados en las métricas de tiempo de esta sección. |
+| `mision_armada` | `servidor/gestor_mision.py::armar_mision()` | `servidor` | `id_solicitud=mision_id`; `extra.obu_id` liga con el `MP_tx`/`MI_tx` de esa OBU. |
+| `MP_rx` | `servidor/gestor_mision.py::procesar_mp()` | `servidor` | `id_solicitud=mision_id`; `extra.seq` = el mismo `seq` del `MP_tx` que la originó (instrumentado 2026-10-28 para esta medición). |
+| `M1_tx` | `servidor/gestor_mision.py::_solicitar()`/`_renovar()` | `servidor` | `id_solicitud` = la parada; `extra.seq` (1 = primera solicitud). |
+| `M1_rx`, `snmp_set_tx`, `M2_tx`, `M3_rx`, `caducidad` | `agent/rsu_middleware.py` | `rsu_<RSU_ID>` | Sin cambios respecto de la sección 1.1 (la RSU no sabe si quien le habla es la OBU o el servidor). |
+| `ctrl_fase_cambio` | `controller/controller_emulator.py` | `ctrl_<RSU_ID>` | Sin cambios. |
+| `M2_rx` | `servidor/gestor_mision.py::procesar_m2()` | `servidor` | `id_solicitud` = la parada; `extra.seq_ref` = el `seq` del M1/M3 que la RSU respondió (instrumentado 2026-10-28). |
+| `M3_tx` | `servidor/gestor_mision.py::_cancelar_parada()` | `servidor` | `extra.motivo`: `cruce` (la `SeguidorAcceso` detectó que la intersección quedó atrás — ver `gateway/geometria.py::MOTIVO_CRUCE`), `desvio`, `conflicto`, `tiempo_maximo`, `boton`. |
+
+### 8.3 Métricas, fórmula, reloj y confiabilidad
+
+`t0` es siempre `M1_tx(seq=1)` de esa parada, con el reloj del **servidor**
+(no de la OBU como en la sección 2: la OBU ya no participa en este tramo).
+
+| Métrica | Fórmula | Reloj(es) | Confiabilidad |
+|---|---|---|---|
+| **RTT_srv** | `M2_rx(seq_ref=1).ts_ns − t0` | Solo el del servidor | Un solo reloj: la más robusta de esta etapa, análoga al RTT de la sección 2 pero medida en el servidor en vez de la OBU (aquí es el servidor quien manda M1 y recibe M2). |
+| **t_RSU** | `decision.ts_ns − M1_rx(seq=1).ts_ns`, `decision` = primer `snmp_set_tx` con `accion` en {`request_priority`, `en_cola_despeje`} | Solo el de la RSU | Un solo reloj, sin cambios respecto de la sección 2. |
+| **T_desp** | `activar_cola_rf06.ts_ns − en_cola_despeje.ts_ns` | Solo el de la RSU | Un solo reloj, sin cambios. |
+| **t_OBU→srv** | `MP_rx(mismo seq).ts_ns − MP_tx(mismo obu_id, mismo seq).ts_ns` | OBU y servidor | Dos relojes. Reemplaza a `t_V2I` del esquema anterior para el tramo OBU→servidor (antes no existía: la posición no viajaba antes de la arquitectura centralizada). |
+| **t_srv** | `t0 − MP_rx` más reciente de esa misión (la muestra que disparó la decisión de pedir) | Solo el del servidor | Un solo reloj: tiempo de decisión interno del servidor (ruta + ETA + geocerca), no existía en el esquema anterior. |
+| **t_srv→RSU** | `M1_rx(seq=1).ts_ns − t0` | Servidor y RSU | Dos relojes. Equivalente a `t_V2I` de la sección 2, pero ahora el tramo es servidor→RSU, no OBU→RSU. |
+| **L** | `decision.ts_ns − t0` (= `t_srv→RSU + t_RSU`) | Servidor y RSU | Dos relojes. Igual definición que RNF-01 en la sección 2 (termina en la decisión de la RSU, no en el verde), pero `t0` es ahora el M1 del servidor. |
+| **t_verde** | `ctrl_fase_cambio(fase=verde, misma parada).ts_ns − t0` | Servidor y controlador | Dos relojes. Análogo a `t_hasta_verde_con_despeje` de la sección 2. |
+| **Anticipación real** | `M3_tx(motivo=cruce).ts_ns − ctrl_fase_cambio(verde, misma parada).ts_ns`, el verde más reciente antes del cruce | Servidor y controlador | Dos relojes. **Nueva** (RF8, `ANTICIPACION_MINIMA_S=8.0` en `servidor/gestor_mision.py`): compara cuánto antes del cruce real empezó el verde contra el margen mínimo que el servidor pidió. |
+| **Tasa de éxito** | `paradas con M2 estado="concedida" / paradas totales` | — | Igual idea que la sección 2, por parada en vez de por solicitud de la OBU. **No aplica al escenario `conflicto`** (ver sección 8.6): ahí quedar en espera es el comportamiento correcto del arbitraje, no una falla, y mezclarlo en este cociente subestima el éxito real del sistema. |
+
+**`sin_respuesta` (ningún M2 llegó) se excluye de L, RTT_srv, t_RSU y
+anticipación real** (`scripts/analisis/lazo_centralizado.py`,
+`resultado != "sin_respuesta"`): no tiene una latencia que reportar, tiene
+una falla de entrega, y mezclarla subestimaría el p95 real a la vez que
+oculta el problema. Se cuenta aparte, con la etapa del lazo en la que se
+detuvo (`sin_respuesta_por_etapa` en `lazo_resumen.json`:
+`m1_tx_sin_m1_rx`, `m1_rx_sin_decision` o `decision_sin_m2`) para investigar
+la causa en los logs de esa repetición en vez de asumirla.
+**[REVISAR con asesor]**: excluir por completo (en vez de, p. ej., tratarla
+como el peor caso para un acotamiento conservador del p95) es una decisión
+de método, no un hecho derivado de los datos.
+
+### 8.4 Offset de reloj: cuándo las métricas de dos relojes son confiables
+
+`scripts/campanas/lazo_centralizado.py` guarda la salida de
+`scripts/pi.sh clock` en `config.json` (`reloj_pi_inicio`/`reloj_pi_fin`),
+**solo cuando `config != "local"`** (con `config=local` todo corre en la
+misma máquina: offset = 0 por definición, no hace falta medirlo).
+`scripts/analisis/lazo_centralizado.py` decide con
+`UMBRAL_OFFSET_MS = 10.0` (justificación en el propio script: los tramos
+de red medidos hasta ahora son de orden 2-16 ms — sección 5 —, así que un
+offset de ese orden o mayor sería comparable a la señal, no una
+perturbación despreciable):
+
+- Si el offset extraído del texto de `scripts/pi.sh clock` (inicio **y**
+  fin) es `<= 10 ms`: las métricas de dos relojes (`t_OBU→srv`,
+  `t_srv→RSU`, `L`, `t_verde`, anticipación real) se reportan sin
+  reservas.
+- Si supera el umbral, o el texto no se pudo interpretar (el parseo es
+  best-effort sobre la salida de `chronyc`/`w32tm`: ante la duda, se
+  excluye en vez de confiar en un número que no se pudo leer): esas
+  métricas quedan en `None` en `lazo_por_parada.csv`/`lazo_por_mision.csv`
+  y el resumen imprime un aviso. **RTT_srv y t_RSU (un solo reloj) siguen
+  siendo válidas siempre** y son las métricas principales para
+  `config=pi-lan`/`pi-4g`.
+
+### 8.5 Cómo reproducir una medición (vigente)
+
+```bash
+# 1. Campaña (ver docstring de scripts/campanas/lazo_centralizado.py para
+#    config=pi-lan/pi-4g, que requieren la RSU real ya corriendo):
+python scripts/campanas/lazo_centralizado.py --escenario lazo \
+    --repeticiones 10 --factor 1 --config local --broker-host 127.0.0.1
+
+# 2. Análisis (acepta --dir repetido, igual que la sección 7):
+python scripts/analisis/lazo_centralizado.py --dir resultados/campana/<corrida>
+
+# 3. Figuras + tabla LaTeX, comparando varias corridas (p. ej. local vs
+#    pi-lan vs pi-4g del mismo escenario) con --dir repetido:
+python scripts/analisis/graficos_campana_centralizada.py \
+    --dir resultados/campana/<corrida_local> --etiqueta local \
+    --dir resultados/campana/<corrida_pi_lan> --etiqueta pi-lan \
+    --salida F:\tesis2\Overleaf\figuras\resultados
+```
+
+### 8.6 Escenario `conflicto`: métricas propias (fuera de alcance de la campaña)
+
+**[REVISAR con asesor] Actualizado 2026-10-28**: por decisión del autor,
+el escenario `conflicto` queda fuera de la campaña de medición y del
+Capítulo 4 — es un caso demasiado específico para el alcance de esta
+tesis (ver `docs/CRONOGRAMA.md`, decisión de alcance #2, y
+`docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md`). El
+arbitraje (`servidor/conflictos.py`) sigue verificado con pruebas
+unitarias (`tests/test_conflictos.py`), y el soporte en el runner/análisis
+descrito abajo se conserva sin usarse en la campaña oficial. El resto de
+esta sección documenta esas métricas como referencia, no como resultado
+reportado.
+
+Dos OBU casi simultáneas con accesos incompatibles de la misma RSU. Que
+`servidor/conflictos.py` deje a la perdedora `en_espera` es el
+comportamiento **correcto** del arbitraje (RF, arbitraje entre misiones
+concurrentes; ver `ssec:criterios_direccionamiento_e3` del `main.tex`), no
+una falla — por eso este escenario no se resume con la "tasa de éxito"
+genérica de la tabla de la sección 8.3 (`concedida/total`), sino con tres
+preguntas distintas, calculadas por
+`scripts/analisis/lazo_centralizado.py::analizar_conflicto()` y guardadas
+bajo la clave `"conflicto"` de `lazo_resumen.json`:
+
+1. **¿El servidor eligió a la ganadora correcta según su política?**
+   `servidor/gestor_mision.py` registra, en cada `EVT_CONFLICTO_ARBITRADO`
+   con conflicto real, la clase y el ETA de **todos** los candidatos
+   evaluados (campo `candidatos`, instrumentado 2026-10-28 para esta
+   medición — las corridas anteriores a esa fecha no lo tienen y quedan
+   sin poder verificarse: `arbitraje_consistente_con_politica` da "sin
+   datos verificables"). El análisis vuelve a correr
+   `servidor/conflictos.py::arbitrar()` sobre esos mismos candidatos y
+   compara el resultado contra lo que el servidor decidió en vivo. Esto
+   confirma que el camino real (log de producción) aplicó la misma regla
+   que ya prueba `tests/test_conflictos.py` en aislado — **no** es una
+   prueba independiente de que la regla ETA-cuando-empata-en-clase sea la
+   correcta desde el punto de vista de tránsito (eso sigue
+   `[REVISAR con asesor]`, ver el docstring de `servidor/conflictos.py`).
+2. **¿La ganadora obtuvo verde?** `obtuvo_verde` en `lazo_por_parada.csv`
+   (hubo al menos un `ctrl_fase_cambio` a verde para esa parada,
+   independiente de si el offset de reloj permite calcular `t_verde`).
+3. **¿La perdedora se resolvió bien?** Para cada perdedora (quedó
+   `en_espera` al menos una vez), tres desenlaces posibles, mutuamente
+   excluyentes: `atendidos_despues_de_esperar` (se promovió y llegó a
+   `concedida`), `cancelados_correctamente_al_cruzar` (el último `M3_tx`
+   de esa parada tiene `motivo="cruce"`: el vehículo pasó la intersección
+   mientras esperaba, y el servidor correctamente dejó de insistir en vez
+   de pedir una prioridad que ya no tiene sentido) o
+   `sin_resolver_al_cierre_de_la_corrida` (ninguna de las dos: la
+   repetición terminó con la solicitud todavía pendiente — artefacto del
+   corte de tiempo fijo de cada repetición, no necesariamente una falla,
+   pero se cuenta aparte para no perderlo de vista).
+
+`tasa_exito_arbitraje` = `(ganadoras con verde + perdedoras resueltas
+correctamente) / (ganadoras + perdedoras)`. Las paradas donde no se
+detectó ningún conflicto (la pausa aleatoria de la campaña hizo que las
+dos OBU no coincidieran) se cuentan en `sin_conflicto_detectado` y quedan
+fuera de ese cociente.

@@ -1,0 +1,11 @@
+id_solicitud,mision_id,rsu_id,resultado,cola_despeje,t_srv_ms,t_srv_RSU_ms,t_RSU_ms,RTT_srv_ms,L_ms,t_verde_ms,T_desp_ms,anticipacion_real_s
+mis-af9ac861-C,mis-af9ac861,1,concedida,True,0.4438,0.6434,2.0637,4.9953,2.7071,5302.9245,5285.9682,
+mis-e1aa3f35-C,mis-e1aa3f35,1,concedida,True,0.3689,0.6352,1.9917,25.4803,2.6269,5428.14,5410.7594,
+mis-5e42e125-C,mis-5e42e125,1,sin_respuesta,False,0.5916,,,,,,,
+mis-25603f04-C,mis-25603f04,1,concedida,True,0.5036,0.8071,2.4668,6.1904,3.2739,5527.1244,5522.7063,
+mis-c7e2be23-C,mis-c7e2be23,1,concedida,True,0.4228,0.6901,25.2537,28.2057,25.9438,5223.3355,5195.4547,
+mis-85b49591-C,mis-85b49591,1,sin_respuesta,False,0.3904,,,,,,,
+mis-d0129756-C,mis-d0129756,1,concedida,True,0.5197,0.7086,24.5254,28.6053,25.234,5417.8173,5391.2622,
+mis-ac89fcf3-C,mis-ac89fcf3,1,concedida,True,0.6497,1.1223,4.4269,8.3906,5.5492,5558.8701,5551.8469,
+mis-15c157ea-C,mis-15c157ea,1,concedida,True,0.7387,1.2232,2.7573,6.1385,3.9805,5469.0102,5463.7128,
+mis-91d918c2-C,mis-91d918c2,1,concedida,True,0.5001,0.7308,2.0596,4.7128,2.7904,5443.7239,5425.7341,

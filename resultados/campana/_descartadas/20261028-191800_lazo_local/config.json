@@ -1,0 +1,19 @@
+{
+  "fecha_inicio": "2026-10-28T19:18:00",
+  "commit": "9a027c7-con-cambios-sin-commit",
+  "escenario": "lazo",
+  "config": "local",
+  "factor": 1.0,
+  "broker": "127.0.0.1:1883",
+  "host_rsu": null,
+  "repeticiones": 10,
+  "semilla_base": 1,
+  "pausa_max_s": 25.0,
+  "sigma_pos_m": 5.0,
+  "reloj_pi_inicio": null,
+  "estado_red_inicio": null,
+  "memoria_libre_mb_inicio": 2846.796875,
+  "fecha_fin": "2026-10-28T19:35:48",
+  "reloj_pi_fin": null,
+  "estado_red_fin": null
+}

@@ -1,0 +1,16 @@
+{
+  "fecha_inicio": "2026-10-28T18:47:51",
+  "commit": "a52d8e1-con-cambios-sin-commit",
+  "escenario": "conflicto",
+  "config": "local",
+  "factor": 1.0,
+  "broker": "127.0.0.1:1883",
+  "host_rsu": null,
+  "repeticiones": 10,
+  "semilla_base": 1,
+  "pausa_max_s": 25.0,
+  "sigma_pos_m": 5.0,
+  "reloj_pi_inicio": null,
+  "fecha_fin": "2026-10-28T18:55:57",
+  "reloj_pi_fin": null
+}

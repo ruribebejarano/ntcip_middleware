@@ -1,0 +1,29 @@
+{
+  "version": "2026-10-28-sintetico-campana-1rsu-conflicto",
+  "descripcion": "Registro SINTETICO de UNA sola RSU (rsu_id=\"1\", misma convencion que registro_rsu_1.json) con DOS accesos incompatibles (grupo_semaforico distinto), para el escenario 'conflicto' de scripts/campanas/lazo_centralizado.py. Coordenadas inventadas, alineadas al nodo 'X' de servidor/rutas.py::construir_grafo_cruce_sintetico(). Igual en config=local y en config=pi-lan/pi-4g: con 1 sola RSU fisica basta, porque el conflicto es entre DOS misiones pidiendo accesos distintos de la MISMA RSU, no entre dos RSU.",
+  "rsu": [
+    {
+      "rsu_id": "1",
+      "interseccion_id": "X",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.1074,
+        "lon": -77.032
+      },
+      "accesos": [
+        {
+          "acceso_id": "S",
+          "rumbo_llegada_deg": 0.0,
+          "grupo_semaforico": 1,
+          "nota": "sintetico, llega del sur"
+        },
+        {
+          "acceso_id": "O",
+          "rumbo_llegada_deg": 90.0,
+          "grupo_semaforico": 2,
+          "nota": "sintetico, llega del oeste"
+        }
+      ]
+    }
+  ]
+}

@@ -196,7 +196,7 @@ def _procesar_mp(obu_id: str, data: dict) -> None:
     if pendiente is not None and obu_id not in GESTOR.misiones:
         GESTOR.armar_mision(obu_id, pendiente["clase"], (lat, lon), pendiente["destino"])
 
-    GESTOR.procesar_mp(obu_id, lat, lon, velocidad_kmh, rumbo_deg)
+    GESTOR.procesar_mp(obu_id, lat, lon, velocidad_kmh, rumbo_deg, seq=data.get("seq"))
 
 
 def _procesar_m2(data: dict) -> None:

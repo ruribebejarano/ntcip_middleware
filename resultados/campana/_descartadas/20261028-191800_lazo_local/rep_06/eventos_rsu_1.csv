@@ -1,0 +1,12 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1793233655520980500,rsu_1,M1_rx,mis-807a76c8-C,"{""seq"":1,""vehiculo_id"":""obu-lazo-r06"",""interseccion_id"":null,""acceso"":""S"",""velocidad_kmh"":null,""ts_obu_ms"":1793233655519,""duplicado"":false,""topic"":""rsu/1/solicitudes""}"
+1793233655524750900,rsu_1,snmp_set_tx,mis-807a76c8-C,"{""origen"":""v2i"",""accion"":""en_cola_despeje"",""fase"":""amarillo""}"
+1793233655546923500,rsu_1,M2_tx,mis-807a76c8-C,"{""estado"":""recibida"",""fase"":""amarillo"",""seq_ref"":1,""topic"":""servidor/central/respuestas""}"
+1793233657520797800,rsu_1,M1_rx,mis-807a76c8-C,"{""seq"":2,""vehiculo_id"":""obu-lazo-r06"",""interseccion_id"":null,""acceso"":""S"",""velocidad_kmh"":null,""ts_obu_ms"":1793233657519,""duplicado"":false,""topic"":""rsu/1/solicitudes""}"
+1793233657523601200,rsu_1,M2_tx,mis-807a76c8-C,"{""estado"":""recibida"",""fase"":""amarillo"",""seq_ref"":2,""topic"":""servidor/central/respuestas""}"
+1793233659519641500,rsu_1,M1_rx,mis-807a76c8-C,"{""seq"":3,""vehiculo_id"":""obu-lazo-r06"",""interseccion_id"":null,""acceso"":""S"",""velocidad_kmh"":null,""ts_obu_ms"":1793233659518,""duplicado"":false,""topic"":""rsu/1/solicitudes""}"
+1793233659521062200,rsu_1,M2_tx,mis-807a76c8-C,"{""estado"":""recibida"",""fase"":""todo_rojo"",""seq_ref"":3,""topic"":""servidor/central/respuestas""}"
+1793233660969605100,rsu_1,snmp_set_tx,mis-807a76c8-C,"{""origen"":""watchdog"",""accion"":""activar_cola_rf06""}"
+1793233660996908500,rsu_1,M2_tx,mis-807a76c8-C,"{""estado"":""concedida"",""fase"":""verde"",""seq_ref"":null,""topic"":""servidor/central/respuestas""}"
+1793233663999310800,rsu_1,caducidad,mis-807a76c8-C,"{""motivo"":""rnf03_sin_actualizacion""}"
+1793233664018319700,rsu_1,M2_tx,mis-807a76c8-C,"{""estado"":""cancelada"",""fase"":""verde"",""seq_ref"":null,""topic"":""servidor/central/respuestas""}"

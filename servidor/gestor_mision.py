@@ -215,13 +215,19 @@ class GestorMision:
 
     # --- MP / posición ----------------------------------------------------
 
-    def procesar_mp(self, obu_id: str, lat: float, lon: float, velocidad_kmh: float, rumbo_deg: float) -> None:
+    def procesar_mp(self, obu_id: str, lat: float, lon: float, velocidad_kmh: float, rumbo_deg: float,
+                    seq: Optional[int] = None) -> None:
         mision = self.misiones.get(obu_id)
         if mision is None or not mision.activa:
             return  # sin misión activa no hay procesamiento (ssec:minimizacion)
 
+        # seq: numero de secuencia que trae el propio MP (gateway/obu_emulada.py);
+        # se registra aqui SOLO para poder emparejar este MP_rx con el MP_tx
+        # de la OBU por seq en el analisis de campana (scripts/analisis/
+        # lazo_centralizado.py, metrica t_OBU->srv) -- no se usa para nada
+        # mas en este metodo.
         self._log(EVT_MP_RX, mision.mision_id, lat=lat, lon=lon,
-                  velocidad_kmh=velocidad_kmh, rumbo_deg=rumbo_deg)
+                  velocidad_kmh=velocidad_kmh, rumbo_deg=rumbo_deg, seq=seq)
 
         progreso = rutas_mod.proyectar_sobre_ruta(mision.ruta, lat, lon)
         if progreso.distancia_perpendicular_m > self.umbral_desvio_m:
@@ -307,11 +313,19 @@ class GestorMision:
             grupo_semaforico=self._grupo_semaforico(ep.parada), clase=mision.clase, eta_s=eta_s,
         )
         otros = self._solicitantes_activos_en(rsu_id, excluir_obu=mision.obu_id)
-        resultado = self.arbitro.evaluar(rsu_id, otros + [propio])
+        candidatos = otros + [propio]
+        resultado = self.arbitro.evaluar(rsu_id, candidatos)
         if resultado.hubo_conflicto:
+            # clase/eta_s de CADA candidato (no solo quien ganó): sin esto,
+            # scripts/analisis/lazo_centralizado.py no puede verificar que
+            # el ganador fue el correcto segun la politica de
+            # servidor/conflictos.py (ETA cuando empatan en clase) --
+            # tendria que confiar en el resultado sin poder auditarlo.
             self._log(EVT_CONFLICTO_ARBITRADO, mision.mision_id, rsu_id=rsu_id,
                       atendidos=[s.mision_id for s in resultado.atendidos],
-                      en_espera=[s.mision_id for s in resultado.en_espera])
+                      en_espera=[s.mision_id for s in resultado.en_espera],
+                      candidatos=[{"mision_id": s.mision_id, "clase": s.clase, "eta_s": round(s.eta_s, 2)}
+                                  for s in candidatos])
         if propio.mision_id not in {s.mision_id for s in resultado.atendidos}:
             ep.estado = ESTADO_EN_ESPERA
             return
@@ -413,7 +427,12 @@ class GestorMision:
         estado_m2 = body.get("estado")
         ep.estado = _ESTADO_DESDE_M2.get(estado_m2, ep.estado)
         ep.fase = body.get("fase")
-        self._log(EVT_M2_RX, id_solicitud, mision_id=mision.mision_id, estado=estado_m2, fase=ep.fase)
+        # seq_ref: la RSU lo copia del M1/M3 que respondio (agent/rsu_middleware.py,
+        # _publicar_m2()); se registra aqui SOLO para poder emparejar este
+        # M2_rx con el M1_tx del MISMO seq en el analisis de campana
+        # (scripts/analisis/lazo_centralizado.py, metrica RTT_srv).
+        self._log(EVT_M2_RX, id_solicitud, mision_id=mision.mision_id, estado=estado_m2, fase=ep.fase,
+                  seq_ref=body.get("seq_ref"))
         if ep.estado in (ESTADO_CANCELADA, ESTADO_RECHAZADA):
             self._solicitud_a_parada.pop(id_solicitud, None)
             self._promover_en_espera(ep.parada.rsu_id)

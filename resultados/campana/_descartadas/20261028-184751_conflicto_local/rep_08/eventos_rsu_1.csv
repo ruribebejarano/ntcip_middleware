@@ -1,0 +1,10 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1793231631356942600,rsu_1,M1_rx,mis-764edcbc-X,"{""seq"":1,""vehiculo_id"":""obu-conflicto-a-r08"",""interseccion_id"":null,""acceso"":""S"",""velocidad_kmh"":null,""ts_obu_ms"":1793231631355,""duplicado"":false,""topic"":""rsu/1/solicitudes""}"
+1793231631359023000,rsu_1,snmp_set_tx,mis-764edcbc-X,"{""origen"":""v2i"",""accion"":""en_cola_despeje"",""fase"":""amarillo""}"
+1793231631360725900,rsu_1,M2_tx,mis-764edcbc-X,"{""estado"":""recibida"",""fase"":""amarillo"",""seq_ref"":1,""topic"":""servidor/central/respuestas""}"
+1793231634411565500,rsu_1,caducidad,mis-764edcbc-X,"{""motivo"":""rnf03_sin_actualizacion_en_cola""}"
+1793231634435443400,rsu_1,M2_tx,mis-764edcbc-X,"{""estado"":""cancelada"",""fase"":""todo_rojo"",""seq_ref"":null,""topic"":""servidor/central/respuestas""}"
+1793231647355497000,rsu_1,M3_rx,mis-764edcbc-X,"{""seq"":3,""motivo"":""cruce"",""ts_obu_ms"":1793231647354,""duplicado"":false,""topic"":""rsu/1/solicitudes""}"
+1793231647357048500,rsu_1,M2_tx,mis-764edcbc-X,"{""estado"":""cancelada"",""fase"":""rojo_general"",""seq_ref"":3,""topic"":""servidor/central/respuestas""}"
+1793231647574308300,rsu_1,M3_rx,mis-7d95d4d7-X,"{""seq"":9,""motivo"":""cruce"",""ts_obu_ms"":1793231647573,""duplicado"":false,""topic"":""rsu/1/solicitudes""}"
+1793231647576330700,rsu_1,M2_tx,mis-7d95d4d7-X,"{""estado"":""cancelada"",""fase"":""rojo_general"",""seq_ref"":9,""topic"":""servidor/central/respuestas""}"

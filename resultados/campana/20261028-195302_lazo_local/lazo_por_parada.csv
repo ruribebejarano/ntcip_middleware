@@ -1,0 +1,11 @@
+id_solicitud,mision_id,rsu_id,resultado,etapa_alcanzada,cola_despeje,t_srv_ms,t_srv_RSU_ms,t_RSU_ms,RTT_srv_ms,L_ms,t_verde_ms,T_desp_ms,anticipacion_real_s,obtuvo_verde,ultimo_m3_motivo
+mis-11346cf8-C,mis-11346cf8,1,concedida,,True,0.8489,1.2163,3.6467,8.8394,4.863,5357.4141,5337.2163,10.6422878,True,cruce
+mis-389521ff-C,mis-389521ff,1,concedida,,True,0.7427,1.0262,3.4088,27.0625,4.435,5211.4295,5205.0038,10.7887919,True,cruce
+mis-b166ac01-C,mis-b166ac01,1,concedida,,True,0.7031,0.9495,3.143,7.3952,4.0925,5545.3697,5529.9128,10.4546839,True,cruce
+mis-d35d553a-C,mis-d35d553a,1,concedida,,True,0.7042,0.9834,15.6378,19.6505,16.6212,5088.2929,5056.7086,8.9115525,True,cruce
+mis-a5c5d68f-C,mis-a5c5d68f,1,concedida,,True,0.923,2.3751,13.5799,19.2582,15.955,5035.4736,5016.7259,8.964057,True,cruce
+mis-52f50f74-C,mis-52f50f74,1,concedida,,True,0.6708,1.1382,3.4438,7.6047,4.582,5313.4786,5294.2358,10.6866117,True,cruce
+mis-95b2dda7-C,mis-95b2dda7,1,concedida,,True,0.4006,0.5587,18.1966,35.1401,18.7553,5593.6823,5559.384,10.4057856,True,cruce
+mis-f17c1e98-C,mis-f17c1e98,1,concedida,,True,0.4383,0.5593,2.0722,22.4825,2.6315,5135.6809,5131.9927,10.8645303,True,cruce
+mis-c45d76c4-C,mis-c45d76c4,1,concedida,,True,0.4122,0.5157,16.3135,18.5643,16.8292,5277.7675,5259.7313,8.7222902,True,cruce
+mis-0b4d0170-C,mis-0b4d0170,1,concedida,,True,0.5204,0.6608,15.8698,18.7966,16.5306,5560.071,5527.5535,10.4391288,True,cruce
