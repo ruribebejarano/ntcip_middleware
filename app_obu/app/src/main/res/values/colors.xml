@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primario">#1565C0</color>
+    <color name="primario_oscuro">#0D47A1</color>
+
+    <color name="estado_concedida">#2E7D32</color>
+    <color name="estado_en_cola">#F9A825</color>
+    <color name="estado_solicitada">#F9A825</color>
+    <color name="estado_cancelada">#C62828</color>
+    <color name="estado_rechazada">#C62828</color>
+    <color name="estado_pendiente">#757575</color>
+    <color name="estado_en_espera">#757575</color>
+    <color name="estado_desconocido">#757575</color>
+
+    <color name="aviso_fondo">#B71C1C</color>
+    <color name="aviso_texto">#FFFFFF</color>
+
+    <color name="boton_iniciar">#2E7D32</color>
+    <color name="boton_terminar">#C62828</color>
+</resources>

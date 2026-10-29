@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- EventoLogger.kt escribe en filesDir/eventos/ (almacenamiento interno
+         de la app); esto solo habilita compartirlo por un Intent.ACTION_SEND,
+         no lo hace visible en el explorador de archivos del sistema. -->
+    <files-path name="eventos" path="eventos/" />
+</paths>

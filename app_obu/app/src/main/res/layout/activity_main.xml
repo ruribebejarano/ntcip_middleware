@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <org.osmdroid.views.MapView
+        android:id="@+id/mapa"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/panelAvisos"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/avisoSimulado"
+            style="@style/AvisoBanner"
+            android:text="@string/aviso_modo_simulado"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/avisoSinConexion"
+            style="@style/AvisoBanner"
+            android:text="@string/aviso_sin_conexion"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/avisoSinFix"
+            style="@style/AvisoBanner"
+            android:text="@string/aviso_sin_fix"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/botonAjustes"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="12dp"
+        android:background="@android:color/white"
+        android:contentDescription="@string/titulo_ajustes"
+        android:src="@android:drawable/ic_menu_preferences" />
+
+    <LinearLayout
+        android:id="@+id/panelInferior"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@android:color/white"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/textoPedirDestino"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:gravity="center"
+            android:text="@string/pedir_destino"
+            android:textSize="16sp" />
+
+        <LinearLayout
+            android:id="@+id/tarjetaProximo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/proximoTitulo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/proximoEstado"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:padding="12dp"
+                android:textColor="@android:color/white"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/proximoEta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textSize="18sp" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/botonAccion"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="@string/boton_iniciar"
+            android:textColor="@android:color/white"
+            android:textSize="18sp" />
+    </LinearLayout>
+
+</FrameLayout>

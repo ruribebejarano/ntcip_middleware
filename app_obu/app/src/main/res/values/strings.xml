@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OBU NTCIP</string>
+    <string name="titulo_ajustes">Ajustes</string>
+
+    <string name="boton_iniciar">Iniciar emergencia</string>
+    <string name="boton_terminar">Terminar emergencia</string>
+
+    <string name="aviso_modo_simulado">MODO SIMULADO — sin GPS real</string>
+    <string name="aviso_sin_conexion">Sin conexión con el servidor</string>
+    <string name="aviso_sin_fix">Sin señal GNSS válida</string>
+
+    <string name="estado_pendiente">pendiente</string>
+    <string name="estado_solicitada">solicitada</string>
+    <string name="estado_en_cola">en cola</string>
+    <string name="estado_concedida">concedida</string>
+    <string name="estado_cancelada">cancelada</string>
+    <string name="estado_rechazada">rechazada</string>
+    <string name="estado_en_espera">en espera por otra unidad</string>
+    <string name="sin_proximo_semaforo">sin semáforo pendiente en la ruta</string>
+
+    <string name="notificacion_canal_mision">Misión de emergencia activa</string>
+    <string name="notificacion_titulo">OBU en misión</string>
+    <string name="notificacion_cuerpo">Publicando posición al servidor…</string>
+
+    <string name="pedir_destino">Toca el mapa para elegir el destino</string>
+
+    <string name="ajustes_host">Host del broker MQTT</string>
+    <string name="ajustes_puerto">Puerto</string>
+    <string name="ajustes_clase">Clase NTCIP 1211</string>
+    <string name="ajustes_modo_simulado">Modo simulado (sin GNSS)</string>
+    <string name="ajustes_trayectoria">Trayectoria CSV simulada</string>
+    <string name="ajustes_elegir_trayectoria">Elegir archivo…</string>
+    <string name="ajustes_trayectoria_integrada">Usar la trayectoria incluida (avenida_ab_s1)</string>
+    <string name="ajustes_guardar">Guardar</string>
+    <string name="ajustes_exportar_eventos">Exportar CSV de eventos</string>
+    <string name="ajustes_bateria_titulo">Optimización de batería</string>
+    <string name="ajustes_bateria_resumen">Esta app puede detenerse en segundo plano si Android restringe su batería</string>
+    <string name="ajustes_bateria_boton">Revisar</string>
+</resources>

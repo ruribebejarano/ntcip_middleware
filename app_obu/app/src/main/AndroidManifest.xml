@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- MQTT (socket TCP crudo, no pasa por el stack HTTP/NetworkSecurityConfig). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Posición (RF-01/RF-02 del lado OBU, docs/CONTRATO_OBU.md MP). Solo
+         foreground: no se pide ACCESS_BACKGROUND_LOCATION. Un foreground
+         service de tipo location, iniciado por accion del usuario, basta
+         para seguir recibiendo ubicacion con la pantalla apagada (ver
+         app_obu/README.md, seccion "Por que no hay ACCESS_BACKGROUND_LOCATION"). -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Para el aviso de "ignorar optimizacion de bateria" (One UI). -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <uses-feature android:name="android.hardware.location.gps" android:required="true" />
+
+    <application
+        android:name=".ObuApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.ObuNtcip"
+        android:usesCleartextTraffic="false">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".AjustesActivity"
+            android:exported="false"
+            android:label="@string/titulo_ajustes" />
+
+        <service
+            android:name=".obu.ObuSessionService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/rutas_archivos" />
+        </provider>
+
+    </application>
+</manifest>

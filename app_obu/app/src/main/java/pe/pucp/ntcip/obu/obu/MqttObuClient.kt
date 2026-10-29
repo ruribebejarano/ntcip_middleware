@@ -1,0 +1,78 @@
+package pe.pucp.ntcip.obu.obu
+
+import com.hivemq.client.mqtt.MqttGlobalPublishFilter
+import com.hivemq.client.mqtt.datatypes.MqttQos
+import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient
+import com.hivemq.client.mqtt.mqtt5.Mqtt5Client
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import pe.pucp.ntcip.obu.seguridad.TlsConfig
+import java.nio.charset.StandardCharsets
+
+/**
+ * Wrapper delgado sobre HiveMQ MQTT Client (MQTT 5, QoS 1) que publica/
+ * recibe exactamente los mensajes de docs/CONTRATO_OBU.md -- equivalente
+ * Android de gateway/obu_emulada.py. Client ID "obu-{obu_id}" (§1 del
+ * contrato).
+ */
+class MqttObuClient(
+    private val host: String,
+    private val port: Int,
+    private val obuId: String,
+    @Suppress("UNUSED_PARAMETER") private val tls: TlsConfig? = null, // Etapa 3 (docs/CONTRATO_OBU.md §1), hoy siempre null
+    private val onRuta: (MensajeMR) -> Unit,
+    private val onEstado: (MensajeME) -> Unit,
+    private val onConexion: (conectado: Boolean) -> Unit,
+) {
+    private val json = Json { ignoreUnknownKeys = true }
+    private var cliente: Mqtt5BlockingClient? = null
+
+    suspend fun conectar() = withContext(Dispatchers.IO) {
+        val c = Mqtt5Client.builder()
+            .identifier("obu-$obuId")
+            .serverHost(host)
+            .serverPort(port)
+            .automaticReconnectWithDefaultConfig()
+            .addConnectedListener { onConexion(true) }
+            .addDisconnectedListener { onConexion(false) }
+            // Sin TLS: broker de desarrollo plano, permitido por §1 del
+            // contrato para esta etapa (ver seguridad/TlsConfig.kt).
+            .buildBlocking()
+
+        c.connect()
+
+        c.toAsync().publishes(MqttGlobalPublishFilter.ALL) { publish ->
+            val topico = publish.topic.toString()
+            val cuerpo = String(publish.payloadAsBytes, StandardCharsets.UTF_8)
+            when {
+                topico.endsWith("/ruta") ->
+                    runCatching { json.decodeFromString<MensajeMR>(cuerpo) }.getOrNull()?.let(onRuta)
+                topico.endsWith("/estado") ->
+                    runCatching { json.decodeFromString<MensajeME>(cuerpo) }.getOrNull()?.let(onEstado)
+            }
+        }
+
+        c.subscribeWith().topicFilter("obu/$obuId/ruta").qos(MqttQos.AT_LEAST_ONCE).send()
+        c.subscribeWith().topicFilter("obu/$obuId/estado").qos(MqttQos.AT_LEAST_ONCE).send()
+
+        cliente = c
+    }
+
+    suspend fun enviarMI(mi: MensajeMI) = publicar("obu/$obuId/mision", json.encodeToString(mi))
+    suspend fun enviarMP(mp: MensajeMP) = publicar("obu/$obuId/posicion", json.encodeToString(mp))
+    suspend fun enviarMF(mf: MensajeMF) = publicar("obu/$obuId/mision", json.encodeToString(mf))
+
+    private suspend fun publicar(topico: String, cuerpoJson: String) = withContext(Dispatchers.IO) {
+        cliente?.publishWith()
+            ?.topic(topico)
+            ?.qos(MqttQos.AT_LEAST_ONCE)
+            ?.payload(cuerpoJson.toByteArray(StandardCharsets.UTF_8))
+            ?.send()
+    }
+
+    suspend fun desconectar() = withContext(Dispatchers.IO) {
+        runCatching { cliente?.disconnect() }
+        cliente = null
+    }
+}

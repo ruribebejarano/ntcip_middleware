@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ajustes_host" />
+        <EditText
+            android:id="@+id/campoHost"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="100.121.77.97"
+            android:inputType="textNoSuggestions" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/ajustes_puerto" />
+        <EditText
+            android:id="@+id/campoPuerto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="1883"
+            android:inputType="number" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/ajustes_clase" />
+        <EditText
+            android:id="@+id/campoClase"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="1"
+            android:inputType="number" />
+
+        <Switch
+            android:id="@+id/interruptorModoSimulado"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/ajustes_modo_simulado" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/ajustes_trayectoria" />
+        <TextView
+            android:id="@+id/textoTrayectoriaElegida"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ajustes_trayectoria_integrada"
+            android:textStyle="italic" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/botonElegirTrayectoria"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/ajustes_elegir_trayectoria" />
+
+            <Button
+                android:id="@+id/botonUsarIntegrada"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/ajustes_trayectoria_integrada" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/botonGuardar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/ajustes_guardar" />
+
+        <Button
+            android:id="@+id/botonExportarEventos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/ajustes_exportar_eventos" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/ajustes_bateria_titulo"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ajustes_bateria_resumen" />
+        <Button
+            android:id="@+id/botonRevisarBateria"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/ajustes_bateria_boton" />
+
+    </LinearLayout>
+</ScrollView>

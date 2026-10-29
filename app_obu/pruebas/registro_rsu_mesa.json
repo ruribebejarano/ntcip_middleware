@@ -1,0 +1,44 @@
+{
+  "version": "2026-10-29-app-obu-mesa",
+  "descripcion": "Copia de config/registro_rsu.json SOLO con la RSU 2 (OSM-C902), para la prueba en mesa de app_obu/ con servidor/main.py. Mientras el agente real de la Raspberry Pi (rsu-agent.service, RSU_ID=1) siga conectado al mismo broker Mosquitto (ver docs/ARRANQUE_BROKER_LAPTOP.md), NO usar el registro completo aquí: servidor/rutas.py::cruzar_con_registro itera sobre cada entrada de este archivo, así que si la RSU 1 estuviera en la lista, el servidor le enviaría un M1 real al agente de la Pi en mitad de esta prueba de mesa, sin que lo note la otra sesión que trabaja con la Pi. Con la RSU 1 fuera del archivo, cualquier ruta calculada por el servidor en esta prueba solo puede mostrar rsu_id=2 (ver app_obu/README.md, sección 'Prueba en mesa').",
+  "origen": {
+    "nota": "Entrada copiada literal de config/registro_rsu.json (rsu_id=2, OSM-C902); ver ese archivo para la procedencia de las coordenadas y los rumbos."
+  },
+  "rsu": [
+    {
+      "rsu_id": "2",
+      "interseccion_id": "OSM-C902",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.099695500000001,
+        "lon": -77.03229606666666
+      },
+      "accesos": [
+        {
+          "acceso_id": "S",
+          "rumbo_llegada_deg": 349.5,
+          "grupo_semaforico": 1,
+          "nota": "via principal, llegada desde el sur"
+        },
+        {
+          "acceso_id": "N",
+          "rumbo_llegada_deg": 169.5,
+          "grupo_semaforico": 1,
+          "nota": "via principal, llegada desde el norte"
+        },
+        {
+          "acceso_id": "O",
+          "rumbo_llegada_deg": 79.5,
+          "grupo_semaforico": 2,
+          "nota": "transversal SUPUESTA perpendicular"
+        },
+        {
+          "acceso_id": "E",
+          "rumbo_llegada_deg": 259.5,
+          "grupo_semaforico": 2,
+          "nota": "transversal SUPUESTA perpendicular"
+        }
+      ]
+    }
+  ]
+}
