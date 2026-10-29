@@ -27,6 +27,19 @@ a nivel de bit de estado (ver phaseStatusGroupReds en el middleware): la
 norma no distingue el despeje del resto del rojo a ese nivel, solo en los
 parametros de tiempo.
 
+*** CORREGIDO 2026-10-29: defecto de ESTE banco de pruebas, no de
+agent/rsu_middleware.py (que consume get_status tal cual lo definio
+siempre). La fase nominal se calcula ahora por modulo de un reloj continuo
+(Controller._fase_en_offset_locked), no avanzando un paso por cada llamada
+a status() como antes -- con el avance de un paso, cualquier intervalo sin
+consultas mas largo que la fase vigente (lo normal: nada hace poll al
+controlador mientras no hay una solicitud activa) dejaba la fase
+reportada permanentemente atrasada, convergiendo siempre a "amarillo" sin
+importar cuanto tiempo real hubiera pasado. Esto invalido la campana de
+medicion del 2026-10-28 (las 40 solicitudes llegaron "amarillo"/en cola
+de despeje, nunca verde ni rojo_general) -- ver
+docs/bitacora/2026-10-29_fase-controlador-emulado.md. ***
+
 Protocolo (JSON Lines sobre TCP, un objeto JSON por linea, una linea de
 respuesta por cada linea de pedido):
 
@@ -107,8 +120,15 @@ class Controller:
         self._phase_yellow_change_ds = phase_yellow_change_ds
         self._phase_red_clear_ds = phase_red_clear_ds
         self._rojo_general_s = rojo_general_s
-        self._phase_idx = 0
-        self._phase_started = time.monotonic()
+        # Ancla del ciclo normal: un reloj CONTINUO desde la construccion,
+        # nunca se reinicia ni se congela (ver _fase_normal_locked). Una
+        # solicitud de prioridad activa SOLO sobre-escribe lo que se
+        # REPORTA (fuerza "verde"); el ciclo de fondo sigue corriendo
+        # igual, asi que al liberar la prioridad se reporta la fase real
+        # segun el tiempo transcurrido, no una congelada desde antes de
+        # la prioridad (ver docs/bitacora, defecto de banco de pruebas
+        # corregido 2026-10-29).
+        self._epoch = time.monotonic()
         self._priority_vehicle: str | None = None
         self._priority_request_id = "-"
         self._priority_until = 0.0
@@ -127,10 +147,44 @@ class Controller:
             ("rojo_general", float(self._rojo_general_s)),
         ]
 
+    def _fase_en_offset_locked(self, offset_s: float) -> str:
+        """Fase nominal a `offset_s` segundos desde self._epoch, calculada
+        de una vez por modulo del ciclo TOTAL vigente -- no por pasos. Esto
+        es lo que corrige el defecto de banco de pruebas (no de
+        agent/rsu_middleware.py) detectado el 2026-10-28/29: la version
+        anterior solo avanzaba UNA fase por llamada a status(), asi que
+        cualquier intervalo sin consultas mayor que la duracion de la fase
+        actual (lo normal: nada hace poll al controlador mientras no hay
+        una solicitud en curso, ver agent/rsu_middleware.py) dejaba
+        reportada una fase atrasada, SIEMPRE la siguiente a "verde" en la
+        practica -- nunca la fase real. Con el modulo, no importa cuanto
+        tiempo paso sin consultar: la fase devuelta es siempre la correcta
+        segun el reloj."""
+        cycle = self._cycle_locked()
+        total = sum(duracion for _, duracion in cycle)
+        if total <= 0:
+            return cycle[0][0]
+        t = offset_s % total
+        acumulado = 0.0
+        for nombre, duracion in cycle:
+            acumulado += duracion
+            if t < acumulado:
+                return nombre
+        return cycle[-1][0]
+
+    def _fase_normal_locked(self) -> str:
+        """Fase del ciclo normal (sin prioridad) en este instante -- el
+        reloj de fondo (self._epoch) NUNCA se pausa ni se reinicia, ni
+        siquiera durante una solicitud de prioridad activa (ver
+        _fase_actual_locked): asi, al liberar la prioridad, esta funcion
+        ya refleja el tiempo que de verdad paso, sin necesitar "saltar" a
+        ningun estado guardado de antes de la prioridad."""
+        return self._fase_en_offset_locked(time.monotonic() - self._epoch)
+
     def _fase_actual_locked(self) -> str:
         if self._priority_vehicle is not None:
             return "verde"
-        return self._cycle_locked()[self._phase_idx][0]
+        return self._fase_normal_locked()
 
     @staticmethod
     def _estado_ntcip(fase: str) -> tuple[bool, bool, bool]:
@@ -164,32 +218,29 @@ class Controller:
                 **extra,
             )
 
-    def _advance_locked(self) -> None:
-        if self._priority_vehicle is not None:
-            if time.monotonic() >= self._priority_until:
-                vehiculo_vencido = self._priority_vehicle
-                id_vencido = self._priority_request_id
-                print(f"[controlador] Prioridad de '{vehiculo_vencido}' vencio, "
-                      f"vuelve al ciclo normal")
-                self._priority_vehicle = None
-                self._log_si_cambio_locked(
-                    id_vencido, motivo="caducidad_prioridad", vehiculo_id=vehiculo_vencido
-                )
-            else:
-                return
-        else:
-            cycle = self._cycle_locked()
-            _name, duration = cycle[self._phase_idx]
-            if time.monotonic() - self._phase_started >= duration:
-                self._phase_idx = (self._phase_idx + 1) % len(cycle)
-                self._phase_started = time.monotonic()
-                self._log_si_cambio_locked(motivo="ciclo_normal")
+    def _sincronizar_locked(self) -> None:
+        """Pone al dia _fase_logueada/el log de eventos con la fase que
+        corresponde AHORA (ver _fase_actual_locked) -- ya no "avanza" nada
+        manualmente, solo detecta caducidad de prioridad y deja que
+        _log_si_cambio_locked (llamado aqui y de nuevo en status()) lea la
+        fase real."""
+        if self._priority_vehicle is not None and time.monotonic() >= self._priority_until:
+            vehiculo_vencido = self._priority_vehicle
+            id_vencido = self._priority_request_id
+            print(f"[controlador] Prioridad de '{vehiculo_vencido}' vencio, "
+                  f"vuelve al ciclo normal")
+            self._priority_vehicle = None
+            self._log_si_cambio_locked(
+                id_vencido, motivo="caducidad_prioridad", vehiculo_id=vehiculo_vencido
+            )
+        elif self._priority_vehicle is None:
+            self._log_si_cambio_locked(motivo="ciclo_normal")
 
     # --- API expuesta a _handle_client ---------------------------------
 
     def status(self) -> dict:
         with self._lock:
-            self._advance_locked()
+            self._sincronizar_locked()
             fase = self._fase_actual_locked()
             # Captura tambien el cambio aplicado por request_priority/
             # clear_priority justo antes de este status() (es un no-op si

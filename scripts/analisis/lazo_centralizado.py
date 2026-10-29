@@ -78,6 +78,27 @@ UMBRAL_L_MS = 1000.0  # RNF-01
 ANTICIPACION_MINIMA_S = 8.0  # RF8, ver servidor/gestor_mision.py
 ACCIONES_DECISION = ("request_priority", "en_cola_despeje")
 
+#: las 3 condiciones de llegada pedidas para la campana estratificada (ver
+#: scripts/campanas/lazo_centralizado.py y
+#: docs/bitacora/2026-10-29_fase-controlador-emulado.md).
+CONDICIONES_LLEGADA = ("verde", "ambar_todo_rojo", "rojo_general")
+
+
+def condicion_de_fase(fase: str | None) -> str | None:
+    """Agrupa la fase de decision de la RSU en una de las 3 condiciones de
+    llegada: amarillo y todo_rojo se tratan como una sola condicion
+    ("ambar_todo_rojo") porque ambas son FASES_NO_INTERRUMPIBLES
+    (agent/ntcip1211.py) -- la RSU las trata igual (encola la solicitud,
+    RF-06, en los dos casos). None si no hay fase conocida (p. ej. una
+    parada 'sin_respuesta' sin decision)."""
+    if fase == "verde":
+        return "verde"
+    if fase in ("amarillo", "todo_rojo"):
+        return "ambar_todo_rojo"
+    if fase == "rojo_general":
+        return "rojo_general"
+    return None
+
 
 def percentil(valores: list[float], q: float) -> float | None:
     if not valores:
@@ -217,6 +238,18 @@ def analizar(eventos: list[dict], cota_reloj_ms: float | None = None) -> tuple[l
 
     filas_parada = []
     rtt_srv_todos, l_todos, t_rsu_todos, anticipacion_todos = [], [], [], []
+    t_verde_todos, t_desp_todos = [], []
+    # por_condicion[condicion][metrica] = [valores...] -- mismo criterio de
+    # inclusion que las listas globales de arriba (ver mas abajo), solo que
+    # ademas separado por condicion de llegada (verde/ambar_todo_rojo/
+    # rojo_general). condicion_llegada=None (sin decision conocida) no
+    # entra en ningun bucket por condicion, igual que antes no entraba en
+    # sin_respuesta_por_etapa salvo que corresponda.
+    por_condicion: dict[str, dict[str, list[float]]] = {
+        c: {"t_RSU_ms": [], "RTT_srv_ms": [], "L_ms": [], "t_verde_ms": [], "T_desp_ms": [],
+            "anticipacion_real_s": []}
+        for c in CONDICIONES_LLEGADA
+    }
     exito = {"concedida": 0, "rechazada": 0, "sin_verde": 0, "sin_respuesta": 0, "total": 0}
     n_cola_despeje = 0
     for id_sol, evs in por_parada.items():
@@ -229,6 +262,8 @@ def analizar(eventos: list[dict], cota_reloj_ms: float | None = None) -> tuple[l
         rx1 = next((e for e in evs if e["tipo_evento"] == EVT_M1_RX and e["extra"].get("seq") == 1), None)
         sets = sorted((e for e in evs if e["tipo_evento"] == EVT_SNMP_SET_TX), key=lambda e: e["ts_ns"])
         decision = next((e for e in sets if e["extra"].get("accion") in ACCIONES_DECISION), None)
+        fase_decision = decision["extra"].get("fase") if decision else None
+        condicion_llegada = condicion_de_fase(fase_decision)
         cola = next((e for e in sets if e["extra"].get("accion") == "en_cola_despeje"), None)
         activacion = next((e for e in sets if e["extra"].get("accion") == "activar_cola_rf06"), None)
         m2s = sorted((e for e in evs if e["tipo_evento"] == EVT_M2_RX), key=lambda e: e["ts_ns"])
@@ -280,6 +315,17 @@ def analizar(eventos: list[dict], cota_reloj_ms: float | None = None) -> tuple[l
                 t_rsu_todos.append(t_rsu)
             if anticipacion_s is not None:
                 anticipacion_todos.append(anticipacion_s)
+            if t_verde is not None:
+                t_verde_todos.append(t_verde)
+            if t_desp is not None:
+                t_desp_todos.append(t_desp)
+            if condicion_llegada is not None:
+                bucket = por_condicion[condicion_llegada]
+                for nombre, valor in (("RTT_srv_ms", rtt_srv), ("L_ms", l_ms), ("t_RSU_ms", t_rsu),
+                                      ("anticipacion_real_s", anticipacion_s), ("t_verde_ms", t_verde),
+                                      ("T_desp_ms", t_desp)):
+                    if valor is not None:
+                        bucket[nombre].append(valor)
 
         etapa_alcanzada = None
         if resultado == "sin_respuesta":
@@ -299,12 +345,18 @@ def analizar(eventos: list[dict], cota_reloj_ms: float | None = None) -> tuple[l
             "t_srv_ms": t_srv, "t_srv_RSU_ms": t_srv_rsu, "t_RSU_ms": t_rsu, "RTT_srv_ms": rtt_srv,
             "L_ms": l_ms, "t_verde_ms": t_verde, "T_desp_ms": t_desp, "anticipacion_real_s": anticipacion_s,
             "obtuvo_verde": bool(verde), "ultimo_m3_motivo": ultimo_m3_motivo,
+            "fase_decision": fase_decision, "condicion_llegada": condicion_llegada,
         })
 
     sin_respuesta_por_etapa: dict[str, int] = defaultdict(int)
     for f in filas_parada:
         if f["resultado"] == "sin_respuesta":
             sin_respuesta_por_etapa[f["etapa_alcanzada"]] += 1
+
+    condicion_llegada_conteo: dict[str, int] = defaultdict(int)
+    for f in filas_parada:
+        if f["condicion_llegada"] is not None:
+            condicion_llegada_conteo[f["condicion_llegada"]] += 1
 
     global_ = {
         "cota_reloj_pi_ms": cota_reloj_ms,
@@ -317,8 +369,22 @@ def analizar(eventos: list[dict], cota_reloj_ms: float | None = None) -> tuple[l
         "t_RSU_ms": resumen(t_rsu_todos),
         "RTT_srv_ms": resumen(rtt_srv_todos),
         "L_ms": resumen(l_todos),
+        "t_verde_ms": resumen(t_verde_todos),
+        "T_desp_ms": resumen(t_desp_todos),
         "anticipacion_real_s": resumen(anticipacion_todos),
         "anticipacion_minima_s_rf8": ANTICIPACION_MINIMA_S,
+        # Desglose por condicion de llegada (verde/ambar_todo_rojo/
+        # rojo_general, ver condicion_de_fase): mismas 6 metricas, cada
+        # una filtrada a las paradas que decidieron en esa condicion.
+        # Pedido tras el defecto de banco de pruebas corregido el
+        # 2026-10-29 (ver docs/bitacora/2026-10-29_fase-controlador-emulado.md):
+        # antes, el 100% de las decisiones caia en "ambar_todo_rojo" por
+        # el bug, asi que este desglose no tenia sentido -- ahora si.
+        "condicion_llegada_conteo": dict(condicion_llegada_conteo),
+        "por_condicion_llegada": {
+            c: {m: resumen(vals) for m, vals in metricas.items()}
+            for c, metricas in por_condicion.items()
+        },
     }
     l_p95 = global_["L_ms"].get("p95")
     global_["rnf01_cumple_p95"] = (l_p95 is not None and l_p95 <= UMBRAL_L_MS)
@@ -540,6 +606,27 @@ def main() -> None:
     a = g["anticipacion_real_s"]
     if a.get("n"):
         print(f"Anticipacion real (s, RF8={ANTICIPACION_MINIMA_S} s): {_fmt(a)}")
+    if g["t_verde_ms"].get("n"):
+        print(f"t_verde (ms, espera hasta el verde):  {_fmt(g['t_verde_ms'])}")
+    if g["T_desp_ms"].get("n"):
+        print(f"T_desp (ms, espera de despeje RF-06): {_fmt(g['T_desp_ms'])}")
+
+    print(f"\nCondición de llegada (fase de la RSU al decidir): {g['condicion_llegada_conteo']}")
+    for c in CONDICIONES_LLEGADA:
+        m = g["por_condicion_llegada"].get(c, {})
+        if not m.get("RTT_srv_ms", {}).get("n"):
+            print(f"  [{c}] sin datos")
+            continue
+        print(f"  [{c}] RTT_srv: {_fmt(m['RTT_srv_ms'])}")
+        print(f"  [{c}] t_RSU:   {_fmt(m['t_RSU_ms'])}")
+        print(f"  [{c}] L:       {_fmt(m['L_ms'])}")
+        if m.get("t_verde_ms", {}).get("n"):
+            print(f"  [{c}] t_verde: {_fmt(m['t_verde_ms'])}")
+        if m.get("T_desp_ms", {}).get("n"):
+            print(f"  [{c}] T_desp:  {_fmt(m['T_desp_ms'])}")
+        if m.get("anticipacion_real_s", {}).get("n"):
+            print(f"  [{c}] Anticipación real: {_fmt(m['anticipacion_real_s'])}")
+
     print(f"\nDetalle: {salida / 'lazo_por_parada.csv'}, {salida / 'lazo_por_mision.csv'}")
     print(f"Resumen: {salida / 'lazo_resumen.json'}")
 

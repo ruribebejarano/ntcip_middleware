@@ -72,6 +72,24 @@ verde 8 s + ámbar 3 s + todo rojo 2 s + rojo general 8 s = 21 s) antes de
 arrancar, para que las solicitudes lleguen en fases distintas del ciclo
 (verde, ámbar/todo rojo, rojo) en vez de repetir N veces el mismo caso.
 
+*** CUOTAS ADAPTATIVAS (2026-10-29) *** En vez de un número fijo de
+repeticiones, esta corrida sigue lanzando repeticiones hasta que cada una
+de las 3 condiciones de llegada (verde / ámbar-todo_rojo / rojo_general --
+la fase de la RSU en el momento de decidir, ver
+scripts/analisis/lazo_centralizado.py::condicion_de_fase) tenga al menos
+`--meta-por-condicion` repeticiones (por defecto 4), con un tope de
+`--tope-repeticiones` (por defecto 18) para no quedar colgado si alguna
+condición es rara. La pausa aleatoria NO se toca: la estratificación es
+por CUOTA (seguir corriendo hasta cubrir las 3), no por apuntar a una fase
+objetivo antes de lanzar la OBU -- eso último se descartó a propósito:
+entre lanzar la OBU y que la RSU decida pasan varios segundos variables
+(más con 4G), así que un objetivo fijado de antemano apuntaría a la fase
+equivocada. La condición de cada repetición se clasifica leyendo
+`eventos_servidor.csv` (M2_rx, campo "fase") de ESA máquina -- nunca hace
+falta esperar al `scripts/pi.sh fetch` de fin de campaña para decidir si
+hay que seguir, ni con config=pi-lan/pi-4g. `config.json` registra la meta
+pedida, el conteo final por condición y si se llegó al tope.
+
 Cada corrida queda en resultados/campana/<AAAAMMDD-HHMMSS>_<escenario>_<config>/:
     config.json             commit (marca si hay cambios sin commitear),
                             escenario, config, factor, semillas, broker,
@@ -154,6 +172,50 @@ ESCENARIOS = {
                   "obus": [("obu-conflicto-a", "trayectoria_conflicto_a_base.csv"),
                            ("obu-conflicto-b", "trayectoria_conflicto_b_base.csv")]},
 }
+
+# Cuotas adaptativas por condición de llegada (ver docstring del módulo y
+# docs/bitacora/2026-10-29_fase-controlador-emulado.md).
+META_POR_CONDICION_DEFAULT = 4
+TOPE_REPETICIONES_DEFAULT = 18
+CONDICIONES_LLEGADA = ("verde", "ambar_todo_rojo", "rojo_general")
+
+
+def _condicion_de_fase(fase: str | None) -> str | None:
+    """Misma política que scripts/analisis/lazo_centralizado.py::condicion_de_fase
+    (duplicada, no importada, para no acoplar el runner al módulo de
+    análisis): amarillo y todo_rojo son FASES_NO_INTERRUMPIBLES
+    (agent/ntcip1211.py) -- la RSU las trata igual, así que cuentan como
+    una sola condición."""
+    if fase == "verde":
+        return "verde"
+    if fase in ("amarillo", "todo_rojo"):
+        return "ambar_todo_rojo"
+    if fase == "rojo_general":
+        return "rojo_general"
+    return None
+
+
+def _condicion_de_repeticion(rep_dir: Path) -> str | None:
+    """Condición de llegada (fase de la RSU al decidir) de la repetición ya
+    terminada en `rep_dir`, leída del lado del SERVIDOR
+    (eventos_servidor.csv) -- esa máquina es SIEMPRE esta laptop, en los
+    tres config (ver docstring del módulo), así que está disponible de
+    inmediato tras cada repetición, sin esperar el `scripts/pi.sh fetch`
+    de fin de campaña que con config=pi-lan/pi-4g solo trae los eventos
+    de la RSU real al terminar TODA la corrida. servidor/main.py registra
+    M2_rx con el mismo campo "fase" que publicó la RSU en el M2
+    (agent/rsu_middleware.py::_publicar_m2) -- no hace falta decodificar
+    eventos_ctrl_1.csv/eventos_rsu_1.csv para esto."""
+    from common.events import iter_eventos
+
+    m2s = sorted(
+        (e for e in iter_eventos(rep_dir) if e["tipo_evento"] == "M2_rx" and e["nodo"] == "servidor"),
+        key=lambda e: e["ts_ns"],
+    )
+    m2_1 = next((e for e in m2s if e["extra"].get("seq_ref") == 1), None)
+    if m2_1 is None:
+        return None
+    return _condicion_de_fase(m2_1["extra"].get("fase"))
 
 
 def _venv_python() -> str:
@@ -652,7 +714,11 @@ def _repartir_eventos_pi(corrida: Path, host: str, ventanas: list[tuple[str, int
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--escenario", required=True, choices=list(ESCENARIOS))
-    ap.add_argument("--repeticiones", type=int, default=5)
+    ap.add_argument("--meta-por-condicion", type=int, default=META_POR_CONDICION_DEFAULT,
+                     help="repeticiones mínimas por condición de llegada (verde/ámbar-todo_rojo/"
+                          "rojo_general) antes de parar")
+    ap.add_argument("--tope-repeticiones", type=int, default=TOPE_REPETICIONES_DEFAULT,
+                     help="máximo de repeticiones aunque no se cubran las 3 cuotas")
     ap.add_argument("--factor", type=float, default=1.0, help="1 = tiempo real (obligatorio para medir)")
     ap.add_argument("--config", required=True, choices=["local", "pi-lan", "pi-4g"])
     ap.add_argument("--host-rsu", default="rsu", help="alias SSH de scripts/pi.sh (ignorado en config=local)")
@@ -710,7 +776,8 @@ def main() -> None:
         "enlace_rsu_ip": enlace_rsu_ip,
         "enlace_laptop": enlace_laptop,
         "limitacion_enlace": limitacion_enlace,
-        "repeticiones": args.repeticiones,
+        "meta_por_condicion": args.meta_por_condicion,
+        "tope_repeticiones": args.tope_repeticiones,
         "semilla_base": args.semilla_base,
         "pausa_max_s": args.pausa_max,
         "sigma_pos_m": args.sigma_pos,
@@ -725,11 +792,18 @@ def main() -> None:
     (corrida / "config.json").write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
 
     ventanas: list[tuple[str, int, int]] = []
-    print(f"Corrida {corrida.name}: {args.repeticiones} repeticiones, escenario={args.escenario}, "
+    conteo_por_condicion: dict[str, int] = {c: 0 for c in CONDICIONES_LLEGADA}
+    condicion_por_repeticion: dict[str, str | None] = {}
+    print(f"Corrida {corrida.name}: cuotas por condición={args.meta_por_condicion} "
+          f"(tope {args.tope_repeticiones} repeticiones), escenario={args.escenario}, "
           f"config={args.config}, broker={config['broker']}, "
           f"memoria_libre_mb_inicio={config['memoria_libre_mb_inicio']}")
 
-    for i in range(1, args.repeticiones + 1):
+    i = 0
+    while i < args.tope_repeticiones and any(
+        conteo_por_condicion[c] < args.meta_por_condicion for c in CONDICIONES_LLEGADA
+    ):
+        i += 1
         rep_nombre = f"rep_{i:02d}"
         rep_dir = corrida / rep_nombre
         rep_dir.mkdir(parents=True, exist_ok=True)
@@ -749,7 +823,8 @@ def main() -> None:
             trayectorias.append(destino)
 
         pausa = random.Random(semilla + 10_000).uniform(0, args.pausa_max)
-        print(f"[{i}/{args.repeticiones}] {rep_nombre}: semilla={semilla}, pausa={pausa:.1f} s")
+        print(f"[{i}, tope={args.tope_repeticiones}] {rep_nombre}: semilla={semilla}, pausa={pausa:.1f} s, "
+              f"conteo_por_condicion={conteo_por_condicion}")
 
         t_ini_ns = time.time_ns()
         ctrl = agent = None
@@ -788,6 +863,25 @@ def main() -> None:
             _verificar_una_sola_conexion(rep_dir)
         t_fin_ns = time.time_ns()
         ventanas.append((rep_nombre, t_ini_ns, t_fin_ns))
+
+        condicion = _condicion_de_repeticion(rep_dir)
+        condicion_por_repeticion[rep_nombre] = condicion
+        if condicion is not None:
+            conteo_por_condicion[condicion] += 1
+        print(f"    -> condición de llegada: {condicion!r} "
+              f"(conteo acumulado: {conteo_por_condicion})")
+
+    tope_alcanzado = i >= args.tope_repeticiones and any(
+        conteo_por_condicion[c] < args.meta_por_condicion for c in CONDICIONES_LLEGADA
+    )
+    config["meta_por_condicion_cubierta"] = not tope_alcanzado
+    config["tope_alcanzado"] = tope_alcanzado
+    config["repeticiones_corridas"] = i
+    config["conteo_por_condicion"] = conteo_por_condicion
+    config["condicion_por_repeticion"] = condicion_por_repeticion
+    print(f"\nCuotas por condición: {conteo_por_condicion} "
+          f"(meta={args.meta_por_condicion} c/u, {'TOPE ALCANZADO sin cubrir las 3' if tope_alcanzado else 'cubiertas'}, "
+          f"{i} repeticiones corridas)")
 
     if args.config != "local":
         print("[campaña] Trayendo eventos de la RSU real (scripts/pi.sh fetch)...")

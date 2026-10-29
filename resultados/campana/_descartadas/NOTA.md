@@ -65,3 +65,30 @@ campaña con `--broker-host 127.0.0.1`. Ver
 - `20261028-204629_lazo_pi-lan` (además incompleta: solo rep_01, de un intento interrumpido a mano)
 - `20261028-204722_lazo_pi-lan`
 - `20261028-210533_desvio_pi-lan`
+
+## 4. Emulador de un paso (banco de pruebas, no middleware) -- las cuatro corridas limpias del 2026-10-28
+
+Estas cuatro eran las corridas que se habían dado por buenas (Fase 3/4 de
+`docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md`, 0
+`sin_respuesta`, cota de reloj corregida). Se descartan de todas formas:
+`controller/controller_emulator.py::Controller._advance_locked()` solo
+avanzaba **una** fase por llamada a `status()`, y nada hace poll al
+controlador mientras no hay una solicitud activa (ni entre repeticiones,
+donde la OBU sigue publicando posición varios segundos después de cruzar
+—`trayectoria_lazo_base.csv` dura 88 s completos— ni, con `config=pi-lan`,
+entre campañas). El resultado: en las 40 solicitudes de estas cuatro
+corridas, la RSU decidió **siempre** con fase reportada "amarillo"
+(100 %, `cola_despeje=True` en las 40) — nunca verde, nunca rojo_general
+— sin importar la pausa aleatoria sorteada (0–25 s). Diagnóstico completo,
+con los datos que lo confirman, en
+`docs/bitacora/2026-10-29_fase-controlador-emulado.md`. Corregido el
+2026-10-29 (reloj continuo por módulo del ciclo, no un paso por consulta)
+y repetida la campaña con cuotas adaptativas por condición de llegada.
+
+- `20261028-195302_lazo_local`
+- `20261028-201105_desvio_local`
+- `20261028-212725_lazo_pi-lan`
+- `20261028-214736_desvio_pi-lan`
+- `_figuras_2026-10-28/` y `_figuras_2026-10-28_local_vs_pi-lan/` (figuras
+  y `tabla_latencia.tex` generadas a partir de las cuatro corridas de
+  arriba -- mismo motivo, no usar en el Capítulo 4).

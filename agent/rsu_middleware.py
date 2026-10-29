@@ -353,7 +353,14 @@ def procesar_solicitud_prioridad(
                     accion="en_cola_despeje", fase=fase_actual)
         return  # no se reenvia al controlador todavia -- ver verificar_caducidad_periodica
 
-    EVENTOS.log(EVT_SNMP_SET_TX, id_solicitud_evento, origen=origen, accion="request_priority")
+    # fase=fase_actual agregado 2026-10-29 (instrumentacion, no cambia la
+    # decision): antes solo "en_cola_despeje" llevaba la fase del
+    # controlador en el evento; para poder clasificar TODA solicitud por
+    # la fase en que la RSU decidio (verde/amarillo-todo_rojo/rojo_general,
+    # ver scripts/campanas/lazo_centralizado.py), el camino de concesion
+    # inmediata tambien debe loguearla.
+    EVENTOS.log(EVT_SNMP_SET_TX, id_solicitud_evento, origen=origen, accion="request_priority",
+                fase=fase_actual)
     _reenviar_request_priority(s.vehiculo_id, s.t_servicio_deseado, id_solicitud_evento)
 
 
