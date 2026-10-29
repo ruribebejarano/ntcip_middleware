@@ -317,7 +317,7 @@ hasta más allá de la avenida La Marina, incluida esta zona):
   función que usa el servidor, Dijkstra sobre `length`): 871.5 m, 12 nodos,
   Av. Universitaria (0–96 m) → tramo sin nombre en el grafo (96–170 m) →
   Av. Simón Bolívar (170–355 m) → Av. Abraham Lincoln (355–872 m).
-- **RSU única del escenario (`rsu_id=2`):** `OSM-PUCP-04`, la intersección
+- **RSU única del escenario (`rsu_id=3`):** `OSM-PUCP-04`, la intersección
   real Av. Simón Bolívar / Av. Abraham Lincoln (nodo `316803089` del grafo,
   a 354.5 m de recorrido), con sus 4 accesos calculados desde la geometría
   real del grafo (rumbo entre ese nodo y cada vecino), no supuestos
@@ -325,11 +325,25 @@ hasta más allá de la avenida La Marina, incluida esta zona):
   - Ningún nodo `highway=traffic_signals` de OSM cae sobre esta ruta real
     (se revisó el grafo completo, no solo sus 12 nodos). Por eso la
     intersección se tomó cruzando la ruta con
-    `osm/salida_osm/candidatas_pucp.csv` (centroides reales de nodos
-    semaforizados cercanos a la PUCP): de las 40 filas, solo
+    `osm/salida_osm/candidatas_pucp.csv` (salida de
+    `osm/osm_lima_rsu.py::agrupar_intersecciones`, centroides de nodos
+    `highway=traffic_signals` de una descarga Overpass **propia** de ese
+    script, en una fecha distinta y separada de
+    `data/grafo_san_miguel_real.graphml`): de las 40 filas, solo
     `RSU-PUCP-03` (21 m de la polilínea, a 109 m de recorrido) y
     `RSU-PUCP-04` (4.6 m de la polilínea, a 354.5 m de recorrido) quedan
     sobre esta ruta real.
+  - **`OSM-PUCP-04` NO está etiquetada `highway=traffic_signals` en el
+    grafo vial que de verdad enruta.** El nodo `316803089` de
+    `data/grafo_san_miguel_real.graphml` (el más cercano al centroide de
+    `RSU-PUCP-04`, <5 m) solo trae los atributos `y`, `x`, `street_count`
+    -- sin `highway=traffic_signals`. `RSU-PUCP-04` es una **intersección
+    candidata** del estudio OSM de `osm/` (semaforizada en SU propia
+    descarga Overpass, de otra fecha), que este escenario asume como RSU
+    para el banco de pruebas; no es una confirmación de semáforo dentro
+    del grafo que calcula la ruta. [DATO: confirmar en campo si esa
+    intersección tiene semáforo real antes de citarla como tal en la
+    tesis.]
   - **`RSU-PUCP-03` se descartó**: queda a solo ~119 m en línea recta del
     origen (<150 m), sin holgura para que el servidor envíe el M1 con la
     anticipación de RF-03/RF8 antes de que la OBU la cruce.
@@ -341,10 +355,24 @@ hasta más allá de la avenida La Marina, incluida esta zona):
 - **Nunca usar `rsu_id=1`**: es el agente real de la Raspberry Pi
   (`rsu-agent.service`), que puede seguir conectado al mismo broker
   Mosquitto de la laptop por la campaña de otra sesión (ver
-  `docs/ARRANQUE_BROKER_LAPTOP.md`). Por eso
-  `app_obu/pruebas/registro_rsu_pucp.json` trae **solo** la entrada
-  `rsu_id=2` — igual que `registro_rsu_mesa.json` de la sección anterior,
-  nunca el registro completo (`config/registro_rsu.json`) para esta prueba.
+  `docs/ARRANQUE_BROKER_LAPTOP.md`).
+- **Tampoco usar `rsu_id=2` aquí**: es el que ya usa
+  `app_obu/pruebas/registro_rsu_mesa.json` para la "Prueba en mesa" de la
+  sección anterior. `agent/rsu_middleware.py` arma su client_id MQTT como
+  `rsu-middleware-{RSU_ID}` (`agent/rsu_middleware.py`, variable
+  `client_id`): si DOS procesos corren con el **mismo** `RSU_ID` contra el
+  **mismo** broker, usan el mismo client_id y Mosquitto expulsa a uno cada
+  vez que el otro se conecta -- un bucle de conexión/desconexión visto de
+  verdad el 2026-10-28, no importa qué puertos SNMP/control use cada uno
+  (esos son locales a cada proceso, nunca chocan entre sí). Por eso
+  `app_obu/pruebas/registro_rsu_pucp.json` usa **`rsu_id=3`**, para poder
+  correr este escenario **sin tener que detener** la "Prueba en mesa" si
+  ya está corriendo. Si en cambio se prefiere reutilizar `rsu_id=2` (por
+  ejemplo, para no editar el registro), hay que **detener antes**
+  `controller\controller_emulator.py` y `agent\rsu_middleware.py` de la
+  "Prueba en mesa" -- nunca correr dos RSU con el mismo `RSU_ID` a la vez.
+  El registro completo (`config/registro_rsu.json`) tampoco se usa en
+  ninguna de las dos pruebas, por la misma razón del `rsu_id=1`.
 - **Trayectorias generadas** (a partir de la geometría real de la ruta, a
   30 km/h constante, 1 Hz): `app_obu/pruebas/trayectoria_pucp.csv` (mismo
   formato que `scripts/trayectorias/generar.py`, columnas
@@ -352,18 +380,21 @@ hasta más allá de la avenida La Marina, incluida esta zona):
   y por el modo simulado de la app) y `app_obu/pruebas/trayectoria_pucp.gpx`
   (equivalente, con `<time>` cada 1 s, para el emulador de Android).
 
-**Verificado sin la app** (controlador + RSU 2 emulada + servidor con el
-registro recortado + `gateway/obu_emulada.py` con esta trayectoria, 2026-10-29):
-el servidor envía el primer M1 a `rsu/2/solicitudes` a los ~26 s de misión
+**Verificado sin la app**, con exactamente los comandos de abajo
+(controlador + RSU 3 emulada + servidor con `registro_rsu_pucp.json` +
+`gateway/obu_emulada.py` con `trayectoria_pucp.csv`), 2026-10-29: el
+servidor envía el primer M1 a `rsu/3/solicitudes` a los ~26 s de misión
 (`t_servicio=8.0`, ETA informado por el controlador: **17 s de
 anticipación** antes de que la OBU llegue a la RSU hacia el t≈43 s), la RSU
-responde M2 `estado="concedida"` (fase forzada a verde), y al cruzar la
-intersección (t≈44 s) `M2` pasa a `estado="cancelada"` por caducidad de la
-solicitud (RF-09, `T_cad=3 s`, la OBU ya se alejó). La misión termina sola
-con `MF motivo="destino"` al llegar al final de la trayectoria (t=105 s).
-`ME` en la consola de `gateway/obu_emulada.py` muestra la misma secuencia:
-`pendiente` → `solicitada` → `concedida` → `solicitada` (renovaciones) →
-`None` (ya cruzada).
+responde M2 `estado="concedida"` (fase forzada a verde tras el despeje
+`amarillo`→`todo_rojo`, RF-06), y al cruzar la intersección (t≈43 s) la
+propia OBU emite M3 `motivo="cruce"`, que la RSU usa para liberar la
+prioridad (`[middleware] M3 de '...' (cruce) -> liberando prioridad`). La
+misión termina sola con `MF motivo="destino"` al llegar al final de la
+trayectoria (t≈105 s). `ME` en la consola de `gateway/obu_emulada.py`
+muestra la misma secuencia: `pendiente` → `solicitada` → `concedida` (con
+renovaciones de M1 cada segundo mientras dura) → `None` (ya cruzada, tras
+el M3).
 
 ### Levantar el escenario completo (PowerShell, desde `E:\Tesis\ntcip_middleware`)
 
@@ -373,29 +404,42 @@ sigue la campaña de medición con la Pi real) y esta rama `app-obu` (worktree
 `E:\Tesis\ntcip_app`, donde viven los archivos de este escenario) -- por eso
 los comandos de abajo corren desde `ntcip_middleware`, pero apuntan al
 registro y a la trayectoria con su **ruta absoluta** dentro de
-`ntcip_app\app_obu\pruebas\`. Si ya hay un `rsu_middleware.py`/
-`controller_emulator.py` corriendo para otra prueba (por ejemplo, el
-escenario de "Prueba en mesa" de la sección anterior) con el puerto SNMP
-`1162`/control `9001` ocupados, usar puertos distintos como aquí (`1171`/
-`9101`) para no pisarlos.
+`ntcip_app\app_obu\pruebas\`.
+
+**Puede correr al mismo tiempo que la "Prueba en mesa"** de la sección
+anterior porque usa `RSU_ID=3` (ella usa `RSU_ID=2`) -- client_id MQTT
+distinto (`rsu-middleware-3` vs `rsu-middleware-2`) y puertos SNMP/control
+locales distintos, sin pisarse. **Lo que nunca se debe hacer** es correr dos
+`agent\rsu_middleware.py` con el **mismo** `RSU_ID` contra el mismo broker a
+la vez: ambos arman el mismo client_id MQTT y Mosquitto expulsa a uno cada
+vez que el otro se conecta, en bucle (visto de verdad el 2026-10-28). Si en
+vez de `RSU_ID=3` se prefiere reutilizar `RSU_ID=2` en los comandos de
+abajo (por ejemplo, para no tener dos RSU emuladas abiertas), hay que
+**detener antes** `controller\controller_emulator.py` y
+`agent\rsu_middleware.py` de la "Prueba en mesa".
 
 1. **Mosquitto** ya corriendo en la laptop (Paso 2 de
    `docs/ARRANQUE_BROKER_LAPTOP.md`; `Get-Service mosquitto` debe decir
    `Running`).
-2. **Controlador emulado de la RSU 2** (ventana de PowerShell 1):
+2. **Controlador emulado de la RSU 3** (ventana de PowerShell 1):
    ```powershell
    Set-Location "E:\Tesis\ntcip_middleware"
-   $env:RSU_ID = "2"; $env:RSU_EVENTOS_DIR = "resultados\rsu_pucp"
-   .\.venv\Scripts\python.exe controller\controller_emulator.py --port 9101
+   $env:RSU_ID = "3"; $env:RSU_EVENTOS_DIR = "resultados\rsu_pucp"
+   .\.venv\Scripts\python.exe controller\controller_emulator.py --port 9102
    ```
-3. **Middleware de la RSU 2** (ventana de PowerShell 2, mismo broker):
+3. **Middleware de la RSU 3** (ventana de PowerShell 2, mismo broker):
    ```powershell
    Set-Location "E:\Tesis\ntcip_middleware"
-   $env:RSU_ID = "2"; $env:RSU_EVENTOS_DIR = "resultados\rsu_pucp"
-   $env:SNMP_PORT = "1171"; $env:CONTROLLER_PORT = "9101"
+   $env:RSU_ID = "3"; $env:RSU_EVENTOS_DIR = "resultados\rsu_pucp"
+   $env:SNMP_PORT = "1172"; $env:CONTROLLER_PORT = "9102"
    $env:MQTT_BROKER_HOST = "127.0.0.1"
    .\.venv\Scripts\python.exe agent\rsu_middleware.py
    ```
+   (Si al correr esto el puerto SNMP `1172` o el de control `9102` ya
+   estuvieran ocupados por algún proceso suelto de una sesión anterior,
+   usar cualquier otro par de puertos libres -- eso no tiene relación con
+   el problema de `RSU_ID` repetido de arriba, son solo los puertos
+   locales de ESTE proceso.)
 4. **Servidor central**, con el registro del escenario PUCP (ventana de
    PowerShell 3):
    ```powershell
@@ -427,7 +471,7 @@ escenario de "Prueba en mesa" de la sección anterior) con el puerto SNMP
      ejemplo, cerca de `-12.0755, -77.0756`, el extremo final de
      `trayectoria_pucp.csv`) y "Iniciar emergencia".
      **Verificación:** la ruta (MR) y el próximo semáforo (ME) deben
-     mostrar siempre `rsu_id="2"`, nunca `"1"`.
+     mostrar siempre `rsu_id="3"`, nunca `"1"` ni `"2"`.
 6. Para el emulador de Android por GPS simulado en vez del modo simulado de
    la app: Extended controls → Location → Routes → "Load GPX/KML" →
    `app_obu\pruebas\trayectoria_pucp.gpx` → Play (reproduce respetando los

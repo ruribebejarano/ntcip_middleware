@@ -1,6 +1,7 @@
 package pe.pucp.ntcip.obu.obu
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 /**
  * Espejo en Kotlin de docs/CONTRATO_OBU.md y gateway/obu_emulada.py. Los
@@ -8,6 +9,19 @@ import kotlinx.serialization.Serializable
  * JSON del contrato: evita cualquier mapeo manual que pueda desalinearse
  * en silencio con el servidor (servidor/gestor_mision.py).
  */
+
+/**
+ * Serializador único de MqttObuClient, expuesto aquí (no privado dentro de
+ * esa clase) para que MensajesTest.kt pueda verificar sin mocks que el JSON
+ * que de verdad se publica trae "tipo" y el resto de campos con valor por
+ * defecto. `encodeDefaults = true` es obligatorio: sin él,
+ * kotlinx.serialization omite "tipo" (y "paradas"/"conflicto"/etc. en
+ * MR/ME) porque coinciden con su valor por defecto, y
+ * servidor/main.py::_on_message imprime "tipo desconocido en
+ * obu/{obu_id}/mision: None" para ese MI sin "tipo" -- bug real visto
+ * contra el servidor el 2026-10-29 con el APK de las 11:44.
+ */
+val jsonObu: Json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
 @Serializable
 data class Coordenada(val lat: Double, val lon: Double)

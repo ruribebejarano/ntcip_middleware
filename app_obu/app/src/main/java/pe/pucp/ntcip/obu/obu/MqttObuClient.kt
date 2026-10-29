@@ -6,7 +6,6 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 import pe.pucp.ntcip.obu.seguridad.TlsConfig
 import java.nio.charset.StandardCharsets
 
@@ -25,7 +24,7 @@ class MqttObuClient(
     private val onEstado: (MensajeME) -> Unit,
     private val onConexion: (conectado: Boolean) -> Unit,
 ) {
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = jsonObu
     private var cliente: Mqtt5BlockingClient? = null
 
     suspend fun conectar() = withContext(Dispatchers.IO) {
