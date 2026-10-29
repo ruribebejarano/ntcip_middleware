@@ -3,7 +3,7 @@
 **Objetivo específico:** OE5 (campaña de medición del lazo, `config=local` y `config=pi-lan`)
 **Requerimientos:** RNF-01 (latencia L), RF8 (anticipación real)
 **Sección de la tesis:** 4.3–4.5 (campaña y resultados) / 3.9, 4.8 (limitaciones y trabajo futuro)
-**Commit:** `2ea29d0` (fase local); ver commits posteriores de la fase pi-lan en `git log`
+**Commit:** `2ea29d0` (fase local); `7bc1134`, `89801da`, `6a4c76b`, `e16258c`, `8593964`, `f68e87c` (fase pi-lan)
 
 ## Qué se implementó
 
