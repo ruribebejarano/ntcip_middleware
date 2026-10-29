@@ -55,7 +55,9 @@ import matplotlib.pyplot as plt  # noqa: E402
 RAIZ = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(RAIZ / "scripts" / "analisis"))
 sys.path.insert(0, str(RAIZ))
-from lazo_centralizado import analizar, cargar, cota_reloj_pi_ms_de_dirs, percentil  # noqa: E402
+from lazo_centralizado import (  # noqa: E402
+    analizar, cargar, cota_reloj_pi_ms_de_dirs, percentil, reloj_pi_sincronizado_de_dirs,
+)
 
 plt.rcParams.update({
     "font.family": "serif", "font.serif": ["STIXGeneral", "DejaVu Serif"], "mathtext.fontset": "stix",
@@ -193,6 +195,8 @@ METRICAS_DOS_RELOJES = {"t_OBU_srv_ms", "L_ms", "anticipacion_real_s"}
 def _cota_para_tabla(g: dict, clave: str) -> str:
     if clave not in METRICAS_DOS_RELOJES:
         return "--"
+    if not g.get("reloj_pi_sincronizado", True):
+        return "no sincronizado"
     cota = g.get("cota_reloj_pi_ms")
     if cota is None:
         return "sin caracterizar"
@@ -291,7 +295,8 @@ def main() -> None:
     resultados: dict[str, dict] = {}
     for etq, dirs in grupos.items():
         cota_reloj_ms = cota_reloj_pi_ms_de_dirs(dirs)
-        _, filas_parada, g = analizar(cargar(dirs), cota_reloj_ms)
+        reloj_sincronizado = reloj_pi_sincronizado_de_dirs(dirs)
+        _, filas_parada, g = analizar(cargar(dirs), cota_reloj_ms, reloj_sincronizado)
         # t_OBU_srv vive en filas_mision, no filas_parada; se omite de los
         # box plots comparativos por simplicidad (queda igual en lazo_resumen.json).
         for clave in ("RTT_srv_ms", "t_srv_ms", "t_srv_RSU_ms", "t_RSU_ms", "L_ms", "anticipacion_real_s"):

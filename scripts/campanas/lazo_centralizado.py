@@ -462,6 +462,50 @@ def _reloj_pi(host: str) -> str:
     return (r.stdout + r.stderr).strip()
 
 
+def _chrony_sincronizado(texto_reloj: str) -> bool:
+    """Misma política que scripts/analisis/lazo_centralizado.py::reloj_pi_sincronizado
+    (duplicada, no importada, mismo motivo que _condicion_de_fase: no acoplar
+    el runner al módulo de análisis) -- False si el texto de 'chronyc
+    tracking' (dentro de _reloj_pi) muestra 'Leap status : Not
+    synchronised' o 'Stratum : 0' (el centinela de chrony sin fuente
+    confiable). Preparado el 2026-10-29 tras encontrar que la Pi pierde
+    sincronización NTP de forma recurrente (chrony configurado con solo 2
+    fuentes, /etc/chrony/conf.d/rsu-lab.conf en la Pi -- journalctl
+    muestra 'no majority'/'Selected source' repitiéndose cada ~15-45 min,
+    sin relación con la red: ver
+    docs/bitacora/2026-10-29_fase-controlador-emulado.md). NO corregido
+    aquí (no se toca la configuración de red/tiempo de la Pi sin que el
+    autor esté presente para recuperarla si algo sale mal)."""
+    if not texto_reloj:
+        return True
+    if re.search(r"Leap status\s*:\s*Not synchronised", texto_reloj):
+        return False
+    if re.search(r"Stratum\s*:\s*0\b", texto_reloj):
+        return False
+    return True
+
+
+def _verificar_chrony_sincronizado(host: str) -> None:
+    """Pre-vuelo para config=pi-lan/pi-4g (preparado, no corrido aún --
+    ver docs/bitacora/2026-10-29_fase-controlador-emulado.md, punto 1):
+    aborta ANTES de lanzar nada si la Pi ya está desincronizada en este
+    momento -- más barato que descubrirlo al final de 18 repeticiones.
+    No arregla nada ni reinicia chrony: eso es una decisión de red/tiempo
+    de la Pi que le corresponde al autor, no a este script."""
+    texto = _reloj_pi(host)
+    if not _chrony_sincronizado(texto):
+        raise SystemExit(
+            f"[campaña] La Pi ('{host}') está desincronizada de NTP AHORA MISMO "
+            f"('chronyc tracking' vía scripts/pi.sh clock {host} muestra Stratum 0 / "
+            f"Not synchronised). No tiene sentido empezar una campaña pi-lan/pi-4g así: "
+            f"el peor caso de RNF-01 saldría 'no evaluable' para toda la corrida. "
+            f"Esto es RECURRENTE en esta Pi (chrony con solo 2 fuentes NTP configuradas, "
+            f"ver docs/bitacora/2026-10-29_fase-controlador-emulado.md) -- esperar unos "
+            f"minutos y reintentar ('chronyc tracking' en la Pi suele resincronizar solo "
+            f"en 15-45 min) en vez de reiniciar servicios de red/tiempo sin supervisión.")
+    print(f"[campaña] chrony sincronizado en '{host}' (pre-vuelo OK)")
+
+
 # Interfaz de red por la que DEBE llegarse a la Pi en cada config (ver
 # scripts/red_4g.sh y docs/MODEM_4G.md, sección 4): la ruta por defecto de
 # MENOR métrica es la que el kernel usa realmente.
@@ -768,6 +812,7 @@ def main() -> None:
     _verificar_sin_agente_local_huerfano()
     if args.config != "local":
         _verificar_pi_activa(args.host_rsu)
+        _verificar_chrony_sincronizado(args.host_rsu)
         if args.config == "pi-lan":
             _verificar_tailscale_directo(args.host_rsu)
     else:
@@ -829,6 +874,15 @@ def main() -> None:
     ventanas: list[tuple[str, int, int]] = []
     conteo_por_condicion: dict[str, int] = {c: 0 for c in CONDICIONES_LLEGADA}
     condicion_por_repeticion: dict[str, str | None] = {}
+    # Muestreo de chrony por repetición (preparado 2026-10-29, ver
+    # docs/bitacora/2026-10-29_fase-controlador-emulado.md, punto 1):
+    # NO aborta a mitad de campaña si se pierde la sincronización --
+    # perder 18 repeticiones de datos por un hueco de NTP de unos
+    # minutos sería peor que marcarlo y decidir en el análisis (ver
+    # scripts/analisis/lazo_centralizado.py::reloj_pi_sincronizado*). El
+    # pre-vuelo (_verificar_chrony_sincronizado) sí aborta, porque ahí no
+    # se pierde nada todavía.
+    chrony_sincronizado_por_repeticion: dict[str, bool] = {}
     print(f"Corrida {corrida.name}: cuotas por condición={args.meta_por_condicion} "
           f"(tope {args.tope_repeticiones} repeticiones), escenario={args.escenario}, "
           f"config={args.config}, broker={config['broker']}, "
@@ -906,6 +960,18 @@ def main() -> None:
         print(f"    -> condición de llegada: {condicion!r} "
               f"(conteo acumulado: {conteo_por_condicion})")
 
+        if args.config != "local":
+            texto_reloj_rep = _reloj_pi(args.host_rsu)
+            sincronizado_rep = _chrony_sincronizado(texto_reloj_rep)
+            chrony_sincronizado_por_repeticion[rep_nombre] = sincronizado_rep
+            (rep_dir / "chronyc_tracking.txt").write_text(texto_reloj_rep, encoding="utf-8")
+            if not sincronizado_rep:
+                print(f"    -> AVISO: la Pi perdió sincronización NTP durante/al cierre de "
+                      f"{rep_nombre} (chronyc tracking: Stratum 0 / Not synchronised). No se "
+                      f"aborta la campaña -- queda marcado en config.json y en "
+                      f"{rep_nombre}/chronyc_tracking.txt para que el análisis lo trate como "
+                      f"'no evaluable', no 'NO CUMPLE'.")
+
     tope_alcanzado = i >= args.tope_repeticiones and any(
         conteo_por_condicion[c] < args.meta_por_condicion for c in CONDICIONES_LLEGADA
     )
@@ -914,9 +980,15 @@ def main() -> None:
     config["repeticiones_corridas"] = i
     config["conteo_por_condicion"] = conteo_por_condicion
     config["condicion_por_repeticion"] = condicion_por_repeticion
+    config["chrony_sincronizado_por_repeticion"] = chrony_sincronizado_por_repeticion
     print(f"\nCuotas por condición: {conteo_por_condicion} "
           f"(meta={args.meta_por_condicion} c/u, {'TOPE ALCANZADO sin cubrir las 3' if tope_alcanzado else 'cubiertas'}, "
           f"{i} repeticiones corridas)")
+    if chrony_sincronizado_por_repeticion and not all(chrony_sincronizado_por_repeticion.values()):
+        perdidas = [r for r, ok in chrony_sincronizado_por_repeticion.items() if not ok]
+        print(f"*** AVISO: la Pi perdió sincronización NTP en {len(perdidas)} repetición(es): "
+              f"{perdidas}. RNF-01 (peor caso) de esta corrida se reportará 'no evaluable' en "
+              f"el análisis, no 'NO CUMPLE' -- ver docs/bitacora/2026-10-29_fase-controlador-emulado.md.")
 
     if args.config != "local":
         print("[campaña] Trayendo eventos de la RSU real (scripts/pi.sh fetch)...")
