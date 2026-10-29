@@ -1,0 +1,112 @@
+{
+  "version": "2026-10-29-app-obu-hospital-nino",
+  "descripcion": "Registro de RSU (ssec:registro) para el escenario 'hospital_nino' (ver app_obu/README.md, seccion 'Escenario Hospital del Nino'): origen Av. La Marina -12.074664,-77.082933 / destino Hospital del Nino (Instituto Nacional de Salud del Nino, Breña) -12.0664649,-77.0626982, sobre data/grafo_san_miguel_real.graphml. Con la arquitectura centralizada vive solo en el servidor (servidor/rutas.py); la OBU no descarga ninguna copia. SOLO rsu_id 4, 5 y 6 (nunca 1: agente real de la Raspberry Pi; nunca 2 ni 3: los usan registro_rsu_mesa.json y registro_rsu_pucp.json -- mismo RSU_ID contra el mismo broker = mismo client_id MQTT rsu-middleware-{RSU_ID}, Mosquitto expulsa a uno en bucle, ver bitacora 2026-10-28 y 2026-10-29).",
+  "origen": {
+    "ruta_calculada": "servidor/rutas.py::calcular_ruta(cargar_grafo(), (-12.074664,-77.082933), (-12.0664649,-77.0626982)) sobre data/grafo_san_miguel_real.graphml: 2928.1 m, 39 nodos. Calles: Rio Morona (0 m) -> Putumayo (84 m) -> Calle Napo (245 m) -> Prolongacion Av. Mariscal Jose de la Mar (303 m) -> Calle Napo (328 m) -> Prolongacion Av. Mariscal Jose de la Mar (341 m) -> Avenida Universitaria (547 m) -> Avenida Mariano Cornejo (1304 m, hasta el destino).",
+    "fuente_candidatas": "SOLO osm/salida_osm/candidatas_pucp.csv (intersecciones cercanas a la PUCP; NO se consulto Overpass ni otras zonas, por instruccion explicita). De las 40 filas, 6 caen dentro de RADIO_DETECCION_RSU_M=40 m de servidor/rutas.py (distancia al nodo mas cercano de la ruta) Y a mas de 150 m en linea recta del origen: RSU-PUCP-07 (7.2 m, acum=547.0 m), RSU-PUCP-06 (7.2 m, acum=598.4 m -- MISMA esquina que RSU-PUCP-07, descartada como duplicado: dist_vecino_m=41.4 en el CSV original, apenas por encima del radio de agrupamiento de 40 m que usó osm/osm_lima_rsu.py para fusionarlas), RSU-PUCP-03 (7.6 m, acum=1098.7 m), RSU-PUCP-38 (9.6 m, acum=2413.8 m), RSU-PUCP-08 (14.5 m, acum=1747.8 m), RSU-PUCP-02 (5.0 m, acum=1304.4 m). Con el limite de 'maximo 3' se eligieron las 3 mejor espaciadas y con mas nodos de respaldo en el CSV (columna n_nodos): RSU-PUCP-07 (n_nodos=3), RSU-PUCP-03 (n_nodos=5) y RSU-PUCP-08 (n_nodos=3); se descartaron RSU-PUCP-02 (n_nodos=2, a solo 205.7 m de RSU-PUCP-03, redundante) y RSU-PUCP-38 (n_nodos=4, mas alla de RSU-PUCP-08, se dejo fuera por el limite de 3).",
+    "cobertura": "Las 3 RSU cubren desde acum=547 m hasta acum=1747.8 m de los 2928.1 m totales (hasta ~60% de la ruta): candidatas_pucp.csv es un estudio acotado a la zona de la PUCP, no cubre Brena/el tramo final de Av. Mariano Cornejo hasta el hospital -- no se invento ninguna interseccion ahi, por instruccion explicita.",
+    "accesos": "rumbo_llegada_deg calculado REAL desde la geometria de data/grafo_san_miguel_real.graphml (gateway.geometria.rumbo_entre entre el nodo de la ruta mas cercano al centro de cada candidata y cada uno de sus vecinos reales), no supuesto perpendicular. El nodo de RSU-PUCP-07 (589642633) SI trae highway=traffic_signals en este grafo; los de RSU-PUCP-03 (316802232) y RSU-PUCP-08 (1836204832) no la traen ellos mismos (son el nodo de cruce/geometria mas cercano, a <15 m del centroide real de senales de candidatas_pucp.csv).",
+    "grupo_semaforico": "Valor de relleno; el plan semaforico real lo entrega el CCGT."
+  },
+  "rsu": [
+    {
+      "rsu_id": "4",
+      "interseccion_id": "OSM-PUCP-07",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.074867,
+        "lon": -77.079673
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 93.1,
+          "grupo_semaforico": 1,
+          "nota": "Prolongacion Av. Mariscal Jose de la Mar (nodo 589642572 -> 589642633) -- acceso que usa la ruta de este escenario"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 32.2,
+          "grupo_semaforico": 2,
+          "nota": "Av. Universitaria, llegada real (nodo 4332507067 -> 589642633)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 221.2,
+          "grupo_semaforico": 2,
+          "nota": "Av. Universitaria, sentido contrario (reverso real del tramo 589642633 -> 589642608)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 282.9,
+          "grupo_semaforico": 1,
+          "nota": "Av. Manuel Cipriano Dulanto, sentido contrario (reverso real del tramo 589642633 -> 650000841)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "5",
+      "interseccion_id": "OSM-PUCP-03",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.070486,
+        "lon": -77.077919
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 156.5,
+          "grupo_semaforico": 1,
+          "nota": "Av. Simon Bolivar, llegada real (nodo 316802435 -> 316802232)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 13.1,
+          "grupo_semaforico": 2,
+          "nota": "Av. Universitaria (nodo 2991672868 -> 316802232) -- acceso que usa la ruta de este escenario"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 285.1,
+          "grupo_semaforico": 1,
+          "nota": "Av. Simon Bolivar, sentido contrario (reverso real del tramo 316802232 -> 2991672873)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 190.9,
+          "grupo_semaforico": 2,
+          "nota": "Av. Universitaria, sentido contrario (reverso real del tramo 316802232 -> 1451644706)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "6",
+      "interseccion_id": "OSM-PUCP-08",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.067801,
+        "lon": -77.073695
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 178.7,
+          "grupo_semaforico": 2,
+          "nota": "Av. Santa Gertrudis, llegada real (nodo 1836204830 -> 1836204832); sin acceso en sentido contrario (street_count=3, sin esa arista en el grafo)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 89.1,
+          "grupo_semaforico": 1,
+          "nota": "Av. Mariano Cornejo (nodo 9989609577 -> 1836204832) -- acceso que usa la ruta de este escenario"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 268.6,
+          "grupo_semaforico": 1,
+          "nota": "Av. Mariano Cornejo, sentido contrario (reverso real del tramo 1836204832 -> 1273912057)"
+        }
+      ]
+    }
+  ]
+}

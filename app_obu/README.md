@@ -479,6 +479,123 @@ abajo (por ejemplo, para no tener dos RSU emuladas abiertas), hay que
    "Modo simulado" en Ajustes (la app toma la posición del GPS del
    emulador, que ya sigue esta ruta).
 
+## Escenario Hospital del Niño
+
+Tercer escenario de prueba en mesa, para la demo al asesor: ambulancia desde
+Av. La Marina hacia el Hospital del Niño (Instituto Nacional de Salud del
+Niño, Breña), con el mismo grafo real `data/grafo_san_miguel_real.graphml`.
+
+- **Origen:** `-12.074664, -77.082933` (Av. La Marina).
+- **Destino:** `-12.0664649, -77.0626982` (Hospital del Niño). El nodo del
+  grafo más cercano queda a 134 m del punto exacto (el hospital está
+  retirado de Av. Mariano Cornejo) -- normal, no es un error de la ruta.
+- **Ruta real** (`servidor/rutas.py::calcular_ruta`): **2928.1 m**, 39
+  nodos: Río Morona (0 m) → Putumayo (84 m) → Calle Napo (245 m) →
+  Prolongación Av. Mariscal José de la Mar (303 m) → Calle Napo (328 m) →
+  Prolongación Av. Mariscal José de la Mar (341 m) → **Av. Universitaria**
+  (547 m) → **Av. Mariano Cornejo** (1304 m, hasta el destino).
+- **3 RSU (`rsu_id` 4, 5, 6), SOLO de `osm/salida_osm/candidatas_pucp.csv`**
+  (por instrucción explícita: nada de Overpass ni de otras zonas). De las
+  40 filas de ese CSV, 6 caen dentro de `RADIO_DETECCION_RSU_M=40 m` de la
+  ruta real Y a más de 150 m del origen -- se eligieron las 3 mejor
+  espaciadas y con más nodos de respaldo en el CSV:
+  - `rsu_id=4`, `OSM-PUCP-07` (acum=547 m): Prolongación Av. Mariscal José
+    de la Mar / Av. Universitaria / Av. Manuel Cipriano Dulanto. El nodo
+    más cercano de la ruta (`589642633`) **sí** trae `highway=traffic_signals`
+    en este grafo.
+  - `rsu_id=5`, `OSM-PUCP-03` (acum=1099 m): Av. Universitaria / Av. Simón
+    Bolívar (la misma intersección real de `registro_rsu_pucp.json`, aquí
+    con otro `rsu_id` porque el escenario es distinto).
+  - `rsu_id=6`, `OSM-PUCP-08` (acum=1748 m): Av. Mariano Cornejo / Av.
+    Santa Gertrudis.
+  - **Descartadas:** `RSU-PUCP-06` (misma esquina que `RSU-PUCP-07`, a solo
+    41 m -- duplicado, menos nodos de respaldo en el CSV);
+    `RSU-PUCP-02` (205.7 m de `RSU-PUCP-03`, redundante); `RSU-PUCP-38`
+    (acum=2414 m, de sobra calificada pero se dejó fuera por el límite de
+    3 RSU).
+  - **Cobertura real:** las 3 RSU cubren hasta acum≈1748 m de los 2928.1 m
+    totales (~60 %) -- `candidatas_pucp.csv` es un estudio acotado a la
+    zona de la PUCP y no llega hasta Breña; no se inventó ninguna
+    intersección en el tramo final de Av. Mariano Cornejo hacia el
+    hospital. Ver `app_obu/pruebas/registro_rsu_hospital_nino.json`, bloque
+    `origen`, para el detalle completo de la selección.
+  - Accesos y rumbos calculados **desde la geometría real** del grafo
+    (igual que en `registro_rsu_pucp.json`), no supuestos perpendiculares.
+- **Nunca usar `rsu_id=1`** (Raspberry Pi real) **ni `2`/`3`** (los usan
+  `registro_rsu_mesa.json` y `registro_rsu_pucp.json` -- mismo `RSU_ID`
+  contra el mismo broker = mismo client_id MQTT = Mosquitto expulsa a uno
+  en bucle, ver sección "Escenario PUCP" arriba).
+- **Trayectorias** (geometría real de la ruta, ~35 km/h, 1 Hz):
+  `app_obu/pruebas/trayectoria_hospital_nino.csv` (303 muestras, 302 s) y
+  `app_obu/pruebas/trayectoria_hospital_nino.gpx` equivalente con `<time>`.
+
+**Verificado sin la app** (`demo_hospital_nino.ps1` + `gateway/obu_emulada.py`
+con `trayectoria_hospital_nino.csv`, factor 6 para la verificación, la
+trayectoria entregada es factor 1), 2026-10-29: el servidor manda MR con
+las 3 paradas en orden `['4','5','6']`; a cada una le llega su M1 por
+`rsu/4`, `rsu/5`, `rsu/6/solicitudes` (eventos separados en
+`resultados/hospital_nino/rsu{4,5,6}/`, sin mezclarse), se concede M2
+`estado="concedida"` y se libera al cruzar -- `OSM-PUCP-03` y `OSM-PUCP-08`
+con M3 `motivo="cruce"` de la propia OBU, `OSM-PUCP-07` por caducidad
+(RF-09) al alejarse. `ME` muestra la secuencia esperada por cada RSU:
+`pendiente` → `solicitada` → `concedida` → (renovaciones) → la siguiente
+RSU, hasta `None` tras la RSU 6. La misión termina con `MF motivo="destino"`.
+
+### Demo con `demo_hospital_nino.ps1` (PowerShell, desde `E:\Tesis\ntcip_middleware`)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File E:\Tesis\ntcip_app\app_obu\pruebas\demo_hospital_nino.ps1
+```
+
+Comprueba que Mosquitto esté corriendo y que los puertos de este escenario
+(SNMP 1174-1176, control 9104-9106) estén libres, y abre **6 ventanas**
+(controlador + middleware de cada una de las 3 RSU, puertos y
+`RSU_EVENTOS_DIR` propios) más una séptima con el servidor central
+apuntando a `registro_rsu_hospital_nino.json` (ruta absoluta). Guarda los
+PID en `resultados\hospital_nino\pids.json`; si se vuelve a correr sin
+detener antes, lo avisa y no abre nada nuevo.
+
+Para detener todo (controlador+middleware de las 3 RSU y el servidor):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File E:\Tesis\ntcip_app\app_obu\pruebas\detener_hospital_nino.ps1
+```
+
+**OBU -- con la app Android:**
+
+1. Copiar la trayectoria al dispositivo/emulador:
+   ```powershell
+   adb push "E:\Tesis\ntcip_app\app_obu\pruebas\trayectoria_hospital_nino.csv" /sdcard/Download/
+   ```
+2. En Ajustes: host/puerto del broker y clase `1` igual que en los otros
+   escenarios; activar **"Modo simulado"** y en "Trayectoria" tocar
+   **"Elegir archivo"** para seleccionar `trayectoria_hospital_nino.csv`
+   desde Descargas (no la integrada).
+3. En la pantalla principal, tocar como destino un punto sobre **Av.
+   Mariano Cornejo**, cerca de `-12.0677, -77.0629` (el extremo final de la
+   trayectoria, a la altura del Hospital del Niño) y "Iniciar emergencia".
+   **Verificación:** la ruta (MR) debe mostrar `rsu_id` en el orden
+   `"4"` → `"5"` → `"6"`, nunca `"1"`, `"2"` ni `"3"`.
+4. Para el emulador de Android por GPS simulado en vez del modo simulado de
+   la app: Extended controls → Location → Routes → "Load GPX/KML" →
+   `app_obu\pruebas\trayectoria_hospital_nino.gpx` → Play; en ese caso NO
+   activar "Modo simulado" en Ajustes.
+
+**Plan B -- sin la app, con la OBU emulada** (si la tablet/el emulador no
+están disponibles o fallan a último momento):
+
+```powershell
+Set-Location "E:\Tesis\ntcip_middleware"
+.\.venv\Scripts\python.exe gateway\obu_emulada.py --broker-host 127.0.0.1 `
+  --trayectoria "E:\Tesis\ntcip_app\app_obu\pruebas\trayectoria_hospital_nino.csv"
+```
+
+Reproduce la misma misión en consola (MI, MR con las 3 RSU, ME por cada
+una) sin necesitar la tablet ni el emulador -- la demo al asesor puede
+mostrarse igual, viendo la consola del servidor y de esta OBU emulada en
+paralelo. Con `--factor 4` o `--factor 6` se acorta a ~75 s/~50 s en vez de
+los 302 s reales, útil si el tiempo de la reunión es corto.
+
 ## Estructura (etapas 2 y 3, dejadas listas pero sin implementar)
 
 - `obu/velocidad/FuentePosicion.kt`: interfaz de posición+velocidad+rumbo
