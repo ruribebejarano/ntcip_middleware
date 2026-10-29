@@ -117,9 +117,12 @@ consume saldo sin que se note y mezcla caminos en las mediciones.
    esté conectado (`tailscale ip -4`) y aborta sin tocarlo si no lo está;
    si lo está, avisa que el acceso quedará solo por Tailscale y recién
    entonces apaga el Wi-Fi.
-4. Verificar que el camino ya no es la LAN: `tailscale ping laptopricardoub` debe decir
+4. Verificar que el camino ya no es la LAN: `scripts/pi.sh tailscale-ping [host]`
+   (= `tailscale ping --c 1 laptopricardoub` desde la Pi) debe decir
    `via DERP(...)` o `via <IP pública>`, **no** `via 192.168.18.x` (`scripts/pi.sh red estado`
-   incluye `tailscale status`).
+   incluye `tailscale status`). En modo normal/`pi-lan` es al revés: debe salir
+   `via 192.168.18.x` (camino directo por la LAN) — así lo usa
+   `scripts/campanas/lazo_centralizado.py` para confirmar `config=pi-lan` antes de medir.
 5. Al terminar, volver al modo normal: `scripts/pi.sh red modo-normal [host]`.
 
 Si se pierde todo acceso (Wi-Fi apagado y 4G caído): `nmcli radio wifi off`

@@ -10,15 +10,20 @@
 #   scripts/pi.sh restart  <servicio> [host]
 #   scripts/pi.sh status   <servicio> [host]
 #   scripts/pi.sh logs     <servicio> [host]   (Ctrl+C para salir)
-#   scripts/pi.sh fetch    [host]
-#   scripts/pi.sh clock    [host]
-#   scripts/pi.sh red      <subcomando> [host] [-- extra...]
+#   scripts/pi.sh fetch           [host]
+#   scripts/pi.sh clock           [host]
+#   scripts/pi.sh red             <subcomando> [host] [-- extra...]
+#   scripts/pi.sh tailscale-ping  [host] [destino]
 #
 # <servicio>: agent | controller | mosquitto
 # <subcomando> de "red" (ejecuta scripts/red_4g.sh EN la Pi, ver
 #   docs/MODEM_4G.md sección 4): modo-normal | modo-campana | estado |
 #   evidencia. Lo que vaya después de [host] se pasa tal cual a
 #   red_4g.sh (p. ej. "scripts/pi.sh red modo-campana rsu --sin-wifi").
+# "tailscale-ping": `tailscale ping --c 1 <destino>` DESDE la Pi hacia
+#   <destino> (nombre Tailscale, "laptopricardoub" por defecto -- ver
+#   docs/MODEM_4G.md sección 4). Para verificar que el camino es directo
+#   por la LAN (sale "direct <IP de la LAN>") y no por DERP/IP pública.
 # [host]: alias SSH, "rsu" por defecto; "rsu2" para la segunda RSU, si ya
 #         tiene su propio alias en ~/.ssh/config (ver docs/CONEXION_RASPBERRY.md).
 #
@@ -41,7 +46,7 @@ REMOTE_DIR="~/ntcip_middleware"
 DEFAULT_HOST="rsu"
 
 usage() {
-  sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'
   exit 1
 }
 
@@ -132,6 +137,13 @@ case "$cmd" in
     EXTRA_ARGS=("${@:4}")
     echo "==> scripts/red_4g.sh $SUBCOMANDO en $HOST"
     ssh -t "$HOST" "cd $REMOTE_DIR && bash scripts/red_4g.sh $SUBCOMANDO ${EXTRA_ARGS[*]}"
+    ;;
+
+  tailscale-ping)
+    HOST="${2:-$DEFAULT_HOST}"
+    DESTINO="${3:-laptopricardoub}"
+    echo "==> tailscale ping --c 1 $DESTINO, desde $HOST"
+    ssh "$HOST" "tailscale ping --c 1 $DESTINO"
     ;;
 
   clock)

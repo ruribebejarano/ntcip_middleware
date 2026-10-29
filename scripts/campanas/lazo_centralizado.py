@@ -180,30 +180,31 @@ def _verificar_pi_activa(host: str) -> None:
         print(f"[campaña] rsu-{servicio}.service activo en '{host}'")
 
 
-def _verificar_sin_interferencia_local(host_rsu: str) -> None:
-    """config=local asume que esta máquina es la ÚNICA que habla con el
-    broker/controlador locales: puertos fijos (CONTROLLER_PORT, SNMP_PORT)
-    y client_id fijo ('rsu-middleware-{RSU_ID}' en agent/rsu_middleware.py,
-    'rsu-agent-estado' etc.). Dos cosas rompen ese supuesto EN SILENCIO, y
-    ya pasó (campaña contaminada del 2026-10-28, ver docs/bitacora/
-    2026-10-28_campana-centralizada-lazo-desvio.md): procesos huérfanos de
-    una corrida anterior que no se cerró del todo, o el rsu-agent.service
-    de la Pi apuntando al broker de ESTA laptop
-    (docs/ARRANQUE_BROKER_LAPTOP.md) con el mismo RSU_ID -- mismo
-    client_id, Mosquitto expulsa a uno de los dos en bucle de reconexión
-    (eso es lo que de verdad causó los 'sin_respuesta' de esa campaña, NO
-    la memoria libre)."""
+def _verificar_sin_agente_local_huerfano() -> None:
+    """Válido para LOS TRES config: si un agent/rsu_middleware.py o
+    controller_emulator.py quedó corriendo en ESTA laptop de una corrida
+    anterior, ocupa CONTROLLER_PORT/SNMP_PORT y, en pi-lan/pi-4g, usa el
+    MISMO client_id 'rsu-middleware-{RSU_ID}' que el agente REAL de la
+    Pi -- el mismo choque que contaminó la campaña del 2026-10-28 (ver
+    docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md), aquí
+    en sentido inverso (huérfano local contra agente real de la Pi, en
+    vez de agente real de la Pi contra agente local)."""
     ocupados = [(p, proto) for p, proto in ((CONTROLLER_PORT, "tcp"), (SNMP_PORT, "udp"))
                 if not _puerto_libre(p, proto)]
     if ocupados:
         raise SystemExit(
             f"[campaña] {ocupados} ya está en uso ANTES de arrancar la corrida -- "
-            f"probablemente un proceso huérfano de una corrida anterior "
+            f"probablemente un agente/controlador local huérfano de una corrida anterior "
             f"(controller_emulator.py / rsu_middleware.py) que no se cerró del todo. "
             f"En PowerShell: Get-CimInstance Win32_Process -Filter \"name='python.exe'\" "
             f"| Select ProcessId,CommandLine -- identificar y cerrar esos procesos antes "
             f"de reintentar.")
 
+
+def _verificar_pi_agente_inactivo(host_rsu: str) -> None:
+    """Solo para config=local: el agente de la Pi NO debe estar apuntando
+    a este mismo broker con el mismo client_id (causa real de la campaña
+    contaminada del 2026-10-28)."""
     r = _pi_sh("status", "agent", host_rsu)
     salida = r.stdout + r.stderr
     if "Active: active (running)" in salida:
@@ -214,13 +215,78 @@ def _verificar_sin_interferencia_local(host_rsu: str) -> None:
             f"laptop, usa el MISMO client_id 'rsu-middleware-{{RSU_ID}}' que este runner: "
             f"Mosquitto expulsa a uno de los dos en bucle. Detenerlo antes de seguir: "
             f"scripts/pi.sh stop agent {host_rsu}")
-    if "Active: active (running)" not in salida and "Active:" in salida:
+    if "Active:" in salida:
         print(f"[campaña] rsu-agent.service NO está activo en '{host_rsu}' "
               f"(OK, sin riesgo de choque de client_id con el broker local).")
     else:
         print(f"[campaña] AVISO: no se pudo verificar rsu-agent.service en '{host_rsu}' "
               f"(¿Pi apagada o inalcanzable?) -- si esta corrida da 'sin_respuesta' "
               f"inesperados, verificar a mano con scripts/pi.sh status agent {host_rsu}.")
+
+
+def _verificar_tailscale_directo(host_rsu: str, red_lan_prefijo: str = "192.168.18.") -> None:
+    """Solo para config=pi-lan: confirma que la Pi alcanza a la laptop por
+    Tailscale con camino DIRECTO por la LAN (no relevado por DERP), para
+    que 'pi-lan' describa de verdad un enlace Wi-Fi/LAN y no termine
+    midiendo, sin darse cuenta, un camino por internet. Aborta si no se
+    puede confirmar -- no se asume."""
+    r = _pi_sh("tailscale-ping", host_rsu)
+    salida = r.stdout + r.stderr
+    if red_lan_prefijo not in salida:
+        raise SystemExit(
+            f"[campaña] config=pi-lan, pero 'tailscale ping' desde la Pi no muestra un "
+            f"camino directo por la LAN ({red_lan_prefijo}x) hacia la laptop "
+            f"(scripts/pi.sh tailscale-ping {host_rsu}):\n{salida}\n"
+            f"Si está yendo por DERP o por una IP pública, esto no es la configuración "
+            f"'Wi-Fi local' que describe pi-lan -- revisar la red antes de seguir.")
+    print(f"[campaña] tailscale ping confirma camino directo por la LAN ({red_lan_prefijo}x): OK")
+
+
+# Descripción explícita del enlace real para cada config -- "pi-lan" es
+# solo el nombre genérico del código (ver docstring del módulo); sin esto,
+# config.json/figuras/tablas podrían leerse como si "pi-lan" fuera un
+# enlace Ethernet cableado, cuando hoy es Wi-Fi vía Tailscale.
+# [REVISAR con asesor] limitación: el enlace es inalámbrico en el extremo
+# de la RSU (y posiblemente también en el de la laptop, ver
+# _enlace_laptop) -- no es una "red de área local" cableada.
+DESCRIPCION_ENLACE_RSU = {
+    "pi-lan": "Wi-Fi (wlan0 de la Pi) alcanzado por Tailscale -- 'pi-lan' es "
+              "el nombre genérico del código, NO una conexión Ethernet cableada",
+    "pi-4g": "módem celular 4G SIMCom SIM7670G (usb0 de la Pi) alcanzado por "
+             "Tailscale, ver docs/MODEM_4G.md",
+}
+
+
+def _ip_interfaz_de_estado(estado_texto: str, interfaz: str) -> str | None:
+    m = re.search(rf"dev {re.escape(interfaz)} proto dhcp src (\S+)", estado_texto)
+    return m.group(1) if m else None
+
+
+def _enlace_laptop() -> str:
+    """Mejor esfuerzo: por qué interfaz sale el tráfico por defecto de
+    ESTA laptop (Wi-Fi o cable) -- limitación [REVISAR con asesor] que
+    conviene registrar, no asumir, porque también afecta el tramo
+    laptop<->broker/Pi en pi-lan/pi-4g. Solo implementado para Windows."""
+    if platform.system() != "Windows":
+        return "desconocido (detección solo implementada para Windows)"
+    try:
+        ps = ("Get-NetRoute -DestinationPrefix '0.0.0.0/0' | "
+              "Sort-Object RouteMetric | Select-Object -First 1 -ExpandProperty InterfaceAlias")
+        r = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
+                          capture_output=True, text=True, timeout=10)
+        alias = r.stdout.strip()
+        if not alias:
+            return "desconocido (no se pudo determinar la interfaz de ruta por defecto)"
+        alias_l = alias.lower()
+        if any(s in alias_l for s in ("wi-fi", "wifi", "wireless", "wlan")):
+            tipo = "Wi-Fi"
+        elif any(s in alias_l for s in ("ethernet", "lan")):
+            tipo = "cable (Ethernet)"
+        else:
+            tipo = "desconocido"
+        return f"{tipo} (interfaz '{alias}')"
+    except (OSError, subprocess.TimeoutExpired):
+        return "desconocido (no se pudo consultar Get-NetRoute)"
 
 
 def _contar_conexiones_broker(ruta_log: Path) -> int:
@@ -556,10 +622,13 @@ def main() -> None:
     ap.add_argument("--salida", default=str(RAIZ / "resultados" / "campana"))
     args = ap.parse_args()
 
+    _verificar_sin_agente_local_huerfano()
     if args.config != "local":
         _verificar_pi_activa(args.host_rsu)
+        if args.config == "pi-lan":
+            _verificar_tailscale_directo(args.host_rsu)
     else:
-        _verificar_sin_interferencia_local(args.host_rsu)
+        _verificar_pi_agente_inactivo(args.host_rsu)
 
     estado_red_inicio = None
     if args.config in ("pi-4g", "pi-lan"):
@@ -574,6 +643,19 @@ def main() -> None:
     corrida.mkdir(parents=True, exist_ok=True)
 
     reloj_inicio = _reloj_pi(args.host_rsu) if args.config != "local" else None
+
+    enlace_rsu_descripcion = enlace_rsu_ip = enlace_laptop = limitacion_enlace = None
+    if args.config in ("pi-4g", "pi-lan"):
+        enlace_rsu_descripcion = DESCRIPCION_ENLACE_RSU.get(args.config)
+        interfaz = INTERFAZ_ESPERADA.get(args.config)
+        enlace_rsu_ip = _ip_interfaz_de_estado(estado_red_inicio or "", interfaz) if interfaz else None
+        enlace_laptop = _enlace_laptop()
+        limitacion_enlace = (
+            "[REVISAR con asesor] El enlace entre la RSU y el broker es inalámbrico "
+            f"({enlace_rsu_descripcion}); si 'enlace_laptop' también es Wi-Fi, ningún "
+            "tramo medido en esta corrida es una conexión cableada, pese al nombre "
+            f"genérico '{args.config}' del código.")
+
     config = {
         "fecha_inicio": datetime.now().isoformat(timespec="seconds"),
         "commit": _commit(),
@@ -582,6 +664,10 @@ def main() -> None:
         "factor": args.factor,
         "broker": f"{args.broker_host}:{args.broker_port}",
         "host_rsu": args.host_rsu if args.config != "local" else None,
+        "enlace_rsu_descripcion": enlace_rsu_descripcion,
+        "enlace_rsu_ip": enlace_rsu_ip,
+        "enlace_laptop": enlace_laptop,
+        "limitacion_enlace": limitacion_enlace,
         "repeticiones": args.repeticiones,
         "semilla_base": args.semilla_base,
         "pausa_max_s": args.pausa_max,
