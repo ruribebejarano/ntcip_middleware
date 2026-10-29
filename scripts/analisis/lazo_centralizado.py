@@ -32,9 +32,13 @@ de fórmula/reloj/confiabilidad):
 
 *** Relojes ***: t_OBU_srv, t_srv_RSU, L, t_verde y anticipacion_real
 cruzan dos máquinas cuando config != "local" (ver config.json de la
-corrida). t_srv, t_RSU, T_desp y RTT_srv usan un solo reloj siempre:
-son las métricas PRINCIPALES para config=pi-lan/pi-4g. Ver UMBRAL_OFFSET_MS
-más abajo.
+corrida) -- se reportan SIEMPRE que haya datos, con una cota de error de
+reloj adjunta (ver cota_reloj_pi_ms(), NOTA_RELOJ más abajo), nunca
+excluidas por un umbral binario (eso era un error de método, corregido
+el 2026-10-28). t_srv, t_RSU, T_desp y RTT_srv usan un solo reloj
+siempre y no llevan esa cota: son las métricas de referencia para
+config=pi-lan/pi-4g precisamente porque no dependen de sincronizar dos
+relojes.
 
 Uso:
     python scripts/analisis/lazo_centralizado.py --dir resultados/campana/<corrida>
@@ -74,16 +78,6 @@ UMBRAL_L_MS = 1000.0  # RNF-01
 ANTICIPACION_MINIMA_S = 8.0  # RF8, ver servidor/gestor_mision.py
 ACCIONES_DECISION = ("request_priority", "en_cola_despeje")
 
-# Umbral de offset de reloj por encima del cual una métrica de DOS relojes
-# (t_OBU_srv, t_srv_RSU, L, t_verde, anticipacion_real) se marca como NO
-# confiable en vez de reportarse sin reservas. Justificación: en banco
-# local (un solo reloj, offset=0 por definición) los tramos de red medidos
-# hasta ahora (docs/MEDICION_LATENCIA.md, sección 5) son de orden
-# 2-16 ms; un offset de reloj de ese mismo orden o mayor sería comparable
-# a la propia señal medida, no una perturbación despreciable. 10 ms deja
-# margen (~2-5x el tramo típico) antes de invalidar la métrica.
-UMBRAL_OFFSET_MS = 10.0
-
 
 def percentil(valores: list[float], q: float) -> float | None:
     if not valores:
@@ -114,30 +108,71 @@ def cargar(directorios: list[Path]) -> list[dict]:
     return unicos
 
 
-def offset_confiable(texto_reloj: str | None) -> bool:
-    """Best-effort: busca el valor de offset de `chronyc sources -v`
-    ("Last sample", formato "-8608us[-8608us] +/-   50ms" -- el corchete
-    es la marca inequivoca del VALOR, no del margen de error +/- que le
-    sigue) en la salida de texto de `scripts/pi.sh clock`. ANTES buscaba
-    el primer numero seguido de 'ms' a secas, lo que en la práctica
-    agarraba el margen +/- (casi siempre en ms) en vez del offset real
-    (casi siempre en us) -- marcaba "no confiable" corridas con
-    sincronización perfectamente buena (ver docs/bitacora/
-    2026-10-28_campana-centralizada-lazo-desvio.md). Si no se puede
-    extraer un numero, se asume NO confiable (falla segura: mejor excluir
-    una métrica de dos relojes que confiar en un offset que no se pudo
-    leer). config=local no pasa por aquí (ver main()): mismo reloj,
-    offset=0 por definición."""
+NOTA_RELOJ = (
+    "Cota de error de reloj (lado Pi, chrony): preferentemente "
+    "Root dispersion + Root delay/2 de 'chronyc tracking' (la distancia de "
+    "sincronización NTP estándar); si la corrida es anterior a que "
+    "scripts/pi.sh clock capturara 'tracking', se usa el campo 'estimated "
+    "error' (+/- zzzz) de 'chronyc sources -v' para esa referencia -- "
+    "AMBOS son cotas declaradas por chrony, no un offset puntual exacto. "
+    "La laptop sincroniza por w32time, cuya precisión NO está "
+    "caracterizada: esta cota cubre SOLO el lado de la Pi. "
+    "[REVISAR con asesor]."
+)
+
+
+def cota_reloj_pi_ms(texto_reloj: str | None) -> float | None:
+    """Cota de error de reloj del lado de la Pi, en ms, a partir del texto
+    de `scripts/pi.sh clock` (ver NOTA_RELOJ). Antes de esta versión se
+    comparaba el OFFSET PUNTUAL de chrony contra un umbral fijo de 10 ms
+    para decidir si "confiar" o "excluir" una métrica de dos relojes por
+    completo -- eso es un error de método: el offset puntual (p. ej.
+    "-8608us") es un estimado, no una cota, y 10 ms no tiene relación con
+    la cota real que chrony declara (~20-50 ms es normal contra NTP
+    público). Ahora se reporta la cota en vez de usarla como corte
+    binario (ver docs/MEDICION_LATENCIA.md 8.4 y
+    docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md)."""
     if not texto_reloj:
-        return False
-    m = re.search(r"([+-]?\d+(?:\.\d+)?)(us|ms|s)\[", texto_reloj)
+        return None
+    m_disp = re.search(r"Root dispersion\s*:\s*([\d.]+)\s*seconds", texto_reloj)
+    m_delay = re.search(r"Root delay\s*:\s*([\d.]+)\s*seconds", texto_reloj)
+    if m_disp and m_delay:
+        return (float(m_disp.group(1)) + float(m_delay.group(1)) / 2) * 1000.0
+    m = re.search(r"\+/-\s*([\d.]+)\s*(us|ms|s)\b", texto_reloj)
     if not m:
-        return False
+        return None
     factor_a_ms = {"us": 0.001, "ms": 1.0, "s": 1000.0}[m.group(2)]
-    return abs(float(m.group(1)) * factor_a_ms) <= UMBRAL_OFFSET_MS
+    return float(m.group(1)) * factor_a_ms
 
 
-def analizar(eventos: list[dict], dos_relojes_confiable: bool) -> tuple[list[dict], list[dict], dict]:
+def cota_reloj_pi_ms_de_dirs(dirs: list[Path]) -> float | None:
+    """Cota de error de reloj del lado de la Pi para TODA la corrida
+    (o corridas, si --dir se repite): 0.0 si todas son config=local
+    (mismo reloj, sin tramo entre máquinas); si no, el máximo entre
+    'reloj_pi_inicio'/'reloj_pi_fin' de cada config.json -- el más
+    conservador. None si algún config.json no-local no tiene el dato o
+    no se pudo interpretar (no se asume una cota que no se pudo leer)."""
+    cotas: list[float] = []
+    todas_local = True
+    for d in dirs:
+        cfg_path = d / "config.json"
+        if not cfg_path.exists():
+            continue
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+        if cfg.get("config") == "local":
+            continue
+        todas_local = False
+        for campo in ("reloj_pi_inicio", "reloj_pi_fin"):
+            c = cota_reloj_pi_ms(cfg.get(campo))
+            if c is None:
+                return None
+            cotas.append(c)
+    if todas_local:
+        return 0.0
+    return max(cotas) if cotas else None
+
+
+def analizar(eventos: list[dict], cota_reloj_ms: float | None = None) -> tuple[list[dict], list[dict], dict]:
     # --- Nivel misión: obu_id y ts de armado, para emparejar MP_tx/MP_rx ---
     armadas: dict[str, dict] = {}  # mision_id -> {obu_id, ts_ns}
     for e in eventos:
@@ -164,7 +199,7 @@ def analizar(eventos: list[dict], dos_relojes_confiable: bool) -> tuple[list[dic
             if seq is None:
                 continue
             t_tx = mp_tx_por_obu.get((obu_id, int(seq)))
-            if t_tx is not None and dos_relojes_confiable:
+            if t_tx is not None:
                 emparejados.append((mp_rx["ts_ns"] - t_tx) / MS)
         t_obu_srv_todos.extend(emparejados)
         filas_mision.append({
@@ -208,14 +243,14 @@ def analizar(eventos: list[dict], dos_relojes_confiable: bool) -> tuple[list[dic
                      key=lambda e: e["ts_ns"], default=None)
 
         t_srv = (m1_1["ts_ns"] - mp_prev["ts_ns"]) / MS if mp_prev else None
-        t_srv_rsu = (rx1["ts_ns"] - m1_1["ts_ns"]) / MS if (rx1 and dos_relojes_confiable) else None
+        t_srv_rsu = (rx1["ts_ns"] - m1_1["ts_ns"]) / MS if rx1 else None
         t_rsu = (decision["ts_ns"] - rx1["ts_ns"]) / MS if (decision and rx1) else None
         rtt_srv = (m2_seq1["ts_ns"] - m1_1["ts_ns"]) / MS if m2_seq1 else None
-        l_ms = (decision["ts_ns"] - m1_1["ts_ns"]) / MS if (decision and dos_relojes_confiable) else None
-        t_verde = ((verde[0]["ts_ns"] - m1_1["ts_ns"]) / MS) if (verde and dos_relojes_confiable) else None
+        l_ms = (decision["ts_ns"] - m1_1["ts_ns"]) / MS if decision else None
+        t_verde = ((verde[0]["ts_ns"] - m1_1["ts_ns"]) / MS) if verde else None
         t_desp = (activacion["ts_ns"] - cola["ts_ns"]) / MS if (activacion and cola) else None
         anticipacion_s = None
-        if m3_cruce and verde and dos_relojes_confiable:
+        if m3_cruce and verde:
             verde_previo = max((v for v in verde if v["ts_ns"] <= m3_cruce["ts_ns"]),
                               key=lambda v: v["ts_ns"], default=None)
             if verde_previo:
@@ -272,7 +307,8 @@ def analizar(eventos: list[dict], dos_relojes_confiable: bool) -> tuple[list[dic
             sin_respuesta_por_etapa[f["etapa_alcanzada"]] += 1
 
     global_ = {
-        "dos_relojes_confiable": dos_relojes_confiable,
+        "cota_reloj_pi_ms": cota_reloj_ms,
+        "nota_reloj": NOTA_RELOJ if cota_reloj_ms else None,
         "n_misiones": len(filas_mision), "n_paradas": exito["total"],
         "resultados": {k: v for k, v in exito.items() if k != "total"},
         "sin_respuesta_por_etapa": dict(sin_respuesta_por_etapa),
@@ -286,6 +322,17 @@ def analizar(eventos: list[dict], dos_relojes_confiable: bool) -> tuple[list[dic
     }
     l_p95 = global_["L_ms"].get("p95")
     global_["rnf01_cumple_p95"] = (l_p95 is not None and l_p95 <= UMBRAL_L_MS)
+    # Formulación de peor caso (RNF-01, pedida el 2026-10-28): L sigue
+    # siendo el valor medido, pero la conclusión de cumplimiento se da
+    # sumando la cota de error de reloj declarada (lado Pi) al p95 medido
+    # -- "L < X ms incluso en el peor caso de error de reloj", no un
+    # valor puntual exacto que ignore la incertidumbre de sincronización.
+    if l_p95 is not None and cota_reloj_ms is not None:
+        global_["l_p95_peor_caso_ms"] = l_p95 + cota_reloj_ms
+        global_["rnf01_cumple_p95_peor_caso"] = global_["l_p95_peor_caso_ms"] <= UMBRAL_L_MS
+    else:
+        global_["l_p95_peor_caso_ms"] = None
+        global_["rnf01_cumple_p95_peor_caso"] = None
     return filas_mision, filas_parada, global_
 
 
@@ -395,26 +442,6 @@ def analizar_conflicto(eventos: list[dict], filas_parada: list[dict]) -> dict:
     }
 
 
-def confiabilidad_dos_relojes(dirs: list[Path]) -> bool:
-    """true si config=local en TODAS las corridas (mismo reloj, offset=0
-    por definicion) o si el offset reportado por scripts/pi.sh clock en
-    cada config.json esta dentro de UMBRAL_OFFSET_MS en ambas lecturas
-    (inicio y fin). Con varias corridas (--dir repetido, posiblemente de
-    distinto config), se usa el mas restrictivo (false si cualquiera no es
-    confiable)."""
-    confiable = True
-    for d in dirs:
-        cfg_path = d / "config.json"
-        if not cfg_path.exists():
-            continue
-        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
-        if cfg.get("config") == "local":
-            continue
-        if not (offset_confiable(cfg.get("reloj_pi_inicio")) and offset_confiable(cfg.get("reloj_pi_fin"))):
-            confiable = False
-    return confiable
-
-
 def _escenario_de(dirs: list[Path]) -> str | None:
     escenarios = set()
     for d in dirs:
@@ -435,9 +462,9 @@ def main() -> None:
     args = ap.parse_args()
 
     dirs = [Path(d) for d in args.dir]
-    dos_relojes_confiable = confiabilidad_dos_relojes(dirs)
+    cota_reloj_ms = cota_reloj_pi_ms_de_dirs(dirs)
     eventos = cargar(dirs)
-    filas_mision, filas_parada, g = analizar(eventos, dos_relojes_confiable)
+    filas_mision, filas_parada, g = analizar(eventos, cota_reloj_ms)
     if not filas_parada:
         print("No hay paradas (M1_tx del servidor con seq) en esas carpetas.", file=sys.stderr)
         raise SystemExit(1)
@@ -457,10 +484,16 @@ def main() -> None:
         w.writerows(filas_parada)
     (salida / "lazo_resumen.json").write_text(json.dumps(g, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    if not dos_relojes_confiable:
-        print(f"*** AVISO: offset de reloj no confiable o no medido (umbral {UMBRAL_OFFSET_MS:.0f} ms) ***")
-        print("    t_OBU_srv, t_srv_RSU, L, t_verde y anticipacion_real se excluyeron (quedan en None).")
-        print("    RTT_srv y t_RSU (un solo reloj) siguen siendo validas -- son las metricas principales.\n")
+    # cota_reloj_ms es None solo cuando hay al menos una corrida no-local
+    # cuyo config.json no se pudo interpretar (ver cota_reloj_pi_ms_de_dirs);
+    # 0.0 significa "todas local, sin tramo entre máquinas".
+    if cota_reloj_ms is None:
+        print("*** AVISO: no se pudo determinar la cota de error de reloj (lado Pi) ***")
+        print("    t_OBU_srv, t_srv_RSU, L, t_verde y anticipacion_real se reportan SIN cota declarada:")
+        print("    tratarlos como orientativos, no como una medición con incertidumbre conocida.\n")
+    elif cota_reloj_ms:
+        print(f"Cota de error de reloj (lado Pi, chrony): ± {cota_reloj_ms:.2f} ms -- "
+              f"la laptop (w32time) no está caracterizada, ver NOTA_RELOJ.\n")
 
     r = g["resultados"]
     print(f"Misiones: {g['n_misiones']}  Paradas: {g['n_paradas']} "
@@ -493,15 +526,20 @@ def main() -> None:
 
     print(f"RTT_srv (ms, un reloj):     {_fmt(g['RTT_srv_ms'])}")
     print(f"t_RSU (ms, un reloj):       {_fmt(g['t_RSU_ms'])}")
-    if dos_relojes_confiable:
-        l = g["L_ms"]
-        if l.get("n"):
+    l = g["L_ms"]
+    if l.get("n"):
+        if g["l_p95_peor_caso_ms"] is not None:
+            veredicto = "CUMPLE" if g["rnf01_cumple_p95_peor_caso"] else "NO CUMPLE"
+            print(f"L -- RNF-01 (ms):           {_fmt(l)}  "
+                  f"[peor caso p95+cota={g['l_p95_peor_caso_ms']:.2f} ms vs {UMBRAL_L_MS:.0f} ms -> {veredicto}]")
+        else:
             veredicto = "CUMPLE" if g["rnf01_cumple_p95"] else "NO CUMPLE"
-            print(f"L -- RNF-01 (ms):           {_fmt(l)}  [p95 vs {UMBRAL_L_MS:.0f} ms -> {veredicto}]")
-        print(f"t_OBU_srv (ms):             {_fmt(g['t_OBU_srv_ms'])}")
-        a = g["anticipacion_real_s"]
-        if a.get("n"):
-            print(f"Anticipacion real (s, RF8={ANTICIPACION_MINIMA_S} s): {_fmt(a)}")
+            print(f"L -- RNF-01 (ms):           {_fmt(l)}  "
+                  f"[p95 vs {UMBRAL_L_MS:.0f} ms -> {veredicto}; SIN cota de reloj -- ver AVISO]")
+    print(f"t_OBU_srv (ms):             {_fmt(g['t_OBU_srv_ms'])}")
+    a = g["anticipacion_real_s"]
+    if a.get("n"):
+        print(f"Anticipacion real (s, RF8={ANTICIPACION_MINIMA_S} s): {_fmt(a)}")
     print(f"\nDetalle: {salida / 'lazo_por_parada.csv'}, {salida / 'lazo_por_mision.csv'}")
     print(f"Resumen: {salida / 'lazo_resumen.json'}")
 

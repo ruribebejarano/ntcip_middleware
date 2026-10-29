@@ -1,5 +1,6 @@
 {
-  "dos_relojes_confiable": true,
+  "cota_reloj_pi_ms": 0.0,
+  "nota_reloj": null,
   "n_misiones": 10,
   "n_paradas": 10,
   "resultados": {
@@ -46,5 +47,7 @@
     "n": 0
   },
   "anticipacion_minima_s_rf8": 8.0,
-  "rnf01_cumple_p95": true
+  "rnf01_cumple_p95": true,
+  "l_p95_peor_caso_ms": 24.6447,
+  "rnf01_cumple_p95_peor_caso": true
 }

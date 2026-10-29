@@ -1,5 +1,6 @@
 {
-  "dos_relojes_confiable": true,
+  "cota_reloj_pi_ms": 52.0,
+  "nota_reloj": "Cota de error de reloj (lado Pi, chrony): preferentemente Root dispersion + Root delay/2 de 'chronyc tracking' (la distancia de sincronización NTP estándar); si la corrida es anterior a que scripts/pi.sh clock capturara 'tracking', se usa el campo 'estimated error' (+/- zzzz) de 'chronyc sources -v' para esa referencia -- AMBOS son cotas declaradas por chrony, no un offset puntual exacto. La laptop sincroniza por w32time, cuya precisión NO está caracterizada: esta cota cubre SOLO el lado de la Pi. [REVISAR con asesor].",
   "n_misiones": 10,
   "n_paradas": 10,
   "resultados": {
@@ -51,5 +52,7 @@
     "min": 8.862352094
   },
   "anticipacion_minima_s_rf8": 8.0,
-  "rnf01_cumple_p95": true
+  "rnf01_cumple_p95": true,
+  "l_p95_peor_caso_ms": 62.81306,
+  "rnf01_cumple_p95_peor_caso": true
 }

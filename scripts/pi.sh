@@ -149,7 +149,15 @@ case "$cmd" in
   clock)
     HOST="${2:-$DEFAULT_HOST}"
     REF="time.cloudflare.com"  # misma referencia que scripts/chrony/rsu-lab.conf
-    echo "==> Offset de la Pi ($HOST) contra $REF (vía chronyc sources, no solo la mejor fuente):"
+    echo "==> Estado combinado de chrony en la Pi ($HOST) -- 'System time' es la"
+    echo "    mejor estimacion de chrony del error del reloj local; 'Root dispersion'"
+    echo "    + 'Root delay' acotan la incertidumbre de esa estimacion (NO ignorar"
+    echo "    este bloque: es la cota de error real, ver docs/MEDICION_LATENCIA.md 8.4):"
+    ssh "$HOST" "chronyc tracking" \
+      || echo "    chrony no responde en $HOST (¿está instalado y corriendo?)."
+    echo "==> Offset de la Pi ($HOST) contra $REF (vía chronyc sources, detalle por fuente;"
+    echo "    el campo despues de '+/-' es el error ESTIMADO de esa medicion puntual,"
+    echo "    no un margen a ignorar):"
     ssh "$HOST" "chronyc sources -v | grep -E '$REF|MS Name'" \
       || echo "    chrony no responde en $HOST (¿está instalado y corriendo?)."
     echo "==> Offset de la laptop (Windows) contra $REF:"

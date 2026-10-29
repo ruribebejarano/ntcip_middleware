@@ -22,8 +22,11 @@ guardadas en carpetas separadas).
 
 Figuras:
   fig_rtt_cdf       CDF de RTT_srv, una curva por etiqueta
-  fig_tramos        t_RSU, t_srv_RSU, L por etiqueta (caja + puntos; los
-                     de dos relojes solo si esa etiqueta los tiene confiables)
+  fig_tramos        t_RSU, t_srv_RSU, L por etiqueta (caja + puntos; las
+                     métricas de dos relojes se muestran SIEMPRE que haya
+                     datos, con la cota de error de reloj de esa etiqueta
+                     en la nota al pie -- ya no se excluyen por un umbral,
+                     ver docs/MEDICION_LATENCIA.md 8.4)
   fig_comparacion   RTT_srv y t_RSU lado a lado, una caja por etiqueta
                      (la figura "comparativa por configuración" pedida)
   tabla_latencia.tex tabla LaTeX, una fila por métrica y etiqueta (n, mediana, p95, máx)
@@ -44,7 +47,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 RAIZ = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(RAIZ / "scripts" / "analisis"))
 sys.path.insert(0, str(RAIZ))
-from lazo_centralizado import analizar, cargar, confiabilidad_dos_relojes, percentil  # noqa: E402
+from lazo_centralizado import analizar, cargar, cota_reloj_pi_ms_de_dirs, percentil  # noqa: E402
 
 plt.rcParams.update({
     "font.family": "serif", "font.serif": ["STIXGeneral", "DejaVu Serif"], "mathtext.fontset": "stix",
@@ -154,22 +157,44 @@ def guardar(fig, salida: Path, nombre: str):
     plt.close(fig)
 
 
+#: métricas que cruzan el reloj de la laptop y el de la Pi (ver
+#: docs/MEDICION_LATENCIA.md 8.4): llevan la cota de error de reloj de su
+#: etiqueta en la tabla, no un valor puntual sin incertidumbre.
+METRICAS_DOS_RELOJES = {"t_OBU_srv_ms", "L_ms", "anticipacion_real_s"}
+
+
+def _cota_para_tabla(g: dict, clave: str) -> str:
+    if clave not in METRICAS_DOS_RELOJES:
+        return "--"
+    cota = g.get("cota_reloj_pi_ms")
+    if cota is None:
+        return "sin caracterizar"
+    if cota == 0:
+        return "0 (mismo reloj)"
+    return f"{cota / 1000.0:.3f} s" if clave == "anticipacion_real_s" else f"{cota:.1f} ms"
+
+
 def tabla_latex(resultados: dict[str, dict], salida: Path, nota: str):
     metricas = [("RTT\\_srv", "RTT_srv_ms", "ms"), ("$t_{RSU}$", "t_RSU_ms", "ms"),
                 ("$t_{OBU\\to srv}$", "t_OBU_srv_ms", "ms"), ("$L$ (RNF-01)", "L_ms", "ms"),
                 ("Anticipación real", "anticipacion_real_s", "s")]
     lineas = ["\\begin{table}[H]", "\\centering",
-              "\\caption{Latencia del lazo, arquitectura centralizada. " + nota + "}",
+              "\\caption{Latencia del lazo, arquitectura centralizada. " + nota +
+              " Las métricas de dos relojes ($t_{OBU\\to srv}$, $L$, Anticipación real) llevan "
+              "la cota de error de reloj del lado de la Pi (chrony); la laptop sincroniza por "
+              "w32time, cuya precisión no está caracterizada "
+              "[REVISAR con asesor] -- ver sección 8.4.}",
               "\\label{tab:latencia_campana_centralizada}", "\\small",
-              "\\begin{tabular}{llrrrrl}", "\\toprule",
+              "\\begin{tabular}{llrrrrll}", "\\toprule",
               "\\textbf{Métrica} & \\textbf{Config.} & \\textbf{n} & \\textbf{Mediana} & "
-              "\\textbf{p95} & \\textbf{Máx.} & \\textbf{Unidad} \\\\", "\\midrule"]
+              "\\textbf{p95} & \\textbf{Máx.} & \\textbf{Unidad} & \\textbf{Cota reloj (Pi)} \\\\",
+              "\\midrule"]
     for nombre, clave, unidad in metricas:
         for etq, g in resultados.items():
             m = g.get(clave, {})
             if m.get("n"):
                 lineas.append(f"{nombre} & {etq} & {m['n']} & {m['mediana']:.2f} & {m['p95']:.2f} & "
-                              f"{m['max']:.2f} & {unidad} \\\\")
+                              f"{m['max']:.2f} & {unidad} & {_cota_para_tabla(g, clave)} \\\\")
     lineas += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
     (salida / "tabla_latencia.tex").write_text("\n".join(lineas) + "\n", encoding="utf-8")
 
@@ -189,8 +214,8 @@ def main() -> None:
     grupos = _grupos(args.dir, args.etiqueta)
     resultados: dict[str, dict] = {}
     for etq, dirs in grupos.items():
-        confiable = confiabilidad_dos_relojes(dirs)
-        _, filas_parada, g = analizar(cargar(dirs), confiable)
+        cota_reloj_ms = cota_reloj_pi_ms_de_dirs(dirs)
+        _, filas_parada, g = analizar(cargar(dirs), cota_reloj_ms)
         # t_OBU_srv vive en filas_mision, no filas_parada; se omite de los
         # box plots comparativos por simplicidad (queda igual en lazo_resumen.json).
         for clave in ("RTT_srv_ms", "t_RSU_ms", "L_ms", "anticipacion_real_s"):
@@ -206,6 +231,12 @@ def main() -> None:
 
     fig, ax = plt.subplots(figsize=(COL2, 2.6))
     fig_tramos(ax, resultados)
+    nota_cota = "; ".join(f"{etq}: cota reloj Pi {_cota_para_tabla(g, 'L_ms')}"
+                          for etq, g in resultados.items() if g.get("cota_reloj_pi_ms"))
+    if nota_cota:
+        fig.text(0.01, -0.02, f"$L$ cruza reloj laptop/Pi -- {nota_cota} "
+                 f"(laptop/w32time sin caracterizar) [REVISAR con asesor]",
+                 fontsize=6.5, color=INK2, ha="left", va="top")
     guardar(fig, salida, "fig_tramos")
 
     fig, ax = plt.subplots(figsize=(COL2, 2.6))
@@ -224,6 +255,13 @@ def main() -> None:
         else:
             texto = "sin datos"
         print(f"  [{etq}] RTT_srv: {texto}")
+        a = g["anticipacion_real_s"]
+        if a.get("n"):
+            print(f"  [{etq}] Anticipación real (RF8): n={a['n']}, mediana={a['mediana']:.2f} s, "
+                  f"p95={a['p95']:.2f} s (cota reloj Pi: {_cota_para_tabla(g, 'anticipacion_real_s')})")
+        else:
+            print(f"  [{etq}] Anticipación real (RF8): sin datos (ningún M3_tx motivo=cruce con un "
+                  f"verde previo detectado en las repeticiones de esta etiqueta)")
 
 
 if __name__ == "__main__":

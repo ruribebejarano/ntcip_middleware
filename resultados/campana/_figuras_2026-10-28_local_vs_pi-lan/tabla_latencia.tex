@@ -1,19 +1,22 @@
 \begin{table}[H]
 \centering
-\caption{Latencia del lazo, arquitectura centralizada. Campaña 2026-10-28, lazo+desvío combinados por config (10 rep. c/u). pi-lan = RSU real por Wi-Fi vía Tailscale (wlan0, no Ethernet cableado).}
+\caption{Latencia del lazo, arquitectura centralizada. Campaña 2026-10-28, lazo+desvío combinados por config (10 rep. c/u). pi-lan = RSU real por Wi-Fi vía Tailscale (wlan0, no Ethernet cableado). config=local es banco de desarrollo (los 4 procesos compiten por CPU en la misma laptop), no cota inferior -- ver docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md. Las métricas de dos relojes ($t_{OBU\to srv}$, $L$, Anticipación real) llevan la cota de error de reloj del lado de la Pi (chrony); la laptop sincroniza por w32time, cuya precisión no está caracterizada [REVISAR con asesor] -- ver sección 8.4.}
 \label{tab:latencia_campana_centralizada}
 \small
-\begin{tabular}{llrrrrl}
+\begin{tabular}{llrrrrll}
 \toprule
-\textbf{Métrica} & \textbf{Config.} & \textbf{n} & \textbf{Mediana} & \textbf{p95} & \textbf{Máx.} & \textbf{Unidad} \\
+\textbf{Métrica} & \textbf{Config.} & \textbf{n} & \textbf{Mediana} & \textbf{p95} & \textbf{Máx.} & \textbf{Unidad} & \textbf{Cota reloj (Pi)} \\
 \midrule
-RTT\_srv & local & 20 & 18.80 & 35.22 & 41.06 & ms \\
-RTT\_srv & pi-lan & 20 & 9.78 & 19.25 & 21.67 & ms \\
-$t_{RSU}$ & local & 20 & 3.65 & 18.20 & 24.13 & ms \\
-$t_{RSU}$ & pi-lan & 20 & 1.06 & 1.14 & 1.37 & ms \\
-$t_{OBU\to srv}$ & local & 900 & 0.54 & 0.69 & 1.63 & ms \\
-$L$ (RNF-01) & local & 20 & 4.86 & 18.76 & 24.64 & ms \\
-Anticipación real & local & 10 & 10.44 & 10.86 & 10.86 & s \\
+RTT\_srv & local & 20 & 18.80 & 35.22 & 41.06 & ms & -- \\
+RTT\_srv & pi-lan & 20 & 9.78 & 19.25 & 21.67 & ms & -- \\
+$t_{RSU}$ & local & 20 & 3.65 & 18.20 & 24.13 & ms & -- \\
+$t_{RSU}$ & pi-lan & 20 & 1.06 & 1.14 & 1.37 & ms & -- \\
+$t_{OBU\to srv}$ & local & 900 & 0.54 & 0.69 & 1.63 & ms & 0 (mismo reloj) \\
+$t_{OBU\to srv}$ & pi-lan & 900 & 0.55 & 0.67 & 0.85 & ms & 58.0 ms \\
+$L$ (RNF-01) & local & 20 & 4.86 & 18.76 & 24.64 & ms & 0 (mismo reloj) \\
+$L$ (RNF-01) & pi-lan & 20 & 9.94 & 15.77 & 16.59 & ms & 58.0 ms \\
+Anticipación real & local & 10 & 10.44 & 10.86 & 10.86 & s & 0 (mismo reloj) \\
+Anticipación real & pi-lan & 10 & 10.56 & 10.97 & 10.97 & s & 0.058 s \\
 \bottomrule
 \end{tabular}
 \end{table}

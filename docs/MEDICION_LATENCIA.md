@@ -395,29 +395,77 @@ la causa en los logs de esa repetición en vez de asumirla.
 como el peor caso para un acotamiento conservador del p95) es una decisión
 de método, no un hecho derivado de los datos.
 
-### 8.4 Offset de reloj: cuándo las métricas de dos relojes son confiables
+### 8.4 Offset de reloj: la cota de error de las métricas de dos relojes
 
-`scripts/campanas/lazo_centralizado.py` guarda la salida de
-`scripts/pi.sh clock` en `config.json` (`reloj_pi_inicio`/`reloj_pi_fin`),
-**solo cuando `config != "local"`** (con `config=local` todo corre en la
-misma máquina: offset = 0 por definición, no hace falta medirlo).
-`scripts/analisis/lazo_centralizado.py` decide con
-`UMBRAL_OFFSET_MS = 10.0` (justificación en el propio script: los tramos
-de red medidos hasta ahora son de orden 2-16 ms — sección 5 —, así que un
-offset de ese orden o mayor sería comparable a la señal, no una
-perturbación despreciable):
+**Reescrita el 2026-10-28** tras un error de método detectado en la
+primera campaña `config=pi-lan` real: la versión anterior de esta sección
+comparaba el **offset puntual** que reporta `chronyc` contra un umbral
+fijo de 10 ms, y si lo superaba (o no se podía leer), **excluía por
+completo** `t_OBU→srv`, `t_srv→RSU`, `L`, `t_verde` y anticipación real
+(quedaban en `None`). Dos problemas con eso:
 
-- Si el offset extraído del texto de `scripts/pi.sh clock` (inicio **y**
-  fin) es `<= 10 ms`: las métricas de dos relojes (`t_OBU→srv`,
-  `t_srv→RSU`, `L`, `t_verde`, anticipación real) se reportan sin
-  reservas.
-- Si supera el umbral, o el texto no se pudo interpretar (el parseo es
-  best-effort sobre la salida de `chronyc`/`w32tm`: ante la duda, se
-  excluye en vez de confiar en un número que no se pudo leer): esas
-  métricas quedan en `None` en `lazo_por_parada.csv`/`lazo_por_mision.csv`
-  y el resumen imprime un aviso. **RTT_srv y t_RSU (un solo reloj) siguen
-  siendo válidas siempre** y son las métricas principales para
-  `config=pi-lan`/`pi-4g`.
+1. El offset puntual (p. ej. `-8608us`) es un **estimado**, no una cota de
+   error — no dice cuánto podría estar equivocado.
+2. El umbral de 10 ms no tenía relación con la cota de error que `chrony`
+   de verdad declara contra NTP público, típicamente **20–50 ms** (ver
+   más abajo) — con ese criterio, casi ninguna corrida `pi-lan`/`pi-4g`
+   real habría "calificado" nunca, y las métricas más informativas del
+   lazo completo (L, anticipación real) se perdían sin necesidad.
+
+**Metodología vigente:** las métricas de dos relojes se calculan
+**siempre** que haya datos (ya no se excluyen por un umbral), y se
+reportan **con su cota de error de reloj adjunta**, nunca como un valor
+puntual exacto sin incertidumbre.
+
+**De dónde sale la cota** (`cota_reloj_pi_ms()` en
+`scripts/analisis/lazo_centralizado.py`, guardada como
+`cota_reloj_pi_ms` en `lazo_resumen.json`/`config.json`):
+
+- **Preferida:** `chronyc tracking` (capturado por `scripts/pi.sh clock`
+  desde el 2026-10-28) — `Root dispersion + Root delay / 2`, la fórmula
+  estándar de NTP para la "distancia de sincronización". Ejemplo real
+  (Pi, 2026-10-28, fuera de ventana de campaña):
+  ```
+  Root delay      : 0.038743746 seconds
+  Root dispersion : 0.004902852 seconds
+  ```
+  → cota ≈ 4,9 ms + 38,7 ms / 2 ≈ **24,3 ms**.
+- **Alternativa** (corridas anteriores a esa captura, incluidas las
+  cuatro `pi-lan` del 2026-10-28): el campo **"estimated error"** de
+  `chronyc sources -v` — en la notación de chrony, `xxxx [yyyy] +/- zzzz`
+  donde `zzzz` es la cota declarada para esa medición puntual (**no**
+  `xxxx`/`yyyy`, que son el offset ajustado/medido). Ejemplo real:
+  ```
+  ^+ time.cloudflare.com    3  10  377    5  -8608us[-8608us] +/-   50ms
+  ```
+  → cota = **50 ms** (no 8,6 ms: ese es el offset puntual, no la cota).
+- Si ninguno de los dos campos se puede leer: `cota_reloj_pi_ms` queda en
+  `None` y el resumen avisa que las métricas de dos relojes se reportan
+  **sin cota declarada** (orientativas, no una medición con incertidumbre
+  conocida) — nunca se asume una cota que no se pudo leer.
+- `config=local`: cota = `0.0` exacta (mismo proceso, mismo reloj, sin
+  tramo entre máquinas).
+
+**[REVISAR con asesor] La laptop sincroniza por W32Time (`w32tm`), cuya
+precisión NO está caracterizada** con el mismo rigor que `chrony` (no
+expone un equivalente a "Root dispersion"/"Root delay" por esta vía). La
+cota reportada es **solo del lado de la Pi**; el error real podría ser
+mayor si el lado de la laptop también aporta un offset no despreciable.
+Toda métrica de dos relojes debe citarse junto con esta limitación, no
+como un número exacto.
+
+**RNF-01, formulado como peor caso:** `l_p95_peor_caso_ms` =
+`L_p95_medido + cota_reloj_pi_ms`; `rnf01_cumple_p95_peor_caso` compara
+ese valor contra el umbral de 1000 ms. La conclusión correcta es **"L es
+menor que 1000 ms incluso en el peor caso de error de reloj
+caracterizado (lado Pi)"**, no "L mide exactamente X ms". Ejemplo real
+(`pi-lan`, escenario `lazo`, 2026-10-28): `L` p95 medido = 10,81 ms; cota
+= 52 ms (campo `sources -v`, corrida anterior a `chronyc tracking`);
+peor caso = 62,81 ms ≪ 1000 ms → **CUMPLE** con amplio margen incluso así.
+
+**RTT_srv y t_RSU (un solo reloj) siguen siendo las métricas de
+referencia** para `config=pi-lan`/`pi-4g`: no dependen de sincronizar dos
+relojes y no llevan cota.
 
 ### 8.5 Cómo reproducir una medición (vigente)
 
@@ -515,3 +563,50 @@ correctamente) / (ganadoras + perdedoras)`. Las paradas donde no se
 detectó ningún conflicto (la pausa aleatoria de la campaña hizo que las
 dos OBU no coincidieran) se cuentan en `sin_conflicto_detectado` y quedan
 fuera de ese cociente.
+
+### 8.7 `config=local` no es una cota inferior ni el "costo del software sin red"
+
+**[REVISAR con asesor] Añadido el 2026-10-28**, tras comparar `local` vs.
+`pi-lan` sobre los mismos dos escenarios (lazo, desvío; 10 repeticiones
+c/u): `pi-lan` (RSU real, enlace Wi-Fi real) salió **más rápido** que
+`local` en las métricas de un solo reloj —
+
+| Métrica (un reloj) | local (mediana/p95 ms) | pi-lan (mediana/p95 ms) |
+|---|---|---|
+| RTT_srv | 18,80 / 35,22 | 9,78 / 19,25 |
+| t_RSU | 3,65 / 18,20 | 1,06 / 1,14 |
+
+— al revés de lo intuitivo si `local` se leyera como "el mismo lazo, sin
+el costo de la red". **No se puede presentar `local` así en la tesis**:
+en `config=local`, los cuatro procesos del lazo (servidor, controlador
+emulado, agente SNMPv3, OBU emulada) corren a la vez en la **misma**
+laptop, compitiendo por el mismo CPU; en `pi-lan`, el controlador y el
+agente corren en la Pi (su propio CPU) y la laptop solo sostiene
+servidor + OBU. La diferencia medida probablemente refleja esa
+contención, no el costo "real" de la red frente a un lazo sin red.
+
+**Evidencia de respaldo (barata de registrar, no concluyente por sí
+sola):** uso de CPU de la laptop durante una repetición de `lazo` en
+`config=local` (`Get-CimInstance Win32_Processor`, muestreada cada 1 s
+durante la repetición completa, laptop con CPU Intel i5-9300HF, 4
+núcleos / 8 procesadores lógicos): promedio 9,6 %, **máximo 42 %** del
+total del sistema (equivalente a ~3,4 de 8 procesadores lógicos en el
+instante de mayor carga). Es consistente con picos de contención entre
+los cuatro procesos (p. ej. al arrancar o al conectar al broker), pero
+**no es una prueba directa**: `Win32_Processor.LoadPercentage` es un
+promedio de TODO el sistema, no por proceso ni por núcleo, así que no
+aísla cuánto de ese pico corresponde específicamente a los procesos del
+lazo frente a otra cosa corriendo en la laptop en ese momento. Esta
+corrida fue solo diagnóstica (no forma parte del conjunto de datos
+oficial de la campaña, se descartó tras medir).
+
+**Propuesta de redacción para la tesis (no aplicada, para el
+Capítulo IV):** presentar `pi-lan` (RSU real) como la **configuración de
+referencia** del canal V2I, y `config=local` únicamente como **banco de
+desarrollo** usado para verificar el lazo funcional antes de tener
+hardware disponible (lo que de hecho fue su propósito original, ver
+`docs/bitacora/2026-10-22_arquitectura-centralizada.md`) — sin incluirlo
+en la figura principal de latencia del canal V2I ni citarlo como cota
+inferior o superior de nada. Si se quiere mostrarlo de todas formas (p.
+ej. como contraste metodológico), debe ir acompañado explícitamente de
+esta limitación, no como una fila más comparable a `pi-lan`/`pi-4g`.

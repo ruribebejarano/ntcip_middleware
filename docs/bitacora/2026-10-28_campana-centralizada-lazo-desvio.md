@@ -249,6 +249,113 @@ Ethernet cableada"), `enlace_rsu_ip` (`192.168.18.176`, parseada de
 medición es cableado) y `limitacion_enlace`
 **[REVISAR con asesor]** con ese texto completo.
 
+## Fase 4 — Revisión del análisis: cota de reloj, encuadre local/pi-lan, anticipación real
+
+Tres correcciones al análisis, pedidas tras revisar la Fase 3, **sin
+volver a correr ninguna campaña** (solo se reanalizaron los datos ya
+recolectados, y se corrió UNA repetición adicional, descartada, solo
+para medir uso de CPU).
+
+### 1. `offset_confiable()` confundía el margen de error con el offset
+
+**Correcto, confirmado con `chronyc tracking` real** (ver más abajo): el
+campo `+/- zzzz` de `chronyc sources -v` que se usaba como "el offset" en
+la versión del 2026-10-28 anterior a esta revisión es, según el propio
+texto de ayuda de `chronyc` (`sources -v`, encabezado `zzzz = estimated
+error`), la **cota de error declarada** de esa medición puntual — no un
+margen cosmético a ignorar, y tampoco el offset en sí (ese es `xxxx`/
+`yyyy`, antes del `+/-`).
+
+Salida real de `chronyc tracking` en la Pi, pedida para esta revisión
+(fuera de la ventana de la campaña, como caracterización del orden de
+magnitud típico — las corridas `pi-lan` ya hechas no tienen este campo
+capturado, solo `sources -v`):
+
+```
+Reference ID    : D8EF2300 (time1.google.com)
+Stratum         : 2
+System time     : 0.000363231 seconds slow of NTP time
+Last offset     : +0.000125032 seconds
+RMS offset      : 0.001115581 seconds
+Root delay      : 0.038743746 seconds
+Root dispersion : 0.004902852 seconds
+Leap status     : Normal
+```
+
+Campo leído para la cota: **`Root dispersion + Root delay / 2`** (la
+fórmula estándar de NTP para la distancia de sincronización) ≈ 4,9 ms +
+19,4 ms ≈ **24,3 ms** — del mismo orden que el `+/- 50ms` de `sources -v`
+que ya se venía usando, confirmando que NO era un error ignorar ese
+campo; el error estaba en comparar esa cota contra un umbral fijo de
+10 ms para decidir si **excluir por completo** la métrica, en vez de
+reportarla con la cota adjunta.
+
+**Corregido:**
+- `scripts/pi.sh clock` ahora captura `chronyc tracking` además de
+  `sources -v` (de aquí en adelante; las corridas ya hechas solo tienen
+  `sources -v`).
+- `scripts/analisis/lazo_centralizado.py`: `cota_reloj_pi_ms()` reemplaza
+  a `offset_confiable()`; `analizar()` ya NO excluye `t_OBU_srv`,
+  `t_srv_RSU`, `L`, `t_verde`, anticipación real por un umbral — se
+  calculan siempre que haya datos, y `cota_reloj_pi_ms` (más
+  `l_p95_peor_caso_ms` / `rnf01_cumple_p95_peor_caso`) se agregan al
+  resumen. `tabla_latencia.tex`/`fig_tramos` (en
+  `graficos_campana_centralizada.py`) ahora muestran la cota junto a
+  cada métrica de dos relojes.
+- RNF-01 se reporta como **peor caso**: `L_p95_medido + cota_reloj_pi_ms`
+  contra el umbral de 1000 ms. Ejemplo (`pi-lan`, `lazo`): L p95 medido
+  10,81 ms + cota 52 ms = 62,81 ms ≪ 1000 ms → **CUMPLE** con amplio
+  margen incluso así.
+- **[REVISAR con asesor] se mantiene**: la laptop sincroniza por W32Time,
+  sin un campo equivalente a "Root dispersion" — la cota reportada es
+  SOLO del lado de la Pi.
+- Ver `docs/MEDICION_LATENCIA.md` sección 8.4 (reescrita) para el detalle
+  completo y la justificación.
+
+### 2. Encuadre `local` vs. `pi-lan`
+
+Confirmado con los propios datos (sección 8.7 nueva de
+`docs/MEDICION_LATENCIA.md`): `pi-lan` salió más rápido que `local` en
+RTT_srv/t_RSU, señal de que `local` no puede leerse como "el lazo sin el
+costo de la red" — probablemente es contención de CPU entre los cuatro
+procesos del lazo corriendo a la vez en la misma laptop.
+
+Evidencia de respaldo, barata (una repetición adicional de `lazo` en
+`config=local`, muestreando `Win32_Processor.LoadPercentage` cada 1 s
+durante toda la repetición; **descartada del dataset oficial, solo
+diagnóstica**): promedio 9,6 %, **máximo 42 %** del sistema completo (4
+núcleos / 8 procesadores lógicos, Intel i5-9300HF) — consistente con
+picos de contención, pero **no concluyente**: es un promedio de TODO el
+sistema, no por proceso ni por núcleo, así que no aísla cuánto de ese
+pico es de los 4 procesos del lazo. Se registra como evidencia parcial,
+no como prueba.
+
+Propuesta de redacción (Capítulo IV, **[REVISAR con asesor]**, no
+aplicada a `main.tex`): `pi-lan` como configuración de **referencia**
+del canal V2I; `local` solo como **banco de desarrollo**, fuera de la
+figura principal de latencia, y si se muestra, siempre con esta
+limitación explícita — nunca como cota inferior/superior comparable a
+`pi-lan`/`pi-4g`.
+
+### 3. Anticipación real (RF8) para `pi-lan`
+
+Ya aparece en `tabla_latencia.tex` y en `fig_tramos` (nota al pie con la
+cota) tras quitar la exclusión por umbral del punto 1 — n=10 (viene
+íntegramente del escenario `lazo`; `desvio` sigue dando n=0 tanto en
+`local` como en `pi-lan`, mismo comportamiento ya conocido de la
+corrida de referencia del 2026-10-22, sin relación con la cota de reloj).
+Mediana 10,56 s / p95 10,97 s, cota 58 ms — RF8 exige ≥ 8,0 s, se cumple
+con margen.
+
+### Evidencia (Fase 4)
+
+- `resultados/campana/_figuras_2026-10-28_local_vs_pi-lan/` regenerada
+  con la nueva metodología (tabla con columna "Cota reloj (Pi)" y
+  anticipación real para `pi-lan`).
+- Los cuatro `lazo_resumen.json` ya comiteados (`20261028-195302_lazo_local`,
+  `20261028-201105_desvio_local`, `20261028-212725_lazo_pi-lan`,
+  `20261028-214736_desvio_pi-lan`) se regeneraron con los campos nuevos.
+
 ## Pendiente
 
 - Corregir la ruta de instalación de Mosquitto en
@@ -261,12 +368,15 @@ medición es cableado) y `limitacion_enlace`
   la laptop (lo que de verdad hay desplegado hoy, siguiendo
   `docs/ARRANQUE_BROKER_LAPTOP.md`). Si se opta por centralizado, el
   Mosquitto de la Pi (activo, sin uso) podría desactivarse.
-- Entender por qué `pi-lan` salió más rápido que `local` (observación de
-  esta sesión, no investigada a fondo).
+- **[REVISAR con asesor]**: decidir si `local` entra o no a la tesis, y
+  con qué encuadre (sección 8.7 de `docs/MEDICION_LATENCIA.md`) — la
+  hipótesis de contención de CPU tiene evidencia parcial, no una
+  medición por proceso/núcleo que la confirme de forma concluyente.
 - `desvio` sigue sin anticipación real medible (`n=0`) tanto en `local`
   como en `pi-lan` — mismo comportamiento que la corrida de referencia
   del 2026-10-22, pendiente de entender por qué.
 - Repetir contra `config=pi-4g` (módem 4G) cuando corresponda, con los
-  mismos chequeos ya automatizados.
+  mismos chequeos ya automatizados y `chronyc tracking` ya capturándose
+  desde el inicio (no solo `sources -v`).
 - Opción B de la PARADA 1 (Ethernet con perfil propio, distinto de
   `netplan-eth0`), si hay tiempo.

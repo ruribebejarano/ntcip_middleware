@@ -21,7 +21,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ))
 sys.path.insert(0, str(RAIZ / "scripts" / "analisis"))
 
-from lazo_centralizado import analizar, analizar_conflicto, cargar, offset_confiable  # noqa: E402
+from lazo_centralizado import analizar, analizar_conflicto, cargar, cota_reloj_pi_ms  # noqa: E402
 from common.events import (  # noqa: E402
     EVT_CONFLICTO_ARBITRADO,
     EVT_CTRL_FASE_CAMBIO,
@@ -40,7 +40,7 @@ def test_evidencia_2026_10_22_produce_paradas_y_misiones():
     eventos = cargar([EVIDENCIA])
     assert eventos, "no se encontraron eventos_*.csv en evidencia/2026-10-22_arquitectura-centralizada/"
 
-    filas_mision, filas_parada, g = analizar(eventos, dos_relojes_confiable=True)
+    filas_mision, filas_parada, g = analizar(eventos, cota_reloj_ms=0.0)
 
     assert g["n_misiones"] >= 3  # lazo, conflicto (x2 OBU) y desvio, al menos
     assert g["n_paradas"] >= 3
@@ -49,7 +49,7 @@ def test_evidencia_2026_10_22_produce_paradas_y_misiones():
 
 def test_t_rsu_y_L_se_calculan_con_datos_reales():
     eventos = cargar([EVIDENCIA])
-    _, _, g = analizar(eventos, dos_relojes_confiable=True)
+    _, _, g = analizar(eventos, cota_reloj_ms=0.0)
 
     assert g["t_RSU_ms"]["n"] > 0
     assert g["t_RSU_ms"]["mediana"] >= 0
@@ -63,37 +63,54 @@ def test_rtt_srv_y_t_obu_srv_sin_datos_en_evidencia_anterior_a_seq_ref():
     evidencia con la instrumentación nueva, esta prueba hay que
     actualizarla (dejaría de ser n=0)."""
     eventos = cargar([EVIDENCIA])
-    _, _, g = analizar(eventos, dos_relojes_confiable=True)
+    _, _, g = analizar(eventos, cota_reloj_ms=0.0)
 
     assert g["RTT_srv_ms"]["n"] == 0
     assert g["t_OBU_srv_ms"]["n"] == 0
 
 
-def test_dos_relojes_no_confiable_excluye_metricas_de_dos_relojes():
+def test_metricas_de_dos_relojes_ya_no_se_excluyen_por_umbral():
+    """Hasta el 2026-10-28, una cota de reloj grande (o no declarada)
+    NULEABA L/t_srv_RSU por completo -- eso era un error de método (el
+    umbral de 10 ms no tenía relación con la cota real que declara
+    chrony, típicamente 20-50 ms contra NTP público). Ahora las métricas
+    de dos relojes se calculan SIEMPRE que haya datos; la cota se adjunta
+    aparte (cota_reloj_pi_ms en el resumen), no se usa para excluir."""
     eventos = cargar([EVIDENCIA])
-    filas_mision, filas_parada, g = analizar(eventos, dos_relojes_confiable=False)
+    _, filas_parada, g = analizar(eventos, cota_reloj_ms=80.0)  # cota grande, a propósito
 
-    assert g["L_ms"]["n"] == 0
-    assert all(f["L_ms"] is None for f in filas_parada)
-    assert all(f["t_srv_RSU_ms"] is None for f in filas_parada)
-    # t_RSU y T_desp son de un solo reloj: no deben verse afectados.
+    assert g["L_ms"]["n"] > 0
+    assert any(f["L_ms"] is not None for f in filas_parada)
+    assert g["cota_reloj_pi_ms"] == 80.0
+    # t_RSU no lleva cota (un solo reloj): no debe verse afectado.
     assert g["t_RSU_ms"]["n"] > 0
 
 
-def test_offset_confiable_no_confunde_el_margen_de_error_con_el_offset():
-    """Texto real de scripts/pi.sh clock (chronyc sources -v): el offset
-    real es -8608us (0.0086 ms, muy por debajo del umbral), el +/- 50ms es
-    el margen de error de la estimación, NO el offset -- confundirlos
-    marcaba 'no confiable' una sincronización en realidad excelente (bug
-    real, visto en la primera campaña config=pi-lan del 2026-10-28)."""
+def test_cota_reloj_pi_ms_usa_root_dispersion_y_root_delay_si_hay_tracking():
+    """Salida real de 'chronyc tracking' (scripts/pi.sh clock, 2026-10-28):
+    Root dispersion 0.0049 s + Root delay/2 0.0194 s =~ 24.3 ms. Se
+    prefiere este campo (distancia de sincronización NTP estándar) sobre
+    el 'estimated error' de 'chronyc sources -v' cuando está disponible."""
+    texto = ("Reference ID    : D8EF2300 (time1.google.com)\n"
+             "Root delay      : 0.038743746 seconds\n"
+             "Root dispersion : 0.004902852 seconds\n")
+    cota = cota_reloj_pi_ms(texto)
+    assert cota == pytest.approx(0.004902852 * 1000 + 0.038743746 * 1000 / 2)
+
+
+def test_cota_reloj_pi_ms_cae_a_estimated_error_de_sources_v_sin_tracking():
+    """Corridas anteriores a que scripts/pi.sh clock capturara 'chronyc
+    tracking' (todas las del 2026-10-28): solo queda el campo 'estimated
+    error' (+/- zzzz) de 'chronyc sources -v' -- una cota declarada por
+    chrony, no el offset puntual que le precede."""
     texto = ("MS Name/IP address         Stratum Poll Reach LastRx Last sample\n"
              "^+ time.cloudflare.com           3  10   377     5  -8608us[-8608us] +/-   50ms\n")
-    assert offset_confiable(texto) is True
+    assert cota_reloj_pi_ms(texto) == pytest.approx(50.0)
 
 
-def test_offset_confiable_detecta_offset_realmente_malo():
-    texto = "^+ time.cloudflare.com           3  10   377     5  -45ms[-45ms] +/-   2ms\n"
-    assert offset_confiable(texto) is False
+def test_cota_reloj_pi_ms_sin_texto_es_none():
+    assert cota_reloj_pi_ms(None) is None
+    assert cota_reloj_pi_ms("texto sin ningun campo reconocible") is None
 
 
 def test_sin_respuesta_se_excluye_de_L_y_se_cuenta_por_etapa():
@@ -107,7 +124,7 @@ def test_sin_respuesta_se_excluye_de_L_y_se_cuenta_por_etapa():
         _ev(1_020_000_000, "rsu_1", EVT_SNMP_SET_TX, "mis-X-A", accion="request_priority"),
         # ningun M2_rx para esta parada: el M2 se perdio.
     ]
-    _, filas_parada, g = analizar(eventos, dos_relojes_confiable=True)
+    _, filas_parada, g = analizar(eventos, cota_reloj_ms=0.0)
 
     assert len(filas_parada) == 1
     fila = filas_parada[0]
@@ -179,7 +196,7 @@ def _eventos_conflicto_sintetico() -> list[dict]:
 
 def test_analizar_conflicto_clasifica_los_tres_desenlaces_de_perdedora():
     eventos = _eventos_conflicto_sintetico()
-    _, filas_parada, _ = analizar(eventos, dos_relojes_confiable=True)
+    _, filas_parada, _ = analizar(eventos, cota_reloj_ms=0.0)
     c = analizar_conflicto(eventos, filas_parada)
 
     assert c["ganadores"]["total"] == 3  # mis-A, mis-D, mis-F
