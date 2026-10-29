@@ -3,7 +3,7 @@
 **Objetivo específico:** OE5 (campaña de medición del lazo, `config=local`)
 **Requerimientos:** RNF-01 (latencia L), RF8 (anticipación real)
 **Sección de la tesis:** 4.3–4.5 (campaña y resultados) / 3.9, 4.8 (limitaciones y trabajo futuro)
-**Commit:** (pendiente, se completa al cerrar esta entrada)
+**Commit:** `2ea29d0`
 
 ## Qué se implementó
 
