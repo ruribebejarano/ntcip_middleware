@@ -1,0 +1,5 @@
+Texto para el \caption de LaTeX de cada figura (no está incrustado en el PNG):
+
+fig_comparacion / tabla_latencia: Campaña 2026-10-28, lazo+desvío combinados por config (10 rep. c/u). pi-lan = RSU real por Wi-Fi vía Tailscale (wlan0, no Ethernet cableado). config=local es banco de desarrollo (los 4 procesos compiten por CPU en la misma laptop), no cota inferior -- ver docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md.
+
+fig_tramos: † cruza reloj laptop/Pi ($t_{srv\to RSU}$, $t_{retorno}$) -- pi-lan: cota reloj Pi 58.0 ms (laptop/w32time sin caracterizar) [REVISAR con asesor]

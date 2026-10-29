@@ -1,0 +1,3 @@
+Texto para el \caption de LaTeX de cada figura (no está incrustado en el PNG):
+
+fig_comparacion / tabla_latencia: Campaña local 2026-10-28, lazo y desvío (10 repeticiones c/u, config=local). Escenario conflicto excluido del alcance (ver docs/CRONOGRAMA.md).

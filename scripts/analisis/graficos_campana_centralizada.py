@@ -22,14 +22,22 @@ guardadas en carpetas separadas).
 
 Figuras:
   fig_rtt_cdf       CDF de RTT_srv, una curva por etiqueta
-  fig_tramos        t_RSU, t_srv_RSU, L por etiqueta (caja + puntos; las
-                     métricas de dos relojes se muestran SIEMPRE que haya
-                     datos, con la cota de error de reloj de esa etiqueta
-                     en la nota al pie -- ya no se excluyen por un umbral,
-                     ver docs/MEDICION_LATENCIA.md 8.4)
+  fig_tramos        Desglose por tramo de la arquitectura centralizada
+                     (t_srv, t_srv->RSU, t_RSU, retorno -- este ultimo
+                     derivado = RTT_srv - L) por etiqueta (caja + puntos);
+                     los tramos de dos relojes (t_srv->RSU, retorno) se
+                     marcan con "†" y trama rayada -- se muestran
+                     SIEMPRE que haya datos, ya no se excluyen por un
+                     umbral (ver docs/MEDICION_LATENCIA.md 8.4). L en si
+                     (= t_srv_RSU + t_RSU) no se grafica aca: ya esta en
+                     tabla_latencia.tex con su cota de reloj.
   fig_comparacion   RTT_srv y t_RSU lado a lado, una caja por etiqueta
                      (la figura "comparativa por configuración" pedida)
   tabla_latencia.tex tabla LaTeX, una fila por métrica y etiqueta (n, mediana, p95, máx)
+  notas_figuras.txt  texto largo (nota de la campaña, cota de reloj) para
+                     copiar al \\caption de LaTeX de cada figura -- NO se
+                     incrusta en los PNG (se superponía con las etiquetas
+                     del eje x, ver docs/bitacora/2026-10-28_*.md).
 """
 
 from __future__ import annotations
@@ -97,28 +105,47 @@ def _valores_de(g: dict, clave: str) -> list[float]:
     return g.get(f"_{clave}_valores", [])
 
 
+#: desglose por tramo de la arquitectura centralizada (ver docstring de
+#: lazo_centralizado.py y servidor/gestor_mision.py): t_srv (cola en el
+#: servidor antes de M1, un reloj), t_srv_RSU (red servidor->RSU, dos
+#: relojes), t_RSU (procesamiento en la RSU, un reloj), retorno (RSU->
+#: servidor hasta M2_rx, derivado = RTT_srv - L, dos relojes porque L ya
+#: incluye el tramo de dos relojes t_srv_RSU). L (= t_srv_RSU + t_RSU) no
+#: se repite aca: ya se reporta en tabla_latencia.tex con su cota.
+TRAMOS = [("t_srv_ms", "$t_{srv}$", False), ("t_srv_RSU_ms", "$t_{srv\\to RSU}$", True),
+          ("t_RSU_ms", "$t_{RSU}$", False), ("retorno_ms", "$t_{retorno}$", True)]
+
+
 def fig_tramos(ax, resultados: dict[str, dict]):
     etiquetas = list(resultados)
-    metricas = [("t_RSU_ms", "$t_{RSU}$"), ("L_ms", "$L$")]
     pos = 1
     xticks, xlabels = [], []
-    for metrica, nombre in metricas:
+    for metrica, nombre, es_dos_relojes in TRAMOS:
         for etq, color in zip(etiquetas, PALETA):
-            vals = _valores_de(resultados[etq], metrica)
+            g = resultados[etq]
+            vals = _valores_de(g, metrica)
+            # El tramo es de dos relojes EN ESTA corrida solo si de verdad
+            # cruza maquinas (cota_reloj_pi_ms != 0); en config=local los
+            # cuatro procesos comparten el reloj del sistema -- marcarlo
+            # igual seria un falso positivo de incertidumbre.
+            cruza_reloj = es_dos_relojes and bool(g.get("cota_reloj_pi_ms"))
             if vals:
                 jit = [pos + 0.12 * math.sin(i * 2.399) for i in range(len(vals))]
                 ax.scatter(jit, vals, s=9, color=color, alpha=0.85, lw=0, zorder=3)
+                hatch = "///" if cruza_reloj else None
                 ax.boxplot([vals], positions=[pos], widths=0.5, showfliers=False,
-                          patch_artist=True, boxprops=dict(facecolor=color + "33", edgecolor=color, lw=0.7),
+                          patch_artist=True,
+                          boxprops=dict(facecolor=color + "33", edgecolor=color, lw=0.7, hatch=hatch),
                           medianprops=dict(color="#0b0b0b", lw=1.1), whiskerprops=dict(color=INK2, lw=0.7),
                           capprops=dict(color=INK2, lw=0.7))
             xticks.append(pos)
-            xlabels.append(f"{nombre}\n{etq}")
+            sufijo = "†" if cruza_reloj else ""
+            xlabels.append(f"{nombre}{sufijo}\n{etq}")
             pos += 1
         pos += 0.6
     ax.set_xticks(xticks, xlabels, fontsize=6.5)
     ax.set_ylabel("Latencia (ms)")
-    ax.set_title("(b) $t_{RSU}$ y $L$ por configuración", loc="left")
+    ax.set_title("(b) Desglose por tramo (arquitectura centralizada)", loc="left")
     ax.grid(True, axis="y")
     ax.set_ylim(bottom=0)
 
@@ -203,6 +230,19 @@ def _recolectar_valores(filas: list[dict], clave: str) -> list[float]:
     return [f[clave] for f in filas if f.get(clave) is not None]
 
 
+def _recolectar_retorno(filas: list[dict]) -> list[float]:
+    """Tramo RSU->servidor (hasta M2_rx), derivado por parada:
+    retorno = RTT_srv - L (ambos ya calculados en la misma fila por
+    lazo_centralizado.py::analizar()). Dos relojes, igual que L (RTT_srv
+    es de un solo reloj, pero L arrastra el tramo t_srv_RSU)."""
+    vals = []
+    for f in filas:
+        rtt, l = f.get("RTT_srv_ms"), f.get("L_ms")
+        if rtt is not None and l is not None:
+            vals.append(rtt - l)
+    return vals
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--dir", action="append", required=True)
@@ -218,8 +258,9 @@ def main() -> None:
         _, filas_parada, g = analizar(cargar(dirs), cota_reloj_ms)
         # t_OBU_srv vive en filas_mision, no filas_parada; se omite de los
         # box plots comparativos por simplicidad (queda igual en lazo_resumen.json).
-        for clave in ("RTT_srv_ms", "t_RSU_ms", "L_ms", "anticipacion_real_s"):
+        for clave in ("RTT_srv_ms", "t_srv_ms", "t_srv_RSU_ms", "t_RSU_ms", "L_ms", "anticipacion_real_s"):
             g[f"_{clave}_valores"] = _recolectar_valores(filas_parada, clave)
+        g["_retorno_ms_valores"] = _recolectar_retorno(filas_parada)
         resultados[etq] = g
 
     salida = Path(args.salida)
@@ -229,21 +270,32 @@ def main() -> None:
     fig_rtt_cdf(ax, resultados)
     guardar(fig, salida, "fig_rtt_cdf")
 
-    fig, ax = plt.subplots(figsize=(COL2, 2.6))
-    fig_tramos(ax, resultados)
     nota_cota = "; ".join(f"{etq}: cota reloj Pi {_cota_para_tabla(g, 'L_ms')}"
                           for etq, g in resultados.items() if g.get("cota_reloj_pi_ms"))
-    if nota_cota:
-        fig.text(0.01, -0.02, f"$L$ cruza reloj laptop/Pi -- {nota_cota} "
-                 f"(laptop/w32time sin caracterizar) [REVISAR con asesor]",
-                 fontsize=6.5, color=INK2, ha="left", va="top")
+    nota_tramos = (f"† cruza reloj laptop/Pi ($t_{{srv\\to RSU}}$, $t_{{retorno}}$) -- {nota_cota} "
+                   f"(laptop/w32time sin caracterizar) [REVISAR con asesor]") if nota_cota else ""
+
+    fig, ax = plt.subplots(figsize=(COL2, 2.9))
+    fig_tramos(ax, resultados)
     guardar(fig, salida, "fig_tramos")
 
     fig, ax = plt.subplots(figsize=(COL2, 2.6))
     fig_comparacion(ax, resultados)
-    if args.nota:
-        fig.text(0.01, -0.02, args.nota, fontsize=7, color=INK2, ha="left", va="top")
     guardar(fig, salida, "fig_comparacion")
+
+    # El texto largo (nota de la campaña, cota de reloj) NO se incrusta en
+    # el PNG: con fig_comparacion se superponía con las etiquetas del eje x
+    # (ver docs/bitacora). Va en el \caption de LaTeX; se deja aca como
+    # texto listo para copiar.
+    notas = []
+    if args.nota:
+        notas.append(f"fig_comparacion / tabla_latencia: {args.nota}")
+    if nota_tramos:
+        notas.append(f"fig_tramos: {nota_tramos}")
+    if notas:
+        (salida / "notas_figuras.txt").write_text(
+            "Texto para el \\caption de LaTeX de cada figura (no está incrustado en el PNG):\n\n"
+            + "\n\n".join(notas) + "\n", encoding="utf-8")
 
     tabla_latex(resultados, salida, args.nota)
     print(f"Figuras en {salida}: fig_rtt_cdf, fig_tramos, fig_comparacion (.pdf y .png)")

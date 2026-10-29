@@ -212,7 +212,15 @@ no implementada.
 - `lazo` (pi-lan): offset de reloj confiable en toda la corrida. RTT_srv
   mediana 9.44 ms (p95 15.66); `t_RSU` mediana 1.08 ms (p95 1.37); `L`
   (RNF-01) mediana 10.41 ms (p95 10.81, **CUMPLE** vs. 1000 ms);
-  anticipación real mediana 10.56 s (RF8 = 8.0 s).
+  anticipación real mediana 10.56 s (RF8 = 8.0 s). **[ACLARACIÓN
+  2026-10-28, revisión de figuras]**: este `L` p95 = 10,81 ms es SOLO del
+  escenario `lazo` (n=10). `tabla_latencia.tex` y `fig_tramos` de
+  `_figuras_2026-10-28_local_vs_pi-lan/` reportan `lazo`+`desvio`
+  combinados (n=20, pedido así para esa figura comparativa) y dan `L`
+  pi-lan p95 = 15,77 ms, no 10,81 ms — es el mismo dato con distinto
+  agrupamiento, no una discrepancia. No confundir los dos números al
+  citar en el Capítulo 4; usar 15,77 ms si se cita la figura/tabla
+  combinada, 10,81 ms si se cita el escenario `lazo` aislado.
 - `desvio` (pi-lan): offset de reloj confiable al inicio, **no
   confiable al final** (deriva real de ~12 ms sobre el umbral de 10 ms,
   no un bug — el propio chronyc lo reportó así) → `L`/anticipación real
@@ -355,6 +363,49 @@ con margen.
 - Los cuatro `lazo_resumen.json` ya comiteados (`20261028-195302_lazo_local`,
   `20261028-201105_desvio_local`, `20261028-212725_lazo_pi-lan`,
   `20261028-214736_desvio_pi-lan`) se regeneraron con los campos nuevos.
+
+## Fase 5 — Revisión de figuras: desglose por tramo, cota real por corrida, overlap de texto
+
+Tres correcciones a `scripts/analisis/graficos_campana_centralizada.py`
+pedidas tras revisar visualmente los PNG de la Fase 4 (sin volver a correr
+ninguna campaña, solo regenerar figuras desde los datos ya analizados):
+
+1. **`L` pi-lan vacía en una versión anterior de la tabla**: era el
+   síntoma de un estado previo a la Fase 4 (commit `f68e87c`, antes de
+   quitar la exclusión por umbral de reloj); el estado actual (commit
+   `65c7aed` en adelante) ya trae `L` pi-lan con `n=20` y su cota — ver la
+   aclaración agregada arriba, en el bloque de `lazo` (pi-lan). No hubo
+   que corregir código para esto, solo reconciliar la cifra de la
+   narrativa (10,81 ms, solo `lazo`) con la de la tabla/figura combinada
+   (15,77 ms, `lazo`+`desvio`).
+2. **`fig_tramos` ahora desglosa por tramo real de la arquitectura
+   centralizada** (antes solo mostraba `t_RSU` y `L`): `t_srv` (cola en
+   el servidor antes de M1, un reloj), `t_srv→RSU` (red servidor→RSU, dos
+   relojes), `t_RSU` (procesamiento en la RSU, un reloj), `t_retorno`
+   (RSU→servidor hasta M2_rx, derivado = RTT_srv − L, dos relojes). Los
+   tramos de dos relojes se marcan con trama rayada y "†" SOLO cuando la
+   corrida de esa etiqueta de verdad cruza máquinas (`cota_reloj_pi_ms` ≠
+   0): en `config=local` los cuatro procesos comparten el reloj del
+   sistema operativo, así que no se marcan — evita un falso positivo de
+   incertidumbre que la primera versión de este cambio sí tenía (probado
+   contra `_figuras_2026-10-28`, donde ambas etiquetas son `local`, antes
+   y después del ajuste). `L` en sí ya no se grafica en `fig_tramos`:
+   sigue en `tabla_latencia.tex` con su cota.
+3. **`fig_comparacion` tenía la nota (`--nota`) incrustada en el PNG
+   superpuesta con las etiquetas del eje x.** Se quitó esa nota (y la de
+   `fig_tramos`) del PNG; ambas quedan en un `notas_figuras.txt` nuevo,
+   junto a las figuras, con el texto listo para copiar al `\caption` de
+   LaTeX (que es donde corresponde, no incrustado en la imagen).
+
+### Evidencia (Fase 5)
+
+- `resultados/campana/_figuras_2026-10-28/` y
+  `resultados/campana/_figuras_2026-10-28_local_vs_pi-lan/` regeneradas
+  con el script corregido; `tabla_latencia.tex` de ambas sin cambios de
+  contenido (mismos números, mismo formato de tabla). PNG revisados
+  visualmente: sin texto superpuesto, desglose por tramo legible, marcado
+  de cruce de reloj correcto por corrida.
+- `notas_figuras.txt` nuevo en ambas carpetas de salida.
 
 ## Pendiente
 
