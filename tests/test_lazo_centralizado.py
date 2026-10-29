@@ -21,7 +21,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ))
 sys.path.insert(0, str(RAIZ / "scripts" / "analisis"))
 
-from lazo_centralizado import analizar, analizar_conflicto, cargar  # noqa: E402
+from lazo_centralizado import analizar, analizar_conflicto, cargar, offset_confiable  # noqa: E402
 from common.events import (  # noqa: E402
     EVT_CONFLICTO_ARBITRADO,
     EVT_CTRL_FASE_CAMBIO,
@@ -78,6 +78,22 @@ def test_dos_relojes_no_confiable_excluye_metricas_de_dos_relojes():
     assert all(f["t_srv_RSU_ms"] is None for f in filas_parada)
     # t_RSU y T_desp son de un solo reloj: no deben verse afectados.
     assert g["t_RSU_ms"]["n"] > 0
+
+
+def test_offset_confiable_no_confunde_el_margen_de_error_con_el_offset():
+    """Texto real de scripts/pi.sh clock (chronyc sources -v): el offset
+    real es -8608us (0.0086 ms, muy por debajo del umbral), el +/- 50ms es
+    el margen de error de la estimación, NO el offset -- confundirlos
+    marcaba 'no confiable' una sincronización en realidad excelente (bug
+    real, visto en la primera campaña config=pi-lan del 2026-10-28)."""
+    texto = ("MS Name/IP address         Stratum Poll Reach LastRx Last sample\n"
+             "^+ time.cloudflare.com           3  10   377     5  -8608us[-8608us] +/-   50ms\n")
+    assert offset_confiable(texto) is True
+
+
+def test_offset_confiable_detecta_offset_realmente_malo():
+    texto = "^+ time.cloudflare.com           3  10   377     5  -45ms[-45ms] +/-   2ms\n"
+    assert offset_confiable(texto) is False
 
 
 def test_sin_respuesta_se_excluye_de_L_y_se_cuenta_por_etapa():

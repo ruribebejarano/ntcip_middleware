@@ -115,18 +115,26 @@ def cargar(directorios: list[Path]) -> list[dict]:
 
 
 def offset_confiable(texto_reloj: str | None) -> bool:
-    """Best-effort: busca el primer numero (con signo) seguido de 'ms' en
-    la salida de texto de `scripts/pi.sh clock` (chronyc/w32tm). Si no se
-    puede extraer un numero, se asume NO confiable (falla segura: mejor
-    excluir de mas una metrica de dos relojes que confiar en un offset que
-    no se pudo leer). config=local no pasa por aqui (ver main()): mismo
-    reloj, offset=0 por definicion."""
+    """Best-effort: busca el valor de offset de `chronyc sources -v`
+    ("Last sample", formato "-8608us[-8608us] +/-   50ms" -- el corchete
+    es la marca inequivoca del VALOR, no del margen de error +/- que le
+    sigue) en la salida de texto de `scripts/pi.sh clock`. ANTES buscaba
+    el primer numero seguido de 'ms' a secas, lo que en la práctica
+    agarraba el margen +/- (casi siempre en ms) en vez del offset real
+    (casi siempre en us) -- marcaba "no confiable" corridas con
+    sincronización perfectamente buena (ver docs/bitacora/
+    2026-10-28_campana-centralizada-lazo-desvio.md). Si no se puede
+    extraer un numero, se asume NO confiable (falla segura: mejor excluir
+    una métrica de dos relojes que confiar en un offset que no se pudo
+    leer). config=local no pasa por aquí (ver main()): mismo reloj,
+    offset=0 por definición."""
     if not texto_reloj:
         return False
-    m = re.search(r"([+-]?\d+(?:\.\d+)?)\s*ms", texto_reloj)
+    m = re.search(r"([+-]?\d+(?:\.\d+)?)(us|ms|s)\[", texto_reloj)
     if not m:
         return False
-    return abs(float(m.group(1))) <= UMBRAL_OFFSET_MS
+    factor_a_ms = {"us": 0.001, "ms": 1.0, "s": 1000.0}[m.group(2)]
+    return abs(float(m.group(1)) * factor_a_ms) <= UMBRAL_OFFSET_MS
 
 
 def analizar(eventos: list[dict], dos_relojes_confiable: bool) -> tuple[list[dict], list[dict], dict]:
