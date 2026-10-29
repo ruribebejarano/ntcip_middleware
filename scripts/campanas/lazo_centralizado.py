@@ -43,12 +43,27 @@ comparables (OE5, hito S7):
              --broker-host (la dirección por la que se la alcanza); la
              topología de mensajes es idéntica.
 
-En los tres casos, el broker Mosquitto vive EN la Raspberry Pi (o, en
-config=local, en esta misma máquina) -- agent/rsu_middleware.py no tiene
-hoy una variable de entorno distinta en las unidades systemd
-(deploy/systemd/rsu-agent.service), así que sigue conectándose a
-127.0.0.1. --broker-host es la dirección por la que servidor/main.py y
-gateway/obu_emulada.py (que corren AQUÍ) alcanzan ese broker.
+*** CORREGIDO 2026-10-28, tras una campaña pi-lan inútil (100 %
+sin_respuesta) por este motivo exacto *** El broker Mosquitto vive en
+la LAPTOP, no en la Raspberry Pi, en los TRES config -- al revés de lo
+que decía esta sección antes. `deploy/systemd/rsu-agent.service.d/broker.conf`
+(instalado siguiendo docs/ARRANQUE_BROKER_LAPTOP.md) fija
+`MQTT_BROKER_HOST=100.121.77.97` (Tailscale de la laptop) en la unidad
+systemd del agente de la Pi: el agente real NUNCA se conecta a
+127.0.0.1 ni al Mosquitto propio de la Pi (que sigue instalado y activo,
+pero sin uso real -- ver `scripts/pi.sh status mosquitto <host>`). Por
+eso `--broker-host` para `pi-lan`/`pi-4g` debe ser la dirección de la
+LAPTOP (`127.0.0.1` si este script corre en la misma laptop que aloja el
+broker, que es el caso de hoy), NO la de la Pi -- apuntar a la Pi
+conecta a un Mosquitto distinto, sin nadie suscrito del lado del agente,
+y cada M1 se pierde en silencio (servidor cree que lo mandó, el agente
+nunca lo vio: "sin_respuesta" en 100 % de las paradas, ver
+docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md).
+**[REVISAR con asesor]**: si el diseño final quiere el broker EN cada
+RSU (como sugería esta sección antes de corregirse) hay que: (a) quitar
+`broker.conf` en la Pi para que el agente vuelva a 127.0.0.1, (b) usar
+el Mosquitto de la Pi en vez de desactivarlo. Hoy no es así: queda
+documentada la realidad desplegada, no el diseño que se había asumido.
 
 Cada repetición varía la trayectoria (ruido GNSS gaussiano, mismo patrón
 que scripts/trayectorias/generar.py) y espera una pausa aleatoria (0..
@@ -80,18 +95,20 @@ inicio/fin en nanosegundos).
 
 *** PRERREQUISITO (no lo hace este script) *** Un broker Mosquitto
 corriendo y alcanzable en --broker-host:--broker-port, con
-`set_tcp_nodelay true` (ver docs/MEDICION_LATENCIA.md, sección 5) --
-en config=local, eso es el Mosquitto de esta misma máquina
-(docs/ARRANQUE_BROKER_LAPTOP.md); en pi-lan/pi-4g, el de la Raspberry Pi
-(ya corre como servicio, ver deploy/systemd/README.md).
+`set_tcp_nodelay true` (ver docs/MEDICION_LATENCIA.md, sección 5) -- en
+los TRES config, hoy es el Mosquitto de la laptop
+(docs/ARRANQUE_BROKER_LAPTOP.md); para pi-lan/pi-4g --broker-host sigue
+siendo la dirección de la LAPTOP (p. ej. `127.0.0.1` si corre en la
+misma laptop), no la de la Pi -- ver la nota de más arriba.
 
 Uso:
     # Prueba corta en esta máquina:
     python scripts/campanas/lazo_centralizado.py --escenario lazo --repeticiones 2 --config local
 
-    # Campaña real, RSU por LAN (escenarios de la campaña oficial: lazo, desvio):
+    # Campaña real, RSU por Wi-Fi/LAN (escenarios de la campaña oficial: lazo, desvio).
+    # --broker-host es la direccion de la LAPTOP (ver nota de mas arriba), no la de la Pi:
     python scripts/campanas/lazo_centralizado.py --escenario desvio --repeticiones 10 \\
-        --config pi-lan --broker-host 192.168.1.50 --host-rsu rsu --factor 1
+        --config pi-lan --broker-host 127.0.0.1 --host-rsu rsu --factor 1
 
 Análisis, al terminar:
     python scripts/analisis/lazo_centralizado.py --dir <corrida>
