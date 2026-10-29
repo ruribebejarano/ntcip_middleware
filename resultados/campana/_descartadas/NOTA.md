@@ -44,3 +44,24 @@ corrida, además, también tiene el problema del punto 1 (mismo choque de
 client_id), así que sobran dos motivos para no usarla:
 
 - `20261028-184751_conflicto_local`
+
+## 3. `--broker-host` apuntaba a un broker equivocado (datos inválidos, las tres carpetas)
+
+Primeras corridas `config=pi-lan` del 2026-10-28: el servidor (laptop) se
+conectó, con éxito, al Mosquitto **propio de la Pi**
+(`--broker-host 100.105.28.51`, siguiendo lo que decía entonces el
+docstring de `scripts/campanas/lazo_centralizado.py`), pero el agente
+real de la Pi está conectado, desde `docs/ARRANQUE_BROKER_LAPTOP.md`, al
+Mosquitto **de la laptop**
+(`deploy/systemd/rsu-agent.service.d/broker.conf`:
+`MQTT_BROKER_HOST=100.121.77.97`). Dos brokers Mosquitto independientes:
+cada M1 se publicaba en uno sin que nadie lo escuchara del otro lado →
+100 % `sin_respuesta` (etapa `m1_tx_sin_m1_rx`), no un problema de
+client_id esta vez. Corregido el docstring del runner y repetida la
+campaña con `--broker-host 127.0.0.1`. Ver
+`docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md`, sección
+"Fase 3".
+
+- `20261028-204629_lazo_pi-lan` (además incompleta: solo rep_01, de un intento interrumpido a mano)
+- `20261028-204722_lazo_pi-lan`
+- `20261028-210533_desvio_pi-lan`

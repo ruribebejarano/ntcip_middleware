@@ -438,6 +438,26 @@ python scripts/analisis/graficos_campana_centralizada.py \
     --salida F:\tesis2\Overleaf\figuras\resultados
 ```
 
+**`rsu-agent.service` de la Pi: activo para `pi-lan`/`pi-4g`, inactivo para
+`local`.** El agente real de la Pi y el agente que esta campaña lanza en
+`config=local` usan el mismo `client_id` (`rsu-middleware-{RSU_ID}`); si
+ambos están conectados al mismo broker a la vez, Mosquitto expulsa a uno
+de los dos en bucle (causa real de una campaña contaminada el 2026-10-28,
+ver `docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md`). El
+runner ya lo verifica antes de arrancar
+(`_verificar_pi_agente_inactivo`/`_verificar_pi_activa` en
+`scripts/campanas/lazo_centralizado.py`) y aborta con el comando exacto a
+correr si está en el estado equivocado, pero la secuencia manual es:
+
+```bash
+# Antes de una campaña config=local:
+scripts/pi.sh stop agent rsu
+
+# Antes de una campaña config=pi-lan o pi-4g (y para dejar la Pi en su
+# estado normal de servicio al terminar):
+scripts/pi.sh start agent rsu
+```
+
 ### 8.6 Escenario `conflicto`: métricas propias (fuera de alcance de la campaña)
 
 **[REVISAR con asesor] Actualizado 2026-10-28**: por decisión del autor,

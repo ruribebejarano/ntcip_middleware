@@ -1,9 +1,9 @@
-# 2026-10-28 — Campaña local (lazo, desvío): choque de client_id y exclusión de "conflicto"
+# 2026-10-28 — Campaña lazo/desvío: local y RSU real (pi-lan, Wi-Fi); choque de client_id y exclusión de "conflicto"
 
-**Objetivo específico:** OE5 (campaña de medición del lazo, `config=local`)
+**Objetivo específico:** OE5 (campaña de medición del lazo, `config=local` y `config=pi-lan`)
 **Requerimientos:** RNF-01 (latencia L), RF8 (anticipación real)
 **Sección de la tesis:** 4.3–4.5 (campaña y resultados) / 3.9, 4.8 (limitaciones y trabajo futuro)
-**Commit:** `2ea29d0`
+**Commit:** `2ea29d0` (fase local); ver commits posteriores de la fase pi-lan en `git log`
 
 ## Qué se implementó
 
@@ -146,20 +146,127 @@ por el estudiante — no se tocó `main.tex` en esta sesión):
 
 Ver "Cómo" arriba (es el mismo contenido: síntoma, causa, corrección).
 
+## Fase 3 — `config=pi-lan`: RSU real por Wi-Fi vía Tailscale
+
+**PARADA 1 confirmada: opción A** (broker en la laptop + Pi por Wi-Fi vía
+Tailscale, sin cambios de red en la Pi). La opción B (Ethernet con perfil
+propio, distinto de `netplan-eth0`) queda como posible extensión futura,
+no implementada.
+
+### Qué se hizo
+
+1. `scripts/pi.sh deploy rsu` (`fa14ebe → 7bc1134`, 2 semanas de commits
+   atrasados en la Pi — el agente real corría con código viejo todo este
+   tiempo) → `restart controller`/`restart agent` → `status` de ambos:
+   activos.
+2. Verificación previa (ya automática en el runner, además de la manual
+   pedida): sin agente/controlador huérfano en la laptop; `rsu-agent`/
+   `rsu-controller` activos en la Pi; `scripts/pi.sh tailscale-ping rsu`
+   → `direct 192.168.18.220` (camino LAN, no DERP); `scripts/pi.sh red
+   estado` → `wlan0` como ruta por defecto (modo normal, no 4G).
+3. Campaña `--config pi-lan`, `lazo` y `desvio`, 10 repeticiones c/u.
+
+### Dos bugs nuevos, encontrados y corregidos en el camino (ninguno es memoria ni client_id)
+
+1. **`_pi_sh()` resolvía al bash de WSL, no al de Git Bash.**
+   `subprocess.run(["bash", ...])` sin ruta explícita podía resolver a
+   `C:\Windows\System32\bash.exe` (el lanzador de WSL) según el PATH que
+   ve el proceso de Python — no el de una terminal interactiva. WSL no
+   tiene el mismo `~/.ssh/config` ni resuelve rutas Windows igual: toda
+   verificación contra la Pi (`_verificar_pi_activa`, `_estado_red_pi`,
+   etc.) caía en silencio en la rama de "no se pudo verificar" desde
+   siempre, sin que nadie lo notara porque `config=local` nunca necesitó
+   que esas verificaciones funcionaran de verdad. Corregido: ruta
+   explícita a Git Bash + `encoding="utf-8"` (otro problema aparte:
+   `systemctl status` imprime "●"/"○" y el locale de Windows no los
+   decodifica).
+2. **Primera corrida real: 100 % `sin_respuesta` ("m1_tx_sin_m1_rx").**
+   Investigado en los eventos (no asumido): el servidor (laptop) se
+   conectó, con éxito, al Mosquitto **propio de la Pi**
+   (`--broker-host 100.105.28.51`, siguiendo lo que decía el docstring
+   del runner), mientras el agente real de la Pi está conectado, desde
+   `docs/ARRANQUE_BROKER_LAPTOP.md`, al Mosquitto **de la laptop**
+   (`deploy/systemd/rsu-agent.service.d/broker.conf`:
+   `MQTT_BROKER_HOST=100.121.77.97`). Dos brokers Mosquitto
+   independientes y activos (el de la Pi sigue instalado y corriendo,
+   sin uso real) — el M1 se publicaba en uno y nadie lo escuchaba del
+   otro lado. El docstring del runner describía un diseño ("broker en
+   cada RSU") que nunca se desplegó así; se corrigió para describir la
+   realidad desplegada (broker en la laptop, en los tres `config`), con
+   nota `[REVISAR con asesor]` si se prefiere cambiar el despliegue en
+   vez de la documentación. Con `--broker-host 127.0.0.1`: **0
+   `sin_respuesta`** en las dos corridas rehechas.
+3. **(Menor) `offset_confiable()` confundía el margen de error de
+   `chronyc` con el offset real.** La regex agarraba el primer número
+   seguido de "ms" — en la práctica, casi siempre el margen `+/- 50ms`,
+   no el offset real (`-8608us`, otra unidad). Marcaba "no confiable"
+   corridas con sincronización excelente. Corregido para anclar al valor
+   justo antes del corchete de `chronyc sources -v`, con su unidad real.
+
+### Resultado final (corridas limpias, re-hechas con los tres bugs corregidos)
+
+- `resultados/campana/20261028-212725_lazo_pi-lan/` y
+  `resultados/campana/20261028-214736_desvio_pi-lan/`: **1** conexión al
+  broker por repetición (20/20), **0 `sin_respuesta`** (20/20
+  concedidas).
+- `lazo` (pi-lan): offset de reloj confiable en toda la corrida. RTT_srv
+  mediana 9.44 ms (p95 15.66); `t_RSU` mediana 1.08 ms (p95 1.37); `L`
+  (RNF-01) mediana 10.41 ms (p95 10.81, **CUMPLE** vs. 1000 ms);
+  anticipación real mediana 10.56 s (RF8 = 8.0 s).
+- `desvio` (pi-lan): offset de reloj confiable al inicio, **no
+  confiable al final** (deriva real de ~12 ms sobre el umbral de 10 ms,
+  no un bug — el propio chronyc lo reportó así) → `L`/anticipación real
+  excluidas para esa corrida por la política ya documentada (sección
+  8.4); `RTT_srv`/`t_RSU` (un reloj, válidas siempre) mediana 10.33/1.04
+  ms.
+- Comparación `local` vs. `pi-lan` (ambos escenarios combinados, 20
+  paradas c/u):
+
+  | Métrica (un reloj) | local (mediana/p95 ms) | pi-lan (mediana/p95 ms) |
+  |---|---|---|
+  | RTT_srv | 18.80 / 35.22 | 9.78 / 19.25 |
+  | t_RSU | 3.65 / 18.20 | 1.06 / 1.14 |
+
+  `pi-lan` salió **más rápido** que `local`, al revés de lo intuitivo —
+  hipótesis más probable: en `config=local` los CUATRO procesos
+  (servidor, controlador, agente, OBU) compiten por CPU en la MISMA
+  laptop, mientras que en `pi-lan` el controlador/agente corren en la Pi
+  (su propio CPU) y la laptop solo corre servidor+OBU. **[REVISAR]**: no
+  se investigó a fondo, dejar como observación, no como conclusión
+  cerrada.
+- Figuras y tabla: `resultados/campana/_figuras_2026-10-28_local_vs_pi-lan/`.
+- `rsu-agent.service` se dejó **activo** al terminar (estado normal de
+  servicio).
+
+### Limitación explícita del enlace (pedida, no inferida)
+
+`config.json` de cada corrida `pi-lan` ahora registra
+`enlace_rsu_descripcion` ("Wi-Fi (wlan0 de la Pi) alcanzado por
+Tailscale -- 'pi-lan' es el nombre genérico del código, NO una conexión
+Ethernet cableada"), `enlace_rsu_ip` (`192.168.18.176`, parseada de
+`ip route`), `enlace_laptop` (detectado: `Wi-Fi (interfaz 'Wi-Fi')` —
+**la laptop también estaba por Wi-Fi hoy**, ningún tramo de esta
+medición es cableado) y `limitacion_enlace`
+**[REVISAR con asesor]** con ese texto completo.
+
 ## Pendiente
 
-- **PARADA 1** (próxima configuración de red para la campaña, propuesta
-  — NO aplicada, no se toca la Pi hasta confirmación): broker en la
-  laptop + Pi por Wi-Fi (configuración ya validada hoy, status quo) vs.
-  una propuesta para Ethernet real que **no** reutilice el nombre de
-  perfil `netplan-eth0` de NetworkManager (reservado para el módem 4G,
-  ver `docs/MODEM_4G.md` sección 1 — si un cable Ethernet real se
-  conectara y su perfil también se llamara o se detectara como
-  `netplan-eth0`, `scripts/red_4g.sh` y `scripts/pi.sh red` apuntarían al
-  perfil equivocado). Pendiente de que el estudiante confirme cuál usar.
-- Repetir la campaña (lazo, desvío) contra la Pi real (`config=pi-lan` /
-  `pi-4g`), una vez resuelta la PARADA 1.
 - Corregir la ruta de instalación de Mosquitto en
-  `docs/ARRANQUE_BROKER_LAPTOP.md`.
+  `docs/ARRANQUE_BROKER_LAPTOP.md` (`C:\Program Files\mosquitto\` →
+  `C:\Program Files (x86)\Mosquitto\`).
 - Evaluar agregar `log_dest` a `mosquitto.conf` antes de la campaña con
   hardware real.
+- **[REVISAR con asesor]**: decidir si el diseño final quiere un broker
+  por RSU (como asumía el docstring viejo del runner) o centralizado en
+  la laptop (lo que de verdad hay desplegado hoy, siguiendo
+  `docs/ARRANQUE_BROKER_LAPTOP.md`). Si se opta por centralizado, el
+  Mosquitto de la Pi (activo, sin uso) podría desactivarse.
+- Entender por qué `pi-lan` salió más rápido que `local` (observación de
+  esta sesión, no investigada a fondo).
+- `desvio` sigue sin anticipación real medible (`n=0`) tanto en `local`
+  como en `pi-lan` — mismo comportamiento que la corrida de referencia
+  del 2026-10-22, pendiente de entender por qué.
+- Repetir contra `config=pi-4g` (módem 4G) cuando corresponda, con los
+  mismos chequeos ya automatizados.
+- Opción B de la PARADA 1 (Ethernet con perfil propio, distinto de
+  `netplan-eth0`), si hay tiempo.

@@ -113,13 +113,24 @@ scripts/pi.sh clock               # offset de reloj de la Pi y de la laptop
 - **No editar `hostapd`, `dnsmasq`, interfaces de red ni `snmpd.conf` de la Pi
   sin preguntar primero.** Ver `CLAUDE.md` — una sesión SSH perdida por un
   cambio de red mal aplicado cuesta un viaje físico al equipo.
-- La IP `192.168.18.175` es la última observada (actualizada el 2026-10-11;
-  antes era `192.168.18.163`); **no está confirmado que sea una IP fija**
-  (reserva DHCP). Si el banco de pruebas requiere una IP estable para que
-  este alias no se rompa cada vez que la Pi se reinicia, eso implica
-  configurar una reserva DHCP en el router o una IP estática en la Pi —
-  cambio de red que también debe confirmarse antes de aplicarse.
+- La IP `192.168.18.176` es la última observada (actualizada el 2026-10-28;
+  antes era `192.168.18.175`, y antes `192.168.18.163`); **no está
+  confirmado que sea una IP fija** (reserva DHCP). Si el banco de pruebas
+  requiere una IP estable para que este alias no se rompa cada vez que la
+  Pi se reinicia, eso implica configurar una reserva DHCP en el router o
+  una IP estática en la Pi — cambio de red que también debe confirmarse
+  antes de aplicarse.
 - Hay **dos RSU** en el banco de pruebas (ver `CLAUDE.md`). Este documento y
   los scripts cubren una sola por ahora; si la segunda ya tiene IP asignada,
   se puede replicar el mismo patrón con un segundo alias (p. ej. `rsu2`) y un
   segundo argumento de host en los scripts.
+- **`rsu-agent.service` de la Pi y las campañas `config=local`
+  (`scripts/campanas/lazo_centralizado.py`) no pueden estar conectados al
+  mismo broker a la vez**: comparten `client_id`
+  (`rsu-middleware-{RSU_ID}`) y Mosquitto expulsa a uno de los dos en
+  bucle (pasó de verdad el 2026-10-28, ver
+  `docs/MEDICION_LATENCIA.md` sección 8.5 y
+  `docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md`). El
+  runner ya lo verifica y aborta si corresponde; igual, no dejar el
+  agente de la Pi detenido por descuido después de una campaña local —
+  `scripts/pi.sh start agent rsu` lo vuelve a su estado normal.

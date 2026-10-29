@@ -1,0 +1,11 @@
+id_solicitud,mision_id,rsu_id,resultado,etapa_alcanzada,cola_despeje,t_srv_ms,t_srv_RSU_ms,t_RSU_ms,RTT_srv_ms,L_ms,t_verde_ms,T_desp_ms,anticipacion_real_s,obtuvo_verde,ultimo_m3_motivo
+mis-9e6d9f76-C,mis-9e6d9f76,1,concedida,,True,0.3918,,1.021766,9.0194,,,5146.15857,,True,desvio
+mis-7fe10527-C,mis-7fe10527,1,concedida,,True,0.3849,,1.059119,7.0523,,,5175.608912,,True,desvio
+mis-a8ebbbe8-C,mis-a8ebbbe8,1,concedida,,True,0.527,,1.025304,8.3782,,,5356.708505,,True,desvio
+mis-59535404-C,mis-59535404,1,concedida,,True,0.5289,,1.045934,19.2506,,,5308.808565,,True,desvio
+mis-0731630a-C,mis-0731630a,1,concedida,,True,0.4128,,1.017397,11.8909,,,5316.164677,,True,desvio
+mis-be782c8b-C,mis-be782c8b,1,concedida,,True,0.4649,,1.043138,10.3349,,,5371.155859,,True,desvio
+mis-e2935b69-C,mis-e2935b69,1,concedida,,True,0.5092,,1.015026,10.5581,,,5121.550255,,True,desvio
+mis-08e6a527-C,mis-08e6a527,1,concedida,,True,0.4877,,1.06899,8.9655,,,5151.990248,,True,desvio
+mis-7e1978b0-C,mis-7e1978b0,1,concedida,,True,0.5079,,1.077638,11.1515,,,5343.663314,,True,desvio
+mis-b961c19e-C,mis-b961c19e,1,concedida,,True,0.4422,,1.085824,21.667,,,5103.699876,,True,desvio

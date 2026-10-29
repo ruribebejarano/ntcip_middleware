@@ -1,0 +1,11 @@
+id_solicitud,mision_id,rsu_id,resultado,etapa_alcanzada,cola_despeje,t_srv_ms,t_srv_RSU_ms,t_RSU_ms,RTT_srv_ms,L_ms,t_verde_ms,T_desp_ms,anticipacion_real_s,obtuvo_verde,ultimo_m3_motivo
+mis-3bd69a38-C,mis-3bd69a38,1,sin_respuesta,m1_tx_sin_m1_rx,False,0.6651,,,,,,,,False,cruce
+mis-86b05ac6-C,mis-86b05ac6,1,sin_respuesta,m1_tx_sin_m1_rx,False,0.4492,,,,,,,,False,cruce
+mis-d9e19940-C,mis-d9e19940,1,sin_respuesta,m1_tx_sin_m1_rx,False,0.6975,,,,,,,,False,cruce
+mis-f9af5bad-C,mis-f9af5bad,1,sin_respuesta,m1_tx_sin_m1_rx,False,0.6211,,,,,,,,False,cruce
+mis-48970a95-C,mis-48970a95,1,sin_respuesta,m1_tx_sin_m1_rx,False,0.5789,,,,,,,,False,cruce
+mis-e973db9d-C,mis-e973db9d,1,sin_respuesta,m1_tx_sin_m1_rx,False,0.7645,,,,,,,,False,cruce
+mis-5b33a9ae-C,mis-5b33a9ae,1,sin_respuesta,m1_tx_sin_m1_rx,False,0.5742,,,,,,,,False,cruce
+mis-bd44e95e-C,mis-bd44e95e,1,sin_respuesta,m1_tx_sin_m1_rx,False,0.6334,,,,,,,,False,cruce
+mis-98dce152-C,mis-98dce152,1,sin_respuesta,m1_tx_sin_m1_rx,False,0.5998,,,,,,,,False,cruce
+mis-874ea36f-C,mis-874ea36f,1,sin_respuesta,m1_tx_sin_m1_rx,False,0.6294,,,,,,,,False,cruce

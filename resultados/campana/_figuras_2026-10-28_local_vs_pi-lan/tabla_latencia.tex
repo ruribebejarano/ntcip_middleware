@@ -1,0 +1,19 @@
+\begin{table}[H]
+\centering
+\caption{Latencia del lazo, arquitectura centralizada. Campaña 2026-10-28, lazo+desvío combinados por config (10 rep. c/u). pi-lan = RSU real por Wi-Fi vía Tailscale (wlan0, no Ethernet cableado).}
+\label{tab:latencia_campana_centralizada}
+\small
+\begin{tabular}{llrrrrl}
+\toprule
+\textbf{Métrica} & \textbf{Config.} & \textbf{n} & \textbf{Mediana} & \textbf{p95} & \textbf{Máx.} & \textbf{Unidad} \\
+\midrule
+RTT\_srv & local & 20 & 18.80 & 35.22 & 41.06 & ms \\
+RTT\_srv & pi-lan & 20 & 9.78 & 19.25 & 21.67 & ms \\
+$t_{RSU}$ & local & 20 & 3.65 & 18.20 & 24.13 & ms \\
+$t_{RSU}$ & pi-lan & 20 & 1.06 & 1.14 & 1.37 & ms \\
+$t_{OBU\to srv}$ & local & 900 & 0.54 & 0.69 & 1.63 & ms \\
+$L$ (RNF-01) & local & 20 & 4.86 & 18.76 & 24.64 & ms \\
+Anticipación real & local & 10 & 10.44 & 10.86 & 10.86 & s \\
+\bottomrule
+\end{tabular}
+\end{table}
