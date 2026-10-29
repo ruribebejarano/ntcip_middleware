@@ -92,3 +92,42 @@ y repetida la campaña con cuotas adaptativas por condición de llegada.
 - `_figuras_2026-10-28/` y `_figuras_2026-10-28_local_vs_pi-lan/` (figuras
   y `tabla_latencia.tex` generadas a partir de las cuatro corridas de
   arriba -- mismo motivo, no usar en el Capítulo 4).
+
+## 5. Intento interrumpido a mano (2026-10-29, antes del runner con cuotas)
+
+Primer intento de lanzar la campaña con cuotas adaptativas, lanzado en
+segundo plano con una sintaxis de la terminal que no detenía bien el
+proceso: se mató a mano tras llegar solo a `rep_02` (incompleta).
+
+- `20261029-001200_lazo_local_interrumpida`
+
+## 6. Conteo en vivo incorrecto (2026-10-29, campaña completa, datos válidos)
+
+`_condicion_de_repeticion()` (primera versión, en
+`scripts/campanas/lazo_centralizado.py`) clasificaba cada repetición
+leyendo `eventos_servidor.csv` (M2_rx, campo "fase") para no depender de
+`scripts/pi.sh fetch` con config=pi-lan/pi-4g. Error: ese M2 vuelve a
+consultar al controlador al publicarse; si la concesión de prioridad fue
+INMEDIATA (fase real "verde" o "rojo_general", ambas fuera de
+`FASES_NO_INTERRUMPIBLES`), para ese momento ya se llamó
+`request_priority()` y el controlador fuerza a reportar "verde" -- una
+decisión real en "rojo_general" se veía igual que una en "verde". Solo el
+camino en cola (RF-06, fase amarillo/todo_rojo) se clasificaba bien,
+porque ese M2 se publica ANTES de pedir prioridad.
+
+La corrida completó las 18 repeticiones (tope) reportando en vivo
+`{verde: 13, ambar_todo_rojo: 5, rojo_general: 0}` -- parecía una
+recaída del defecto del controlador, pero NO lo era: recalculando desde
+el lado de la RSU (`eventos_rsu_1.csv`, el mismo campo que usa
+`scripts/analisis/lazo_centralizado.py::analizar()`), la distribución
+real es `{verde: 8, ambar_todo_rojo: 5, rojo_general: 5}` -- la cuota de
+4 por condición ya estaba cubierta desde la repetición 14. Los datos
+crudos de esta corrida son válidos (el controlador y el middleware se
+comportaron bien); se descarta solo porque su `config.json` (meta
+cubierta, conteo por condición) quedó con el conteo incorrecto y corrió
+~4-8 repeticiones de más sin necesidad. Corregido el clasificador (ahora
+lee el evento de decisión del lado RSU, con fetch incremental para
+pi-lan/pi-4g) y repetida la campaña. Ver
+`docs/bitacora/2026-10-29_fase-controlador-emulado.md`.
+
+- `20261029-001439_lazo_local_conteo_vivo_incorrecto`

@@ -1,0 +1,21 @@
+{
+  "fecha_inicio": "2026-10-29T00:12:00",
+  "commit": "60cac6f",
+  "escenario": "lazo",
+  "config": "local",
+  "factor": 1.0,
+  "broker": "127.0.0.1:1883",
+  "host_rsu": null,
+  "enlace_rsu_descripcion": null,
+  "enlace_rsu_ip": null,
+  "enlace_laptop": null,
+  "limitacion_enlace": null,
+  "meta_por_condicion": 4,
+  "tope_repeticiones": 18,
+  "semilla_base": 1,
+  "pausa_max_s": 25.0,
+  "sigma_pos_m": 5.0,
+  "reloj_pi_inicio": null,
+  "estado_red_inicio": null,
+  "memoria_libre_mb_inicio": 3008.9375
+}

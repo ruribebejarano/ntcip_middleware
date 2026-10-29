@@ -1,0 +1,2 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1793258126665030781,ctrl_1,ctrl_fase_cambio,mis-d9264c65-C,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""obu-lazo-r09"",""eta_seg"":8}"

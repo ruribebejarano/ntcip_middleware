@@ -226,6 +226,42 @@ def tabla_latex(resultados: dict[str, dict], salida: Path, nota: str):
     (salida / "tabla_latencia.tex").write_text("\n".join(lineas) + "\n", encoding="utf-8")
 
 
+#: etiqueta de presentación para cada condición de llegada (ver
+#: scripts/campanas/lazo_centralizado.py y
+#: scripts/analisis/lazo_centralizado.py::CONDICIONES_LLEGADA).
+NOMBRE_CONDICION = {"verde": "verde", "ambar_todo_rojo": "ámbar/todo rojo", "rojo_general": "rojo"}
+
+
+def tabla_condicion_latex(resultados: dict[str, dict], salida: Path, nota: str):
+    """Tabla LaTeX con las métricas de latencia desglosadas por CONDICIÓN
+    de llegada (verde/ámbar-todo_rojo/rojo), una por etiqueta -- pedida
+    tras la campaña con cuotas adaptativas del 2026-10-29 (antes del
+    arreglo del controlador emulado, el 100 % de las decisiones caía en
+    "ámbar/todo rojo", así que este desglose no tenía sentido -- ver
+    docs/bitacora/2026-10-29_fase-controlador-emulado.md)."""
+    metricas = [("RTT\\_srv", "RTT_srv_ms", "ms"), ("$t_{RSU}$", "t_RSU_ms", "ms"),
+                ("$L$ (RNF-01)", "L_ms", "ms"), ("$t_{verde}$", "t_verde_ms", "ms"),
+                ("$T_{desp}$ (RF-06)", "T_desp_ms", "ms"), ("Anticipación real (RF8)", "anticipacion_real_s", "s")]
+    lineas = ["\\begin{table}[H]", "\\centering",
+              "\\caption{Latencia del lazo por condición de llegada (fase de la RSU al decidir: "
+              "verde / ámbar-todo\\_rojo tratadas juntas por ser ambas FASES\\_NO\\_INTERRUMPIBLES / "
+              "rojo general). " + nota + "}",
+              "\\label{tab:latencia_por_condicion}", "\\small",
+              "\\begin{tabular}{lllrrrl}", "\\toprule",
+              "\\textbf{Métrica} & \\textbf{Config.} & \\textbf{Condición} & \\textbf{n} & "
+              "\\textbf{Mediana} & \\textbf{p95} & \\textbf{Unidad} \\\\",
+              "\\midrule"]
+    for nombre, clave, unidad in metricas:
+        for etq, g in resultados.items():
+            for cond in ("verde", "ambar_todo_rojo", "rojo_general"):
+                m = g.get("por_condicion_llegada", {}).get(cond, {}).get(clave, {})
+                if m.get("n"):
+                    lineas.append(f"{nombre} & {etq} & {NOMBRE_CONDICION[cond]} & {m['n']} & "
+                                  f"{m['mediana']:.2f} & {m['p95']:.2f} & {unidad} \\\\")
+    lineas += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    (salida / "tabla_condicion.tex").write_text("\n".join(lineas) + "\n", encoding="utf-8")
+
+
 def _recolectar_valores(filas: list[dict], clave: str) -> list[float]:
     return [f[clave] for f in filas if f.get(clave) is not None]
 
@@ -298,8 +334,9 @@ def main() -> None:
             + "\n\n".join(notas) + "\n", encoding="utf-8")
 
     tabla_latex(resultados, salida, args.nota)
+    tabla_condicion_latex(resultados, salida, args.nota)
     print(f"Figuras en {salida}: fig_rtt_cdf, fig_tramos, fig_comparacion (.pdf y .png)")
-    print(f"Tabla LaTeX: {salida / 'tabla_latencia.tex'}")
+    print(f"Tabla LaTeX: {salida / 'tabla_latencia.tex'}, {salida / 'tabla_condicion.tex'}")
     for etq, g in resultados.items():
         rtt = g["RTT_srv_ms"]
         if rtt.get("n"):

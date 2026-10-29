@@ -1,0 +1,4 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1793251022842527800,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1793251022856817500,ctrl_1,ctrl_fase_cambio,mis-7009d159-C,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""obu-lazo-r02"",""eta_seg"":8}"
+1793251038841307300,ctrl_1,ctrl_fase_cambio,mis-7009d159-C,"{""fase"":""todo_rojo"",""prioridad_activa"":false,""motivo"":""liberacion_manual""}"

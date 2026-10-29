@@ -1,0 +1,3 @@
+Texto para el \caption de LaTeX de cada figura (no está incrustado en el PNG):
+
+fig_comparacion / tabla_latencia: Campaña local 2026-10-29, lazo y desvío, cuotas adaptativas por condición de llegada (meta=4 c/u, tope=18; ámbar/todo_rojo no cubrió la cuota en ninguno de los dos escenarios, ver config.json). Escenario conflicto excluido del alcance (ver docs/CRONOGRAMA.md).

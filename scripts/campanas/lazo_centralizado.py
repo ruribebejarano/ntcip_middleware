@@ -84,11 +84,18 @@ por CUOTA (seguir corriendo hasta cubrir las 3), no por apuntar a una fase
 objetivo antes de lanzar la OBU -- eso último se descartó a propósito:
 entre lanzar la OBU y que la RSU decida pasan varios segundos variables
 (más con 4G), así que un objetivo fijado de antemano apuntaría a la fase
-equivocada. La condición de cada repetición se clasifica leyendo
-`eventos_servidor.csv` (M2_rx, campo "fase") de ESA máquina -- nunca hace
-falta esperar al `scripts/pi.sh fetch` de fin de campaña para decidir si
-hay que seguir, ni con config=pi-lan/pi-4g. `config.json` registra la meta
-pedida, el conteo final por condición y si se llegó al tope.
+equivocada. La condición de cada repetición se clasifica leyendo la
+decisión del lado de la RSU (snmp_set_tx, campo "fase") -- NO el M2 del
+servidor: ese M2 vuelve a consultar al controlador al publicarse, y si la
+concesión fue inmediata (fase "verde" o "rojo_general", ambas fuera de
+FASES_NO_INTERRUMPIBLES) ya se llamó request_priority() antes de
+publicarlo, así que el M2 siempre reporta "verde" sin importar cuál de
+las dos fue la decisión real (bug encontrado y corregido el 2026-10-29,
+ver docs/bitacora/2026-10-29_fase-controlador-emulado.md). Con
+config=local esos eventos ya están en esta máquina; con config=pi-lan/
+pi-4g se hace un fetch incremental (no solo al final de la campaña) para
+poder clasificar cada repetición de inmediato. `config.json` registra la
+meta pedida, el conteo final por condición y si se llegó al tope.
 
 Cada corrida queda en resultados/campana/<AAAAMMDD-HHMMSS>_<escenario>_<config>/:
     config.json             commit (marca si hay cambios sin commitear),
@@ -195,27 +202,55 @@ def _condicion_de_fase(fase: str | None) -> str | None:
     return None
 
 
-def _condicion_de_repeticion(rep_dir: Path) -> str | None:
+def _condicion_de_repeticion(rep_dir: Path, config: str, host_rsu: str,
+                             t_ini_ns: int, t_fin_ns: int) -> str | None:
     """Condición de llegada (fase de la RSU al decidir) de la repetición ya
-    terminada en `rep_dir`, leída del lado del SERVIDOR
-    (eventos_servidor.csv) -- esa máquina es SIEMPRE esta laptop, en los
-    tres config (ver docstring del módulo), así que está disponible de
-    inmediato tras cada repetición, sin esperar el `scripts/pi.sh fetch`
-    de fin de campaña que con config=pi-lan/pi-4g solo trae los eventos
-    de la RSU real al terminar TODA la corrida. servidor/main.py registra
-    M2_rx con el mismo campo "fase" que publicó la RSU en el M2
-    (agent/rsu_middleware.py::_publicar_m2) -- no hace falta decodificar
-    eventos_ctrl_1.csv/eventos_rsu_1.csv para esto."""
+    terminada en `rep_dir`, leída del lado de la RSU (snmp_set_tx, mismo
+    campo "fase" y mismo filtro de acción que
+    scripts/analisis/lazo_centralizado.py::analizar() usa para `decision`).
+
+    *** CORREGIDO 2026-10-29, el mismo día que se escribió: la primera
+    versión leía esto del lado del SERVIDOR (M2_rx.fase) para no depender
+    de scripts/pi.sh fetch con config=pi-lan/pi-4g (que solo trae los
+    eventos de la RSU real al terminar TODA la campaña) -- pero esa fase
+    NO es confiable para la concesión INMEDIATA de prioridad (fase_decision
+    "verde" o "rojo_general", ambas fuera de FASES_NO_INTERRUMPIBLES):
+    agent/rsu_middleware.py::_publicar_m2() vuelve a consultar
+    get_status() al publicar el M2, momento en el que ya se llamó
+    request_priority() y el controlador fuerza a reportar "verde" --
+    entonces una decisión real en "rojo_general" también se veía como
+    "verde" en el M2. Solo el camino en cola (RF-06, fase amarillo/
+    todo_rojo) reportaba bien, porque ese M2 se publica ANTES de pedir
+    prioridad. Visto en la primera campaña `lazo_local` real (20/20
+    "verde"/"ambar_todo_rojo", 0 "rojo_general" reportado en vivo, pero
+    8/5/5 real al recalcular desde el lado RSU) -- ver
+    docs/bitacora/2026-10-29_fase-controlador-emulado.md.
+
+    Con config=local, eventos_rsu_1.csv ya está en `rep_dir` (misma
+    máquina). Con config=pi-lan/pi-4g se hace un fetch incremental (no
+    solo al final de la campaña, ver _repartir_eventos_pi) SOLO para
+    clasificar esta repetición -- el reparto definitivo a cada rep_XX/
+    sigue pasando al final, sin cambios."""
     from common.events import iter_eventos
 
-    m2s = sorted(
-        (e for e in iter_eventos(rep_dir) if e["tipo_evento"] == "M2_rx" and e["nodo"] == "servidor"),
-        key=lambda e: e["ts_ns"],
+    if config == "local":
+        eventos_rsu = [e for e in iter_eventos(rep_dir) if e["nodo"] == "rsu_1"]
+    else:
+        _pi_sh("fetch", host_rsu)
+        origen = RAIZ / "resultados" / host_rsu / "eventos"
+        if not origen.exists():
+            return None
+        eventos_rsu = [e for e in iter_eventos(origen)
+                       if e["nodo"] == "rsu_1" and t_ini_ns <= e["ts_ns"] <= t_fin_ns]
+
+    decision = next(
+        (e for e in sorted(eventos_rsu, key=lambda e: e["ts_ns"])
+         if e["tipo_evento"] == "snmp_set_tx" and e["extra"].get("accion") in ("request_priority", "en_cola_despeje")),
+        None,
     )
-    m2_1 = next((e for e in m2s if e["extra"].get("seq_ref") == 1), None)
-    if m2_1 is None:
+    if decision is None:
         return None
-    return _condicion_de_fase(m2_1["extra"].get("fase"))
+    return _condicion_de_fase(decision["extra"].get("fase"))
 
 
 def _venv_python() -> str:
@@ -864,7 +899,7 @@ def main() -> None:
         t_fin_ns = time.time_ns()
         ventanas.append((rep_nombre, t_ini_ns, t_fin_ns))
 
-        condicion = _condicion_de_repeticion(rep_dir)
+        condicion = _condicion_de_repeticion(rep_dir, args.config, args.host_rsu, t_ini_ns, t_fin_ns)
         condicion_por_repeticion[rep_nombre] = condicion
         if condicion is not None:
             conteo_por_condicion[condicion] += 1

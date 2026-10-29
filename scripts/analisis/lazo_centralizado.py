@@ -273,6 +273,19 @@ def analizar(eventos: list[dict], cota_reloj_ms: float | None = None) -> tuple[l
         ultimo_m3_motivo = m3s_todos[-1]["extra"].get("motivo") if m3s_todos else None
         verde = sorted((e for e in evs if e["tipo_evento"] == EVT_CTRL_FASE_CAMBIO
                        and e["extra"].get("fase") == "verde"), key=lambda e: e["ts_ns"])
+        # Si la decisión ya fue en fase "verde" (concesión inmediata, sin
+        # cola), controller_emulator.py::_log_si_cambio_locked no logueó
+        # ningún ctrl_fase_cambio para esta parada -- no hubo transición
+        # real que loguear (ya estaba en verde). Sin esto, t_verde y
+        # anticipación real quedaban "sin dato" para TODA llegada en
+        # verde -- el caso más simple, el primero en tener datos reales
+        # desde que se corrigió el emulador el 2026-10-29 (antes el 100%
+        # de las decisiones caía en "amarillo", ver
+        # docs/bitacora/2026-10-29_fase-controlador-emulado.md). El verde
+        # ya estaba activo al momento de la decisión: ese es el instante
+        # de referencia (t_verde=0 por construcción).
+        if not verde and fase_decision == "verde" and decision:
+            verde = [decision]
 
         mp_prev = max((e for e in mp_rx_por_mision.get(mision_id, []) if e["ts_ns"] <= m1_1["ts_ns"]),
                      key=lambda e: e["ts_ns"], default=None)

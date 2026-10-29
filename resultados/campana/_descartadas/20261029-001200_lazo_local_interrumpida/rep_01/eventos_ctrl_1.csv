@@ -1,0 +1,3 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1793250746441603600,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""verde"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1793250762420075400,ctrl_1,ctrl_fase_cambio,mis-b21ab7f2-C,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""liberacion_manual""}"

@@ -1,0 +1,4 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1793255295284645600,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1793255295303767500,ctrl_1,ctrl_fase_cambio,mis-b87c550d-C,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""obu-desvio-r01"",""eta_seg"":8}"
+1793255311295292100,ctrl_1,ctrl_fase_cambio,mis-b87c550d-C,"{""fase"":""todo_rojo"",""prioridad_activa"":false,""motivo"":""liberacion_manual""}"

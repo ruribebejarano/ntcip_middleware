@@ -1,0 +1,22 @@
+\begin{table}[H]
+\centering
+\caption{Latencia del lazo, arquitectura centralizada. Campaña local 2026-10-29, lazo y desvío, cuotas adaptativas por condición de llegada (meta=4 c/u, tope=18; ámbar/todo_rojo no cubrió la cuota en ninguno de los dos escenarios, ver config.json). Escenario conflicto excluido del alcance (ver docs/CRONOGRAMA.md). Las métricas de dos relojes ($t_{OBU\to srv}$, $L$, Anticipación real) llevan la cota de error de reloj del lado de la Pi (chrony); la laptop sincroniza por w32time, cuya precisión no está caracterizada [REVISAR con asesor] -- ver sección 8.4.}
+\label{tab:latencia_campana_centralizada}
+\small
+\begin{tabular}{llrrrrll}
+\toprule
+\textbf{Métrica} & \textbf{Config.} & \textbf{n} & \textbf{Mediana} & \textbf{p95} & \textbf{Máx.} & \textbf{Unidad} & \textbf{Cota reloj (Pi)} \\
+\midrule
+RTT\_srv & lazo & 18 & 42.72 & 73.09 & 73.09 & ms & -- \\
+RTT\_srv & desvio & 18 & 47.16 & 74.35 & 74.35 & ms & -- \\
+$t_{RSU}$ & lazo & 18 & 19.29 & 27.45 & 27.45 & ms & -- \\
+$t_{RSU}$ & desvio & 18 & 12.94 & 26.40 & 26.40 & ms & -- \\
+$t_{OBU\to srv}$ & lazo & 810 & 0.58 & 0.70 & 1.30 & ms & 0 (mismo reloj) \\
+$t_{OBU\to srv}$ & desvio & 810 & 0.59 & 0.69 & 1.05 & ms & 0 (mismo reloj) \\
+$L$ (RNF-01) & lazo & 18 & 19.92 & 28.06 & 28.06 & ms & 0 (mismo reloj) \\
+$L$ (RNF-01) & desvio & 18 & 13.51 & 26.97 & 26.97 & ms & 0 (mismo reloj) \\
+Anticipación real & lazo & 18 & 14.56 & 16.00 & 16.00 & s & 0 (mismo reloj) \\
+Anticipación real & desvio & 3 & 13.97 & 13.98 & 13.98 & s & 0 (mismo reloj) \\
+\bottomrule
+\end{tabular}
+\end{table}

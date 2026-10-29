@@ -1,0 +1,2 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1793253338246234900,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""verde"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
