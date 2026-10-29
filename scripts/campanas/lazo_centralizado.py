@@ -162,9 +162,34 @@ def _commit() -> str:
         return "desconocido"
 
 
+def _bash_ejecutable() -> str:
+    """En Windows, invocar "bash" sin ruta puede resolver al bash.exe de
+    WSL (C:\\Windows\\System32\\bash.exe) en vez del de Git Bash, según el
+    orden de PATH que vea ESTE proceso -- no el de una terminal interactiva.
+    WSL no ve ~/.ssh/config de Windows ni las rutas de Windows igual
+    (necesita /mnt/<letra>/...), así que termina fallando de formas
+    confusas: a veces "ssh: Could not resolve hostname" (WSL con su propio
+    ~/.ssh ausente), a veces "No such file or directory" directamente
+    sobre scripts/pi.sh. Se fuerza la ruta de Git Bash en Windows; en
+    otros sistemas "bash" a secas ya es el correcto."""
+    if platform.system() == "Windows":
+        candidato = Path(r"C:\Program Files\Git\usr\bin\bash.exe")
+        if candidato.exists():
+            return str(candidato)
+    return "bash"
+
+
+BASH = _bash_ejecutable()
+
+
 def _pi_sh(*args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["bash", str(RAIZ / "scripts" / "pi.sh"), *args],
-                          cwd=RAIZ, capture_output=True, text=True)
+    # encoding="utf-8" explícito (no basta text=True): systemctl status
+    # imprime "●"/"○" (UTF-8 multibyte) y el locale por defecto de Windows
+    # (cp1252) no los puede decodificar -- sin esto, subprocess.run()
+    # LANZA UnicodeDecodeError en vez de devolver el texto.
+    return subprocess.run([BASH, (RAIZ / "scripts" / "pi.sh").as_posix(), *args],
+                          cwd=RAIZ, capture_output=True, text=True,
+                          encoding="utf-8", errors="replace")
 
 
 def _verificar_pi_activa(host: str) -> None:
