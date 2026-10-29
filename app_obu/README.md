@@ -305,6 +305,136 @@ sin importar la trayectoria.
    los M1/M2 contra `rsu/2/solicitudes`. "Terminar emergencia" en la
    tablet debe mandar el MF y la app debe volver a la pantalla inicial.
 
+## Escenario PUCP
+
+Segundo escenario de prueba en mesa, cerca de la PUCP (San Miguel), con el
+grafo real `data/grafo_san_miguel_real.graphml` (cubre desde Santa Marina
+hasta más allá de la avenida La Marina, incluida esta zona):
+
+- **Origen:** `-12.071468, -77.078353` (Av. Universitaria).
+- **Destino:** `-12.0754746, -77.0755802` (Av. Abraham Lincoln).
+- **Ruta real** calculada por `servidor/rutas.py::calcular_ruta` (la misma
+  función que usa el servidor, Dijkstra sobre `length`): 871.5 m, 12 nodos,
+  Av. Universitaria (0–96 m) → tramo sin nombre en el grafo (96–170 m) →
+  Av. Simón Bolívar (170–355 m) → Av. Abraham Lincoln (355–872 m).
+- **RSU única del escenario (`rsu_id=2`):** `OSM-PUCP-04`, la intersección
+  real Av. Simón Bolívar / Av. Abraham Lincoln (nodo `316803089` del grafo,
+  a 354.5 m de recorrido), con sus 4 accesos calculados desde la geometría
+  real del grafo (rumbo entre ese nodo y cada vecino), no supuestos
+  perpendiculares. Ver `app_obu/pruebas/registro_rsu_pucp.json`.
+  - Ningún nodo `highway=traffic_signals` de OSM cae sobre esta ruta real
+    (se revisó el grafo completo, no solo sus 12 nodos). Por eso la
+    intersección se tomó cruzando la ruta con
+    `osm/salida_osm/candidatas_pucp.csv` (centroides reales de nodos
+    semaforizados cercanos a la PUCP): de las 40 filas, solo
+    `RSU-PUCP-03` (21 m de la polilínea, a 109 m de recorrido) y
+    `RSU-PUCP-04` (4.6 m de la polilínea, a 354.5 m de recorrido) quedan
+    sobre esta ruta real.
+  - **`RSU-PUCP-03` se descartó**: queda a solo ~119 m en línea recta del
+    origen (<150 m), sin holgura para que el servidor envíe el M1 con la
+    anticipación de RF-03/RF8 antes de que la OBU la cruce.
+  - **`RSU-PUCP-10` NO se usó**: aunque está cerca del destino en línea
+    recta (~220 m), queda a 138 m de la polilínea de la ruta real que
+    calcula `networkx` (por fuera de `RADIO_DETECCION_RSU_M=40 m` de
+    `cruzar_con_registro`) — con este origen/destino exactos, la ruta no
+    pasa por ella y el servidor nunca la habría incluido en la MR.
+- **Nunca usar `rsu_id=1`**: es el agente real de la Raspberry Pi
+  (`rsu-agent.service`), que puede seguir conectado al mismo broker
+  Mosquitto de la laptop por la campaña de otra sesión (ver
+  `docs/ARRANQUE_BROKER_LAPTOP.md`). Por eso
+  `app_obu/pruebas/registro_rsu_pucp.json` trae **solo** la entrada
+  `rsu_id=2` — igual que `registro_rsu_mesa.json` de la sección anterior,
+  nunca el registro completo (`config/registro_rsu.json`) para esta prueba.
+- **Trayectorias generadas** (a partir de la geometría real de la ruta, a
+  30 km/h constante, 1 Hz): `app_obu/pruebas/trayectoria_pucp.csv` (mismo
+  formato que `scripts/trayectorias/generar.py`, columnas
+  `t_s,lat,lon,rumbo_deg,velocidad_kmh`; usable por `gateway/obu_emulada.py`
+  y por el modo simulado de la app) y `app_obu/pruebas/trayectoria_pucp.gpx`
+  (equivalente, con `<time>` cada 1 s, para el emulador de Android).
+
+**Verificado sin la app** (controlador + RSU 2 emulada + servidor con el
+registro recortado + `gateway/obu_emulada.py` con esta trayectoria, 2026-10-29):
+el servidor envía el primer M1 a `rsu/2/solicitudes` a los ~26 s de misión
+(`t_servicio=8.0`, ETA informado por el controlador: **17 s de
+anticipación** antes de que la OBU llegue a la RSU hacia el t≈43 s), la RSU
+responde M2 `estado="concedida"` (fase forzada a verde), y al cruzar la
+intersección (t≈44 s) `M2` pasa a `estado="cancelada"` por caducidad de la
+solicitud (RF-09, `T_cad=3 s`, la OBU ya se alejó). La misión termina sola
+con `MF motivo="destino"` al llegar al final de la trayectoria (t=105 s).
+`ME` en la consola de `gateway/obu_emulada.py` muestra la misma secuencia:
+`pendiente` → `solicitada` → `concedida` → `solicitada` (renovaciones) →
+`None` (ya cruzada).
+
+### Levantar el escenario completo (PowerShell, desde `E:\Tesis\ntcip_middleware`)
+
+El código de `servidor/`, `controller/`, `agent/`, `gateway/` y `data/` es
+idéntico entre la rama `master` (worktree `E:\Tesis\ntcip_middleware`, donde
+sigue la campaña de medición con la Pi real) y esta rama `app-obu` (worktree
+`E:\Tesis\ntcip_app`, donde viven los archivos de este escenario) -- por eso
+los comandos de abajo corren desde `ntcip_middleware`, pero apuntan al
+registro y a la trayectoria con su **ruta absoluta** dentro de
+`ntcip_app\app_obu\pruebas\`. Si ya hay un `rsu_middleware.py`/
+`controller_emulator.py` corriendo para otra prueba (por ejemplo, el
+escenario de "Prueba en mesa" de la sección anterior) con el puerto SNMP
+`1162`/control `9001` ocupados, usar puertos distintos como aquí (`1171`/
+`9101`) para no pisarlos.
+
+1. **Mosquitto** ya corriendo en la laptop (Paso 2 de
+   `docs/ARRANQUE_BROKER_LAPTOP.md`; `Get-Service mosquitto` debe decir
+   `Running`).
+2. **Controlador emulado de la RSU 2** (ventana de PowerShell 1):
+   ```powershell
+   Set-Location "E:\Tesis\ntcip_middleware"
+   $env:RSU_ID = "2"; $env:RSU_EVENTOS_DIR = "resultados\rsu_pucp"
+   .\.venv\Scripts\python.exe controller\controller_emulator.py --port 9101
+   ```
+3. **Middleware de la RSU 2** (ventana de PowerShell 2, mismo broker):
+   ```powershell
+   Set-Location "E:\Tesis\ntcip_middleware"
+   $env:RSU_ID = "2"; $env:RSU_EVENTOS_DIR = "resultados\rsu_pucp"
+   $env:SNMP_PORT = "1171"; $env:CONTROLLER_PORT = "9101"
+   $env:MQTT_BROKER_HOST = "127.0.0.1"
+   .\.venv\Scripts\python.exe agent\rsu_middleware.py
+   ```
+4. **Servidor central**, con el registro del escenario PUCP (ventana de
+   PowerShell 3):
+   ```powershell
+   Set-Location "E:\Tesis\ntcip_middleware"
+   $env:REGISTRO_RSU_PATH = "E:\Tesis\ntcip_app\app_obu\pruebas\registro_rsu_pucp.json"
+   Remove-Item Env:\RSU_ID, Env:\SNMP_PORT, Env:\CONTROLLER_PORT -ErrorAction SilentlyContinue
+   .\.venv\Scripts\python.exe servidor\main.py
+   ```
+   (sin `GRAFO_SINTETICO`: usa `data\grafo_san_miguel_real.graphml`, que ya
+   cubre la zona de la PUCP.)
+5. **OBU** -- cualquiera de las dos:
+   - **OBU emulada** (ventana de PowerShell 4, sin la app):
+     ```powershell
+     Set-Location "E:\Tesis\ntcip_middleware"
+     .\.venv\Scripts\python.exe gateway\obu_emulada.py --broker-host 127.0.0.1 `
+       --trayectoria "E:\Tesis\ntcip_app\app_obu\pruebas\trayectoria_pucp.csv"
+     ```
+   - **App Android**, en Ajustes: mismo host/puerto/clase que la sección
+     anterior, activar "Modo simulado" y en "Trayectoria" tocar **"Elegir
+     archivo"** (no la integrada) para seleccionar
+     `trayectoria_pucp.csv` -- previamente copiada al dispositivo/emulador,
+     por ejemplo:
+     ```powershell
+     adb push "E:\Tesis\ntcip_app\app_obu\pruebas\trayectoria_pucp.csv" /sdcard/Download/
+     ```
+     y elegirla desde el picker del sistema (Descargas). En la pantalla
+     principal, tocar como destino cualquier punto sobre Av. Abraham
+     Lincoln más allá de la intersección con Av. Simón Bolívar (por
+     ejemplo, cerca de `-12.0755, -77.0756`, el extremo final de
+     `trayectoria_pucp.csv`) y "Iniciar emergencia".
+     **Verificación:** la ruta (MR) y el próximo semáforo (ME) deben
+     mostrar siempre `rsu_id="2"`, nunca `"1"`.
+6. Para el emulador de Android por GPS simulado en vez del modo simulado de
+   la app: Extended controls → Location → Routes → "Load GPX/KML" →
+   `app_obu\pruebas\trayectoria_pucp.gpx` → Play (reproduce respetando los
+   `<time>` de cada punto, 1 s entre muestras); en ese caso NO activar
+   "Modo simulado" en Ajustes (la app toma la posición del GPS del
+   emulador, que ya sigue esta ruta).
+
 ## Estructura (etapas 2 y 3, dejadas listas pero sin implementar)
 
 - `obu/velocidad/FuentePosicion.kt`: interfaz de posición+velocidad+rumbo
