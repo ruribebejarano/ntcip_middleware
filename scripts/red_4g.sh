@@ -73,6 +73,12 @@ consultar_at() {
   # Consulta best-effort por el puerto AT, sin dejar ModemManager tomado el
   # puerto al salir: si estaba activo, se detiene antes de abrir el puerto y
   # se reinicia al terminar (incluso si la consulta falla).
+  #
+  # NOTA: se restaura ModemManager explícitamente en CADA punto de salida
+  # (no con `trap ... RETURN`): ese trap dispara despues de que bash ya
+  # destruyo el scope de las variables `local` de esta funcion, asi que
+  # referenciar $mm_activo ahi da "unbound variable" bajo `set -u` --
+  # pasó de verdad en la campaña pi-lan del 2026-10-28.
   local puerto="$1"; shift
   if [ ! -e "$puerto" ]; then
     echo "(puerto $puerto no existe)"
@@ -84,19 +90,17 @@ consultar_at() {
     sudo systemctl stop ModemManager
     sleep 0.3
   fi
-  restaurar_mm() {
-    if [ "$mm_activo" = "1" ]; then
-      sudo systemctl start ModemManager
-    fi
-  }
-  trap restaurar_mm RETURN
   if ! stty -F "$puerto" 115200 raw -echo 2>/dev/null; then
     echo "(no se pudo configurar $puerto)"
+    [ "$mm_activo" = "1" ] && sudo systemctl start ModemManager
     return 0
   fi
   ( for c in "$@"; do printf '%s\r' "$c" > "$puerto"; sleep 0.3; done ) &
   timeout 2 cat "$puerto" 2>/dev/null || true
   wait 2>/dev/null || true
+  if [ "$mm_activo" = "1" ]; then
+    sudo systemctl start ModemManager
+  fi
 }
 
 estado() {
