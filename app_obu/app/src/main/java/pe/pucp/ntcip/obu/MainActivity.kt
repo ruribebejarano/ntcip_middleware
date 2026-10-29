@@ -99,12 +99,18 @@ class MainActivity : AppCompatActivity() {
     // --- Posición mientras no hay misión ---------------------------------
 
     private fun iniciarSeguimientoIdle() {
-        if (!permisosUbicacionOk()) return
         jobFuenteIdle?.cancel()
         val prefs = Prefs(this)
+        // El permiso de ubicación solo hace falta para el GNSS real: el
+        // modo simulado (sin GNSS, ver Ajustes) no debe depender de él --
+        // si se exigiera aquí, un permiso denegado o todavía no concedido
+        // dejaría la trayectoria simulada sin arrancar nunca, y el botón
+        // "Iniciar emergencia" nunca se habilitaría pese a estar en modo
+        // simulado.
         val fuente: FuentePosicion = if (prefs.modoSimulado) {
             FuenteSimulada(this, prefs.trayectoriaUri?.let(Uri::parse))
         } else {
+            if (!permisosUbicacionOk()) return
             FuenteGnss(this)
         }
         jobFuenteIdle = lifecycleScope.launch {

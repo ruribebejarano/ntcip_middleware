@@ -162,7 +162,16 @@ class ObuSessionService : LifecycleService() {
         mqtt?.enviarMP(mp)
         eventos?.log(
             EventosObu.MP_TX, "-",
-            mapOf("seq" to seq, "lat" to mp.lat, "lon" to mp.lon, "velocidad_kmh" to mp.velocidad_kmh, "rumbo_deg" to mp.rumbo_deg),
+            mapOf(
+                "seq" to seq, "lat" to mp.lat, "lon" to mp.lon,
+                "velocidad_kmh" to mp.velocidad_kmh, "rumbo_deg" to mp.rumbo_deg,
+                // No van en el MP del contrato (solo informativos, en el
+                // registro de eventos de la app): precision_m del fix GNSS
+                // (null en modo simulado) y si el rumbo de este MP fue
+                // medido o heredado del último real conocido -- ver
+                // FuenteGnss/EvaluadorFixGnss.
+                "precision_m" to muestra.precisionM, "rumbo_medido" to muestra.rumboMedido,
+            ),
         )
     }
 

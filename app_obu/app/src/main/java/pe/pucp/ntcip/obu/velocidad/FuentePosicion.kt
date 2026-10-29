@@ -9,6 +9,11 @@ data class MuestraPosicion(
     val rumboDeg: Double,
     val fuenteVelocidad: String, // "gps" | "simulada" -- ver nota sobre el enum del contrato en app_obu/README.md
     val tsMs: Long,
+    // rumboMedido=false cuando rumboDeg viene heredado del último rumbo
+    // real conocido (o del valor por defecto si nunca hubo uno) -- ver
+    // FuenteGnss. precisionM=null cuando no aplica (FuenteSimulada).
+    val rumboMedido: Boolean = true,
+    val precisionM: Float? = null,
 )
 
 /**

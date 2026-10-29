@@ -125,6 +125,31 @@ Cuidado de batería y dispositivo > Batería > Límites de uso en segundo
 plano, para que la app no quede en "Apps en reposo profundo"/"Apps
 inactivas").
 
+## Criterio de "fix GNSS válido"
+
+`FuenteGnss.kt` (lógica pura y probada por unidad en
+`EvaluadorFixGnss.kt`/`EvaluadorFixGnssTest.kt`) decide si un fix GNSS es
+publicable por su **calidad** -- proveedor GPS, precisión horizontal
+(`Location.accuracy`) dentro de 30 m por defecto, y antigüedad de la
+lectura menor a 5 s -- y NO por si trae velocidad o rumbo. Con el
+vehículo detenido en una cola o en un semáforo en rojo, Android
+normalmente deja de reportar `speed`/`bearing` aunque el fix siga siendo
+bueno; descartar esas muestras habría congelado la misión en el servidor
+justo en el peor momento. Sin velocidad se envía `0.0`; sin rumbo se
+hereda el último rumbo real conocido de la misión (importante: el
+servidor usa `rumbo_deg` para decidir si la OBU sigue encarando el acceso
+ya asignado, ver `gateway/geometria.py::SeguidorAcceso` -- un rumbo
+inventado ahí podría cancelar la solicitud de prioridad por
+`MOTIVO_RUMBO` solo por estar detenido, no desviado). Si nunca hubo un
+rumbo real todavía (arranque de la misión sin haberse movido), se manda
+0.0° como mejor esfuerzo -- de bajo riesgo en la práctica, porque para que
+importe el vehículo ya tendría que estar dentro del radio de detección de
+una RSU sin haberse movido nunca desde que se armó la misión. El registro
+de eventos (`MP_tx`) guarda `precision_m` y `rumbo_medido` (si el rumbo de
+esa muestra fue medido o heredado) para poder auditar esto después; esos
+dos campos NO van en el MP que recibe el servidor, solo en el CSV de
+eventos de la app.
+
 ## Modo simulado (pruebas en mesa sin GNSS)
 
 Desactivado por defecto. Desde Ajustes: activar "Modo simulado" y, si se
@@ -134,6 +159,14 @@ velocidad_kmh` por nombre de cabecera) -- por defecto usa
 `avenida_ab_s1.csv`, incluido como asset
 (`app/src/main/assets/trayectorias/`), copiado de
 `resultados/trayectorias/avenida_ab_s1.csv`.
+
+Con el modo activo, la posición (en la pantalla principal y como origen
+del MI) viene de la trayectoria, no del GPS -- no depende de
+`ACCESS_FINE_LOCATION` estar concedido para que el botón "Iniciar
+emergencia" se habilite. (`POST_NOTIFICATIONS` y el propio permiso de
+ubicación sí siguen haciendo falta para arrancar el foreground service,
+que siempre es de tipo `location` aunque la posición sea simulada --
+exigencia de Android al declarar ese tipo, no de esta app.)
 
 Mientras está activo: un aviso en rojo fijo en pantalla ("MODO SIMULADO —
 sin GPS real"), y los MP van con `"fuente_velocidad": "simulada"` -- un
@@ -253,11 +286,21 @@ sin importar la trayectoria.
    (usa `avenida_ab_s1.csv` por defecto, que cruza geográficamente las dos
    RSU del registro completo -- con el registro recortado del paso 3,
    solo debería aparecer la RSU 2 en la ruta).
-5. En la tablet: tocar el mapa para elegir un destino, "Iniciar
-   emergencia". **Verificación:** la ruta (MR) y el próximo semáforo (ME)
-   que aparecen en la app deben mostrar siempre `rsu_id="2"`, nunca `"1"`.
-   Si aparece `"1"`, detener la prueba y revisar `REGISTRO_RSU_PATH` (no
-   se habrá aplicado el registro recortado).
+5. En la tablet: tocar el mapa como destino un punto sobre la misma
+   avenida de `avenida_ab_s1.csv`, más allá de la RSU 2 (OSM-C902, centro
+   en `-12.0997, -77.0323`) -- por ejemplo **`-12.0976, -77.0327`**
+   (el extremo final de esa trayectoria, unos 250 m al norte de la RSU
+   2). El origen lo pone la propia app (primer punto de la trayectoria
+   simulada, `-12.1088, -77.0305`); con ese origen y ese destino, la ruta
+   que calcule `servidor/rutas.py` sobre el grafo real debería seguir
+   aproximadamente la misma calle que recorre `avenida_ab_s1.csv` y pasar
+   por la RSU 2 en el camino. Si el destino se elige antes de la RSU 2 (o
+   en otra calle), la ruta puede no cruzarla y la prueba no sirve para
+   verificar el paso 6. Tras elegir destino, "Iniciar emergencia".
+   **Verificación:** la ruta (MR) y el próximo semáforo (ME) que aparecen
+   en la app deben mostrar siempre `rsu_id="2"`, nunca `"1"`. Si aparece
+   `"1"`, detener la prueba y revisar `REGISTRO_RSU_PATH` (no se habrá
+   aplicado el registro recortado).
 6. En la consola de `servidor/main.py` deben verse los MI/MP recibidos y
    los M1/M2 contra `rsu/2/solicitudes`. "Terminar emergencia" en la
    tablet debe mandar el MF y la app debe volver a la pantalla inicial.

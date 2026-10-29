@@ -1,0 +1,103 @@
+package pe.pucp.ntcip.obu.velocidad
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+
+/**
+ * El vehículo detenido en una cola o en un semáforo en rojo es el caso
+ * que motivó este criterio (ver el comentario de FuenteGnss): Android
+ * normalmente deja de reportar velocidad/rumbo ahí, y el fix no debe
+ * descartarse por eso.
+ */
+class EvaluadorFixGnssTest {
+
+    private fun evaluador() = EvaluadorFixGnss(precisionMaximaM = 30f, antiguedadMaximaMs = 5000L)
+
+    @Test
+    fun `fix bueno con velocidad y rumbo medidos se acepta tal cual`() {
+        val r = evaluador().evaluar(
+            lat = -12.10, lon = -77.03,
+            tieneVelocidad = true, velocidadMs = 10f,
+            tieneRumbo = true, rumboDeg = 90f,
+            tienePrecision = true, precisionM = 5f,
+            tsFixMs = 1000L, ahoraMs = 1500L,
+        )
+        assertEquals(36.0, r!!.velocidadKmh, 0.01) // 10 m/s * 3.6
+        assertEquals(90.0, r.rumboDeg, 0.01)
+        assertEquals(true, r.rumboMedido)
+    }
+
+    @Test
+    fun `vehiculo detenido sin velocidad ni rumbo, pero con precision buena, no se descarta`() {
+        val ev = evaluador()
+        // primero un fix en movimiento, para dejar un rumbo conocido
+        ev.evaluar(
+            lat = -12.10, lon = -77.03,
+            tieneVelocidad = true, velocidadMs = 10f,
+            tieneRumbo = true, rumboDeg = 123.0f,
+            tienePrecision = true, precisionM = 5f,
+            tsFixMs = 1000L, ahoraMs = 1000L,
+        )
+        // luego se detiene: sin speed ni bearing, pero el fix sigue siendo bueno
+        val detenido = ev.evaluar(
+            lat = -12.10, lon = -77.03,
+            tieneVelocidad = false, velocidadMs = 0f,
+            tieneRumbo = false, rumboDeg = 0f,
+            tienePrecision = true, precisionM = 5f,
+            tsFixMs = 2000L, ahoraMs = 2000L,
+        )
+        assertEquals(0.0, detenido!!.velocidadKmh, 0.01)
+        assertEquals(123.0, detenido.rumboDeg, 0.01) // heredado, no inventado
+        assertEquals(false, detenido.rumboMedido)
+    }
+
+    @Test
+    fun `sin ningun rumbo previo, usa el valor por defecto documentado`() {
+        val r = evaluador().evaluar(
+            lat = -12.10, lon = -77.03,
+            tieneVelocidad = false, velocidadMs = 0f,
+            tieneRumbo = false, rumboDeg = 0f,
+            tienePrecision = true, precisionM = 5f,
+            tsFixMs = 1000L, ahoraMs = 1000L,
+        )
+        assertEquals(FuenteGnss.RUMBO_POR_DEFECTO_SIN_HISTORIA, r!!.rumboDeg, 0.01)
+        assertEquals(false, r.rumboMedido)
+    }
+
+    @Test
+    fun `precision peor que el umbral descarta el fix`() {
+        val r = evaluador().evaluar(
+            lat = -12.10, lon = -77.03,
+            tieneVelocidad = true, velocidadMs = 10f,
+            tieneRumbo = true, rumboDeg = 90f,
+            tienePrecision = true, precisionM = 45f, // > 30 m
+            tsFixMs = 1000L, ahoraMs = 1000L,
+        )
+        assertNull(r)
+    }
+
+    @Test
+    fun `sin precision reportada se descarta (no se puede evaluar la calidad)`() {
+        val r = evaluador().evaluar(
+            lat = -12.10, lon = -77.03,
+            tieneVelocidad = true, velocidadMs = 10f,
+            tieneRumbo = true, rumboDeg = 90f,
+            tienePrecision = false, precisionM = 0f,
+            tsFixMs = 1000L, ahoraMs = 1000L,
+        )
+        assertNull(r)
+    }
+
+    @Test
+    fun `fix demasiado antiguo se descarta aunque la precision sea buena`() {
+        val r = evaluador().evaluar(
+            lat = -12.10, lon = -77.03,
+            tieneVelocidad = true, velocidadMs = 10f,
+            tieneRumbo = true, rumboDeg = 90f,
+            tienePrecision = true, precisionM = 5f,
+            tsFixMs = 1000L, ahoraMs = 1000L + 5001L,
+        )
+        assertNull(r)
+    }
+}
