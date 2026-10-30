@@ -7,8 +7,12 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 
 /**
  * GNSS real vía `LocationManager.GPS_PROVIDER` directo -- sin Google Play
@@ -44,6 +48,10 @@ import kotlinx.coroutines.flow.callbackFlow
  *   el espaciado real entre RSU de este proyecto (cientos de metros) no
  *   pasa en la práctica.
  *
+ * [estado] expone, para el indicador de la UI, también las lecturas que
+ * NO pasan el criterio (precisión insuficiente) y la ausencia de lecturas
+ * (buscando señal). Solo se actualiza mientras alguien colecta [muestras].
+ *
  * Etapa 2 (lector OBD-II ELM327 por Bluetooth, velocidad PID 0x0D a 1 Hz
  * con GPS de respaldo): reemplazaría solo `velocidadKmh` de cada muestra
  * aquí (manteniendo lat/lon/rumbo de este GNSS), cayendo a esta misma
@@ -53,16 +61,24 @@ import kotlinx.coroutines.flow.callbackFlow
 class FuenteGnss(
     context: Context,
     precisionMaximaM: Float = PRECISION_MAXIMA_DEFECTO_M,
-    antiguedadMaximaMs: Long = ANTIGUEDAD_MAXIMA_DEFECTO_MS,
+    private val antiguedadMaximaMs: Long = ANTIGUEDAD_MAXIMA_DEFECTO_MS,
 ) : FuentePosicion {
     private val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private val evaluador = EvaluadorFixGnss(precisionMaximaM, antiguedadMaximaMs)
 
+    private val _estado = MutableStateFlow<EstadoGnss>(EstadoGnss.Buscando)
+    val estado: StateFlow<EstadoGnss> = _estado
+
     @SuppressLint("MissingPermission") // el llamador ya pidió ACCESS_FINE_LOCATION antes de usar esta clase
     override val muestras: Flow<MuestraPosicion> = callbackFlow {
+        var ultimaLecturaMs = 0L
+        _estado.value = EstadoGnss.Buscando
         val listener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
                 if (location.provider != LocationManager.GPS_PROVIDER) return
+                val ahora = System.currentTimeMillis()
+                ultimaLecturaMs = ahora
+                _estado.value = evaluador.clasificar(location.hasAccuracy(), location.accuracy, location.time, ahora)
                 val muestra = evaluador.evaluar(
                     lat = location.latitude,
                     lon = location.longitude,
@@ -73,7 +89,7 @@ class FuenteGnss(
                     tienePrecision = location.hasAccuracy(),
                     precisionM = location.accuracy,
                     tsFixMs = location.time,
-                    ahoraMs = System.currentTimeMillis(),
+                    ahoraMs = ahora,
                 ) ?: return
                 trySend(muestra)
             }
@@ -81,10 +97,24 @@ class FuenteGnss(
             @Deprecated("Deprecated in Java, pero sigue siendo parte de la interfaz LocationListener")
             override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
             override fun onProviderEnabled(provider: String) {}
-            override fun onProviderDisabled(provider: String) {}
+            override fun onProviderDisabled(provider: String) {
+                _estado.value = EstadoGnss.Buscando
+            }
         }
         lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 0f, listener)
-        awaitClose { lm.removeUpdates(listener) }
+        // Sin lecturas nuevas (bajo techo, túnel), Android simplemente deja
+        // de llamar a onLocationChanged: el último estado quedaría "listo"
+        // para siempre si nadie lo vence.
+        launch {
+            while (true) {
+                delay(1000L)
+                if (System.currentTimeMillis() - ultimaLecturaMs > antiguedadMaximaMs) _estado.value = EstadoGnss.Buscando
+            }
+        }
+        awaitClose {
+            lm.removeUpdates(listener)
+            _estado.value = EstadoGnss.Inactivo
+        }
     }
 
     companion object {

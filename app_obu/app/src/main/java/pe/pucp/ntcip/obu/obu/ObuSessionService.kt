@@ -46,6 +46,7 @@ class ObuSessionService : LifecycleService() {
     private var ultimoTsMeAplicado = -1L
 
     private var jobFuente: Job? = null
+    private var jobEstadoGnss: Job? = null
     private var jobTicker: Job? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -103,6 +104,12 @@ class ObuSessionService : LifecycleService() {
         )
         mqtt = cliente
 
+        // La fuente arranca ya (no después de conectar): conectar() puede
+        // tardar varios segundos sin red, y mientras tanto el indicador de
+        // la UI quedaría en "sin fix" aunque el GNSS esté listo. No publica
+        // nada por sí sola -- el ticker de MP arranca después del MI.
+        iniciarFuentePosicion(prefs)
+
         lifecycleScope.launch {
             runCatching { cliente.conectar() }
             val ahora = System.currentTimeMillis()
@@ -117,7 +124,6 @@ class ObuSessionService : LifecycleService() {
             eventoLogger.log(EventosObu.MI_TX, "-", mapOf("clase" to prefs.clase, "destino_lat" to destinoLat, "destino_lon" to destinoLon))
             medirReloj("inicio")
 
-            iniciarFuentePosicion(prefs)
             iniciarTickerPublicacion()
         }
     }
@@ -129,6 +135,9 @@ class ObuSessionService : LifecycleService() {
         } else {
             FuenteGnss(this)
         }
+        jobEstadoGnss = (fuente as? FuenteGnss)?.estado?.onEach { e ->
+            ObuSessionRepository.actualizar { it.copy(estadoGnss = e) }
+        }?.launchIn(lifecycleScope)
         jobFuente = fuente.muestras.onEach { muestra ->
             ultimaMuestra = muestra
             ultimaMuestraEnMs = SystemClock.elapsedRealtime()
@@ -239,6 +248,7 @@ class ObuSessionService : LifecycleService() {
     private suspend fun finalizarLocal() {
         jobTicker?.cancel()
         jobFuente?.cancel()
+        jobEstadoGnss?.cancel()
         mqtt?.desconectar()
         ObuSessionRepository.actualizar { it.copy(misionActiva = false) }
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
@@ -278,6 +288,7 @@ class ObuSessionService : LifecycleService() {
     override fun onDestroy() {
         jobTicker?.cancel()
         jobFuente?.cancel()
+        jobEstadoGnss?.cancel()
         super.onDestroy()
     }
 

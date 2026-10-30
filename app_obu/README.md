@@ -88,7 +88,113 @@ visible cuando no hay misión activa, ver §6 del contrato):
   desarrollo; nunca el broker de producción sin cifrar.
 - **Clase NTCIP 1211** (por defecto 1 -- la única reconocida hoy por
   `agent/ntcip1211.py::CLASES_EMERGENCIA_RECONOCIDAS`).
-- **Modo simulado** y la trayectoria CSV que usa (ver abajo).
+- **Modo simulado** y la trayectoria CSV que usa (ver abajo). Es la misma
+  preferencia que el selector "Ruta emulada / GPS real" de la pantalla
+  principal: cambiarla en un lado se ve en el otro.
+
+## Pantalla principal: Ruta emulada / GPS real
+
+Sin misión activa, el panel inferior muestra un selector de dos opciones
+(misma preferencia que "Modo simulado" en Ajustes):
+
+- **Ruta emulada**: debajo, el nombre del archivo de trayectoria en uso
+  (`trayectoria_casa.csv`, o `avenida_ab_s1.csv (incluida)`) y un botón
+  **Cambiar** que abre el selector de archivos de Android.
+- **GPS real**: debajo, el estado del GNSS --
+  gris "Buscando señal GNSS…" (ninguna lectura del proveedor GPS en los
+  últimos 5 s), naranja "Precisión 45 m — esperando ≤ 30 m" (hay lectura
+  pero no pasa el criterio de §"Criterio de fix GNSS válido"), verde "GNSS
+  listo · ±6 m". **"Iniciar emergencia" solo se habilita en verde** (además
+  de tener destino elegido); si la señal se pierde, vuelve a gris en ≤ 6 s
+  y el botón se deshabilita aunque haya una posición anterior en el mapa.
+
+Al cambiar de opción se descarta la posición de la fuente anterior (no
+sirve como origen del MI de la nueva).
+
+Durante la misión el selector desaparece y queda un indicador pequeño
+sobre la tarjeta del semáforo: **EMULADA** (morado) o **GPS ±7 m** (verde;
+naranja si la precisión empeora por encima de 30 m; rojo "GPS · sin fix"
+sin lecturas). Reemplaza al antiguo aviso rojo "MODO SIMULADO".
+
+## Probar en la tablet real
+
+Galaxy Tab S6 Lite (SM-P610, Android 13, solo Wi-Fi). Pasos una sola vez
+por equipo, salvo donde se indica.
+
+1. **Instalar el APK** (ver "Instalar en la tablet (USB)"): con la tablet
+   por USB y la depuración USB activada,
+   ```bash
+   adb install -r app_obu/app/build/outputs/apk/debug/app-debug.apk
+   ```
+   Sin `adb`: copiar `app-debug.apk` a `Download/` de la tablet y abrirlo
+   desde la app "Mis archivos" (pide permitir "instalar apps desconocidas"
+   para Mis archivos -- solo esa vez).
+2. **Permisos** (la app los pide al abrirse; si se negaron: Ajustes de
+   Android > Aplicaciones > OBU NTCIP > Permisos):
+   - Ubicación: **"Permitir solo mientras se usa la app"** y **"Usar
+     ubicación precisa"** activado (sin ubicación precisa el GPS entrega
+     precisiones de cientos de metros y nunca pasa a "listo"). No hace
+     falta "Permitir todo el tiempo" (ver más abajo, foreground service).
+   - Notificaciones: permitir (el foreground service de la misión la
+     necesita).
+   - Batería: "Sin restricciones" (ver "Batería en Samsung/One UI").
+   - Ubicación del sistema activada (panel rápido). Opcional pero ayuda a
+     la primera fijación: Ajustes > Ubicación > Servicios de ubicación >
+     "Precisión de ubicación de Google" -- sin datos móviles la tablet no
+     tiene A-GPS, así que conviene abrir la app en "GPS real" unos minutos
+     antes, cerca de una ventana o ya en la calle, hasta ver el verde.
+3. **Host del broker** (Ajustes de la app > Host del broker MQTT, puerto
+   1883). Dos opciones:
+   - **Red de casa (LAN)**: la IP de la laptop en el Wi-Fi de casa
+     (`ipconfig` en PowerShell, "Adaptador de LAN inalámbrica Wi-Fi" >
+     "Dirección IPv4", p. ej. `192.168.1.34`). Solo sirve mientras la
+     tablet esté en ese mismo Wi-Fi -- **no para la caminata**: en cuanto
+     sale del alcance del router pierde la conexión.
+   - **Tailscale** (la que sirve para caminar): la tablet sale a internet
+     por el hotspot del celular y llega a la laptop por Tailscale. Instalar
+     Tailscale en la tablet (Play Store), iniciar sesión con la misma
+     cuenta que la laptop, y usar la IP `100.x` de la laptop
+     (`tailscale ip -4`, hoy `100.121.77.97`). La laptop puede quedarse en
+     casa conectada al Wi-Fi.
+   `demo_casa.ps1` imprime ambas IP al arrancar.
+4. **Mosquitto escuchando fuera de la laptop**: `mosquitto.conf` debe
+   tener `listener 1883 0.0.0.0` y `allow_anonymous true` (ver
+   `docs/ARRANQUE_BROKER_LAPTOP.md`, Paso 2; con solo `listener 1883` sin
+   dirección, o sin listener, Mosquitto 2.x escucha únicamente en
+   `127.0.0.1`). Reiniciar el servicio después de editarlo:
+   ```powershell
+   Restart-Service mosquitto
+   ```
+5. **Regla de firewall para el 1883** (PowerShell como administrador). Para
+   Tailscale ya existe la de `docs/ARRANQUE_BROKER_LAPTOP.md`
+   (`-RemoteAddress 100.64.0.0/10`). Para la LAN de casa, limitada a la
+   subred local y al perfil privado:
+   ```powershell
+   New-NetFirewallRule -DisplayName "Mosquitto tesis (LAN casa)" -Direction Inbound `
+     -Protocol TCP -LocalPort 1883 -RemoteAddress LocalSubnet -Profile Private -Action Allow
+   ```
+   (el Wi-Fi de casa debe estar marcado como red **Privada** en Windows; si
+   está como Pública la regla no aplica). Comprobar desde la laptop:
+   ```powershell
+   Get-NetTCPConnection -LocalPort 1883 -State Listen
+   ```
+   debe mostrar `0.0.0.0`. Desde la tablet, la app deja de mostrar "Sin
+   conexión con el servidor" al iniciar una misión.
+6. **Copiar la trayectoria a la tablet por USB** (para "Ruta emulada"):
+   - Con `adb`:
+     ```bash
+     adb push app_obu/pruebas/trayectoria_casa.csv /sdcard/Download/
+     ```
+   - Sin `adb`: conectar por USB, en la tablet elegir "Transferir
+     archivos" en la notificación de USB, y en el Explorador de Windows
+     copiar el `.csv` a `Galaxy Tab S6 Lite > Tablet > Download`.
+   Luego en la app: "Ruta emulada" > **Cambiar** > Descargas > el archivo.
+   La app guarda el permiso de lectura del archivo; no hace falta volver a
+   elegirlo tras reiniciar.
+
+Prueba rápida antes de salir: "Ruta emulada" con `trayectoria_casa.csv`
+contra el broker por la misma IP que se usará afuera -- si eso funciona,
+lo único que cambia en la calle es la fuente de posición.
 
 ## Por qué no se pide `ACCESS_BACKGROUND_LOCATION`
 
@@ -168,8 +274,8 @@ ubicación sí siguen haciendo falta para arrancar el foreground service,
 que siempre es de tipo `location` aunque la posición sea simulada --
 exigencia de Android al declarar ese tipo, no de esta app.)
 
-Mientras está activo: un aviso en rojo fijo en pantalla ("MODO SIMULADO —
-sin GPS real"), y los MP van con `"fuente_velocidad": "simulada"` -- un
+Mientras está activo: el indicador "EMULADA" durante la misión (ver "Pantalla principal"),
+y los MP van con `"fuente_velocidad": "simulada"` -- un
 valor que **no** está en el enum de `docs/CONTRATO_OBU.md` §3
 (`"obd2"|"gps"|"respaldo"`); ver `app_obu/PROPUESTA_FIN_MISION.md`, §4,
 para la extensión de contrato sugerida (no aplicada, es solo una
@@ -595,6 +701,76 @@ una) sin necesitar la tablet ni el emulador -- la demo al asesor puede
 mostrarse igual, viendo la consola del servidor y de esta OBU emulada en
 paralelo. Con `--factor 4` o `--factor 6` se acorta a ~75 s/~50 s en vez de
 los 302 s reales, útil si el tiempo de la reunión es corto.
+
+## Escenario casa (caminando con GPS real)
+
+Una sola RSU emulada (**rsu_id 7**) en una intersección semaforizada real
+de OSM sobre la ruta entre la casa y un destino a pie. Todo sale de
+`pruebas/generar_escenario_casa.py`:
+
+```bash
+python app_obu/pruebas/generar_escenario_casa.py --origen=LAT,LON --destino=LAT,LON
+```
+
+(con `=` para que el signo menos de las coordenadas no se lea como opción).
+El script:
+
+1. verifica que `data/grafo_san_miguel_real.graphml` cubra ambos puntos (si
+   no, imprime el `scripts/datos/regenerar_grafo.py --norte/--sur/--este/
+   --oeste` con una caja que une la actual y los puntos nuevos, para no
+   romper los otros escenarios, y termina con código 2);
+2. calcula la ruta con `servidor/rutas.py::calcular_ruta` -- la misma que
+   enviará el servidor en el MR. **Es una ruta de red vial `drive`**
+   (respeta sentidos únicos): hay que caminar por esa ruta (la línea del MR
+   en el mapa de la app), no por un atajo peatonal; a más de 60 m de ella
+   el servidor recalcula por desvío;
+3. lista los nodos de la ruta con `highway=traffic_signals` en el grafo (o
+   a ≤ 25 m de uno) y `street_count ≥ 3`, a ≥ 200 m del origen, **simula
+   `GestorMision` con cada uno** a 5 km/h y elige el primero en el que el
+   M1 sale por geocerca (ver abajo por qué importa);
+4. escribe `pruebas/registro_rsu_casa.json` (accesos y rumbos desde la
+   geometría real) y `pruebas/trayectoria_casa.csv` (5 km/h, 1 Hz, para el
+   ensayo en "Ruta emulada").
+
+Levantar RSU 7 + servidor (desde `E:\Tesis\ntcip_middleware`, como el del
+Hospital del Niño): `pruebas/demo_casa.ps1`; detener con
+`pruebas/detener_casa.ps1`. El script avisa si Mosquitto solo escucha en
+`127.0.0.1` o si falta la regla de firewall, e imprime las IP para la app.
+
+En la tablet: "GPS real", esperar el verde, tocar el destino, "Iniciar
+emergencia", caminar por la ruta.
+
+### Velocidad a pie: cuándo sale el M1
+
+Medido con la simulación del propio generador (parámetros actuales del
+servidor, sin calibrar):
+
+- **El M1 sale por la geocerca R_g = 150 m**, no por ETA: a 5 km/h eso es
+  ~108 s antes de llegar al cruce, y se renueva a 1 Hz (≈ 108 M1 con
+  `seq` creciente) hasta cruzar. El primer M1 lleva `t_servicio = 8`
+  (`ANTICIPACION_MINIMA_S`), no el ETA real (~108 s): la vía de geocerca de
+  `gestor_mision.py::_aplicar_decision_geocerca` no usa el ETA. Con un
+  vehículo a 40 km/h, 150 m son ~13 s y la diferencia no importa; a pie la
+  prioridad se pediría casi dos minutos antes.
+- **El disparo por ETA** (`eta ≤ ANTICIPACION_MINIMA_S = 8 s`) a 5 km/h
+  solo actuaría a ~11 m del cruce -- la geocerca siempre llega antes.
+- **`VELOCIDAD_RESPALDO_KMH = 30`**: si el MP trae `velocidad_kmh ≤ 1`
+  (parado en la esquina, o Android sin `speed`, que la app envía como 0),
+  el servidor asume 30 km/h, y el ETA mostrado cae (p. ej. 60 m → 7 s en
+  vez de 43 s). A pie es frecuente: el ETA de la tarjeta puede saltar
+  mientras uno espera. No adelanta el M1 en la práctica porque la geocerca
+  ya lo emitió antes.
+- **Origen demasiado cerca del semáforo**: si el origen queda a menos de
+  R_i + margen = 350 m en línea recta del semáforo y la ruta da vueltas,
+  `SeguidorAcceso` puede asignarlo con otro acceso, darlo por "cruzado" y
+  excluirlo hasta salir de 350 m -- entonces el M1 sale solo por ETA a
+  ~11 m y **sin renovaciones** (la RSU lo caduca a los 3 s, RF-09). Por eso
+  el generador simula cada candidata y prefiere las que disparan por
+  geocerca; si ninguna lo hace, lo avisa.
+- El rumbo GPS caminando es ruidoso: con `psi_tol = 30°` y 3 muestras
+  seguidas fuera, una vereda con curvas o cruzar la calle en diagonal
+  puede cancelar la solicitud por `rumbo_divergente`. Caminar recto por la
+  vereda del lado de la ruta.
 
 ## Estructura (etapas 2 y 3, dejadas listas pero sin implementar)
 

@@ -2,6 +2,7 @@ package pe.pucp.ntcip.obu.obu
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import pe.pucp.ntcip.obu.velocidad.EstadoGnss
 
 /**
  * Estado compartido entre [pe.pucp.ntcip.obu.obu.ObuSessionService] y la
@@ -18,6 +19,9 @@ data class EstadoSesion(
     val ultimoEstado: MensajeME? = null,
     val ultimaPosicion: Pair<Double, Double>? = null,
     val sinFixGnss: Boolean = false,
+    // Lo escribe quien tenga la fuente GNSS arrancada (misma invariante
+    // que ultimaPosicion); Inactivo en modo "Ruta emulada".
+    val estadoGnss: EstadoGnss = EstadoGnss.Inactivo,
     val sinConexionServidor: Boolean = false,
     val motivoFinReciente: String? = null,
 )

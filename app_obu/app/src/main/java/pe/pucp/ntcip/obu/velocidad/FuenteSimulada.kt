@@ -2,6 +2,7 @@ package pe.pucp.ntcip.obu.velocidad
 
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -90,5 +91,18 @@ class FuenteSimulada(
         // simulado por defecto y la prueba en mesa documentada son la
         // misma corrida, sin tener que elegir un archivo.
         const val TRAYECTORIA_INTEGRADA = "trayectorias/avenida_ab_s1.csv"
+
+        /**
+         * Nombre de archivo para mostrar en la UI ("trayectoria_casa.csv"),
+         * no el URI de SAF ("primary:Download/..."). null = la integrada.
+         */
+        fun nombreVisible(context: Context, uriTrayectoria: Uri?): String {
+            if (uriTrayectoria == null) return TRAYECTORIA_INTEGRADA.substringAfterLast('/') + " (incluida)"
+            val nombre = runCatching {
+                context.contentResolver.query(uriTrayectoria, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                    ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+            }.getOrNull()
+            return nombre ?: uriTrayectoria.lastPathSegment?.substringAfterLast('/') ?: uriTrayectoria.toString()
+        }
     }
 }

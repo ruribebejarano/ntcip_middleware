@@ -29,6 +29,7 @@ import pe.pucp.ntcip.obu.obu.ObuSessionRepository
 import pe.pucp.ntcip.obu.obu.ObuSessionService
 import pe.pucp.ntcip.obu.obu.Prefs
 import pe.pucp.ntcip.obu.obu.textoEstadoNatural
+import pe.pucp.ntcip.obu.velocidad.EstadoGnss
 import pe.pucp.ntcip.obu.velocidad.FuenteGnss
 import pe.pucp.ntcip.obu.velocidad.FuentePosicion
 import pe.pucp.ntcip.obu.velocidad.FuenteSimulada
@@ -50,7 +51,17 @@ class MainActivity : AppCompatActivity() {
 
     private val pedirPermisos = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         if (!ObuSessionRepository.estado.value.misionActiva) iniciarSeguimientoIdle()
-        actualizarBotonAccion()
+        aplicarEstado(ObuSessionRepository.estado.value)
+    }
+
+    // Mismo selector de archivo que Ajustes (misma preferencia trayectoriaUri).
+    private val elegirTrayectoria = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            Prefs(this).trayectoriaUri = uri.toString()
+            actualizarTextoTrayectoria()
+            reiniciarPosicionIdle()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,6 +85,10 @@ class MainActivity : AppCompatActivity() {
 
         binding.botonAjustes.setOnClickListener { startActivity(Intent(this, AjustesActivity::class.java)) }
         binding.botonAccion.setOnClickListener { onBotonAccion() }
+        binding.selectorFuente.addOnButtonCheckedListener { _, id, marcado ->
+            if (marcado) cambiarFuente(simulado = id == R.id.opcionEmulada)
+        }
+        binding.botonCambiarTrayectoria.setOnClickListener { elegirTrayectoria.launch(arrayOf("*/*")) }
 
         pedirPermisosSiFalta()
         if (BateriaUtils.tieneRestriccion(this)) mostrarAvisoBateria()
@@ -82,6 +97,9 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         binding.mapa.onResume()
+        // La preferencia también se cambia desde Ajustes ("Modo simulado").
+        binding.selectorFuente.check(if (Prefs(this).modoSimulado) R.id.opcionEmulada else R.id.opcionGps)
+        actualizarTextoTrayectoria()
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 ObuSessionRepository.estado.collect { aplicarEstado(it) }
@@ -94,6 +112,29 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
         binding.mapa.onPause()
         jobFuenteIdle?.cancel()
+    }
+
+    // --- Fuente de posición: Ruta emulada / GPS real ----------------------
+
+    private fun cambiarFuente(simulado: Boolean) {
+        val prefs = Prefs(this)
+        if (prefs.modoSimulado == simulado) return // check() programático desde onResume
+        prefs.modoSimulado = simulado
+        if (!simulado && !permisosUbicacionOk()) pedirPermisosSiFalta()
+        reiniciarPosicionIdle()
+    }
+
+    /** La posición de la fuente anterior no sirve como origen de la nueva. */
+    private fun reiniciarPosicionIdle() {
+        if (ObuSessionRepository.estado.value.misionActiva) return
+        jobFuenteIdle?.cancel()
+        ObuSessionRepository.actualizar { it.copy(ultimaPosicion = null, estadoGnss = EstadoGnss.Inactivo) }
+        iniciarSeguimientoIdle()
+    }
+
+    private fun actualizarTextoTrayectoria() {
+        val uri = Prefs(this).trayectoriaUri?.let(Uri::parse)
+        binding.textoTrayectoria.text = getString(R.string.trayectoria_actual, FuenteSimulada.nombreVisible(this, uri))
     }
 
     // --- Posición mientras no hay misión ---------------------------------
@@ -114,6 +155,9 @@ class MainActivity : AppCompatActivity() {
             FuenteGnss(this)
         }
         jobFuenteIdle = lifecycleScope.launch {
+            if (fuente is FuenteGnss) {
+                launch { fuente.estado.collect { e -> ObuSessionRepository.actualizar { it.copy(estadoGnss = e) } } }
+            }
             fuente.muestras.collect { m ->
                 ObuSessionRepository.actualizar { it.copy(ultimaPosicion = m.lat to m.lon) }
             }
@@ -137,6 +181,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun aplicarEstado(estado: EstadoSesion) {
+        if (estado.ultimaPosicion == null) {
+            posicionMarker?.let { binding.mapa.overlays.remove(it); binding.mapa.invalidate() }
+            posicionMarker = null
+        }
         estado.ultimaPosicion?.let { (lat, lon) ->
             val p = GeoPoint(lat, lon)
             val marcador = posicionMarker ?: Marker(binding.mapa).also {
@@ -176,15 +224,54 @@ class MainActivity : AppCompatActivity() {
             else -> binding.tarjetaProximo.visibility = View.GONE
         }
 
-        binding.avisoSimulado.visibility = if (Prefs(this).modoSimulado) View.VISIBLE else View.GONE
         binding.avisoSinConexion.visibility = if (estado.misionActiva && estado.sinConexionServidor) View.VISIBLE else View.GONE
         binding.avisoSinFix.visibility = if (estado.misionActiva && estado.sinFixGnss) View.VISIBLE else View.GONE
 
         // Nada más en pantalla mientras hay misión (docs/CONTRATO_OBU.md §6).
         binding.botonAjustes.visibility = if (estado.misionActiva) View.GONE else View.VISIBLE
+        aplicarIndicadoresFuente(estado)
         binding.textoPedirDestino.visibility = if (!estado.misionActiva && destinoElegido == null) View.VISIBLE else View.GONE
 
         actualizarBotonAccion(estado)
+    }
+
+    /** Selector + estado GNSS sin misión; indicador discreto con misión. */
+    private fun aplicarIndicadoresFuente(estado: EstadoSesion) {
+        val simulado = Prefs(this).modoSimulado
+        binding.panelFuente.visibility = if (estado.misionActiva) View.GONE else View.VISIBLE
+        binding.filaTrayectoria.visibility = if (simulado) View.VISIBLE else View.GONE
+        binding.textoEstadoGnss.visibility = if (simulado) View.GONE else View.VISIBLE
+        if (!simulado) {
+            val (texto, color) = if (!permisosUbicacionOk()) {
+                getString(R.string.gnss_sin_permiso) to R.color.estado_cancelada
+            } else {
+                when (val e = estado.estadoGnss) {
+                    is EstadoGnss.Listo -> getString(R.string.gnss_listo, e.precisionM) to R.color.gnss_listo
+                    is EstadoGnss.PrecisionInsuficiente -> {
+                        val t = if (e.precisionM == null) getString(R.string.gnss_sin_precision, e.maximaM)
+                        else getString(R.string.gnss_precision_insuficiente, e.precisionM, e.maximaM)
+                        t to R.color.gnss_esperando
+                    }
+                    EstadoGnss.Buscando, EstadoGnss.Inactivo -> getString(R.string.gnss_buscando) to R.color.gnss_buscando
+                }
+            }
+            binding.textoEstadoGnss.text = texto
+            binding.textoEstadoGnss.setBackgroundColor(ContextCompat.getColor(this, color))
+        }
+
+        binding.indicadorFuente.visibility = if (estado.misionActiva) View.VISIBLE else View.GONE
+        if (estado.misionActiva) {
+            val gnss = estado.estadoGnss
+            val (texto, color) = when {
+                simulado -> getString(R.string.indicador_emulada) to R.color.fuente_emulada
+                gnss is EstadoGnss.Listo -> getString(R.string.indicador_gps, gnss.precisionM) to R.color.gnss_listo
+                gnss is EstadoGnss.PrecisionInsuficiente && gnss.precisionM != null ->
+                    getString(R.string.indicador_gps, gnss.precisionM) to R.color.gnss_esperando
+                else -> getString(R.string.indicador_gps_sin_fix) to R.color.estado_cancelada
+            }
+            binding.indicadorFuente.text = texto
+            binding.indicadorFuente.setBackgroundColor(ContextCompat.getColor(this, color))
+        }
     }
 
     private fun actualizarBotonAccion(estado: EstadoSesion = ObuSessionRepository.estado.value) {
@@ -193,9 +280,16 @@ class MainActivity : AppCompatActivity() {
             binding.botonAccion.setBackgroundColor(ContextCompat.getColor(this, R.color.boton_terminar))
             binding.botonAccion.isEnabled = true
         } else {
+            // Con GPS real, solo con un fix que pase el criterio de
+            // EvaluadorFixGnss AHORA -- ultimaPosicion sola no basta: se
+            // queda con el último fix bueno aunque la señal ya se haya perdido.
+            val fuenteLista = Prefs(this).modoSimulado || estado.estadoGnss is EstadoGnss.Listo
+            val habilitado = destinoElegido != null && estado.ultimaPosicion != null && permisosOk() && fuenteLista
             binding.botonAccion.text = getString(R.string.boton_iniciar)
-            binding.botonAccion.setBackgroundColor(ContextCompat.getColor(this, R.color.boton_iniciar))
-            binding.botonAccion.isEnabled = destinoElegido != null && estado.ultimaPosicion != null && permisosOk()
+            binding.botonAccion.setBackgroundColor(
+                ContextCompat.getColor(this, if (habilitado) R.color.boton_iniciar else R.color.estado_desconocido),
+            )
+            binding.botonAccion.isEnabled = habilitado
         }
     }
 

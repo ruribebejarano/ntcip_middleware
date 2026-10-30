@@ -100,4 +100,15 @@ class EvaluadorFixGnssTest {
         )
         assertNull(r)
     }
+
+    @Test
+    fun `clasificar distingue buscando, precision insuficiente y listo`() {
+        val ev = evaluador()
+        assertEquals(EstadoGnss.Listo(8f), ev.clasificar(true, 8f, tsFixMs = 1000L, ahoraMs = 1500L))
+        assertEquals(EstadoGnss.Listo(30f), ev.clasificar(true, 30f, tsFixMs = 1000L, ahoraMs = 1500L))
+        assertEquals(EstadoGnss.PrecisionInsuficiente(45f, 30f), ev.clasificar(true, 45f, tsFixMs = 1000L, ahoraMs = 1500L))
+        assertEquals(EstadoGnss.PrecisionInsuficiente(null, 30f), ev.clasificar(false, 0f, tsFixMs = 1000L, ahoraMs = 1500L))
+        // lectura vieja: no hay señal ahora, aunque su precisión fuera buena
+        assertEquals(EstadoGnss.Buscando, ev.clasificar(true, 5f, tsFixMs = 1000L, ahoraMs = 1000L + 5001L))
+    }
 }

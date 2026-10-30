@@ -15,6 +15,11 @@
     <color name="aviso_fondo">#B71C1C</color>
     <color name="aviso_texto">#FFFFFF</color>
 
+    <color name="fuente_emulada">#6A1B9A</color>
+    <color name="gnss_listo">#2E7D32</color>
+    <color name="gnss_esperando">#EF6C00</color>
+    <color name="gnss_buscando">#757575</color>
+
     <color name="boton_iniciar">#2E7D32</color>
     <color name="boton_terminar">#C62828</color>
 </resources>

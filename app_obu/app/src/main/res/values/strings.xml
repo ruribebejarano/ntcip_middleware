@@ -6,7 +6,6 @@
     <string name="boton_iniciar">Iniciar emergencia</string>
     <string name="boton_terminar">Terminar emergencia</string>
 
-    <string name="aviso_modo_simulado">MODO SIMULADO — sin GPS real</string>
     <string name="aviso_sin_conexion">Sin conexión con el servidor</string>
     <string name="aviso_sin_fix">Sin señal GNSS válida</string>
 
@@ -25,10 +24,23 @@
 
     <string name="pedir_destino">Toca el mapa para elegir el destino</string>
 
+    <string name="fuente_emulada">Ruta emulada</string>
+    <string name="fuente_gps">GPS real</string>
+    <string name="trayectoria_actual">Trayectoria: %1$s</string>
+    <string name="cambiar_trayectoria">Cambiar</string>
+    <string name="gnss_buscando">Buscando señal GNSS…</string>
+    <string name="gnss_sin_precision">Señal GNSS sin precisión — esperando ≤ %1$.0f m</string>
+    <string name="gnss_precision_insuficiente">Precisión %1$.0f m — esperando ≤ %2$.0f m</string>
+    <string name="gnss_listo">GNSS listo · ±%1$.0f m</string>
+    <string name="gnss_sin_permiso">Falta el permiso de ubicación</string>
+    <string name="indicador_emulada">EMULADA</string>
+    <string name="indicador_gps">GPS ±%1$.0f m</string>
+    <string name="indicador_gps_sin_fix">GPS · sin fix</string>
+
     <string name="ajustes_host">Host del broker MQTT</string>
     <string name="ajustes_puerto">Puerto</string>
     <string name="ajustes_clase">Clase NTCIP 1211</string>
-    <string name="ajustes_modo_simulado">Modo simulado (sin GNSS)</string>
+    <string name="ajustes_modo_simulado">Ruta emulada (sin GNSS) — también en la pantalla principal</string>
     <string name="ajustes_trayectoria">Trayectoria CSV simulada</string>
     <string name="ajustes_elegir_trayectoria">Elegir archivo…</string>
     <string name="ajustes_trayectoria_integrada">Usar la trayectoria incluida (avenida_ab_s1)</string>

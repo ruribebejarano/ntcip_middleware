@@ -19,6 +19,18 @@ class EvaluadorFixGnss(
 ) {
     private var ultimoRumboConocido: Double? = null
 
+    /**
+     * Mismo criterio que [evaluar], pero para el indicador de la UI: una
+     * lectura vieja cuenta como "buscando" (no hay señal ahora), una
+     * lectura actual con mala precisión como [EstadoGnss.PrecisionInsuficiente].
+     */
+    fun clasificar(tienePrecision: Boolean, precisionM: Float, tsFixMs: Long, ahoraMs: Long): EstadoGnss = when {
+        ahoraMs - tsFixMs > antiguedadMaximaMs -> EstadoGnss.Buscando
+        !tienePrecision -> EstadoGnss.PrecisionInsuficiente(null, precisionMaximaM)
+        precisionM > precisionMaximaM -> EstadoGnss.PrecisionInsuficiente(precisionM, precisionMaximaM)
+        else -> EstadoGnss.Listo(precisionM)
+    }
+
     /** `null` si el fix no pasa el criterio de validez (se descarta, no se publica). */
     fun evaluar(
         lat: Double,

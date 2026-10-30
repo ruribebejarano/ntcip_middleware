@@ -10,6 +10,7 @@ import pe.pucp.ntcip.obu.databinding.ActivityAjustesBinding
 import pe.pucp.ntcip.obu.obu.BateriaUtils
 import pe.pucp.ntcip.obu.obu.EventoLogger
 import pe.pucp.ntcip.obu.obu.Prefs
+import pe.pucp.ntcip.obu.velocidad.FuenteSimulada
 
 /** Nada hardcodeado (docs/CONTRATO_OBU.md): host/puerto/clase/modo simulado se configuran aquí. */
 class AjustesActivity : AppCompatActivity() {
@@ -21,7 +22,7 @@ class AjustesActivity : AppCompatActivity() {
         if (uri != null) {
             contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             prefs.trayectoriaUri = uri.toString()
-            binding.textoTrayectoriaElegida.text = uri.lastPathSegment ?: uri.toString()
+            binding.textoTrayectoriaElegida.text = FuenteSimulada.nombreVisible(this, uri)
         }
     }
 
@@ -35,7 +36,7 @@ class AjustesActivity : AppCompatActivity() {
         binding.campoPuerto.setText(prefs.brokerPuerto.toString())
         binding.campoClase.setText(prefs.clase.toString())
         binding.interruptorModoSimulado.isChecked = prefs.modoSimulado
-        binding.textoTrayectoriaElegida.text = prefs.trayectoriaUri
+        binding.textoTrayectoriaElegida.text = prefs.trayectoriaUri?.let { FuenteSimulada.nombreVisible(this, android.net.Uri.parse(it)) }
             ?: getString(R.string.ajustes_trayectoria_integrada)
 
         binding.botonElegirTrayectoria.setOnClickListener { elegirTrayectoria.launch(arrayOf("*/*")) }
