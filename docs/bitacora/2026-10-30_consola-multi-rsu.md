@@ -110,14 +110,49 @@ propia contra el broker normal, sin las ventanas de `demo_hospital_nino.ps1`):
 
 ## Pendiente
 
-- **Observación sobre el servidor (no se corrigió, fuera de alcance de este
-  cambio):** en la RSU 4 el servidor envió un solo M1 (anticipación por ETA)
-  y nunca lo renovó ni envió M3. A los ~3,1 s el watchdog RNF-03 de la RSU
-  lo canceló (`caducidad`, `rnf03_sin_actualizacion` en
-  `rsu4/eventos_rsu_4.csv`), justo donde la ruta gira (rumbo 93° -> 42,6°).
-  La RSU 5 y la RSU 6 sí recibieron M3 `cruce`. Revisar si se repite con
-  `--factor 1` y si la geocerca (`SeguidorAcceso`) confirma el acceso en un
-  giro.
+- **Defecto del servidor encontrado con la consola (investigado, NO
+  corregido: requiere tocar `servidor/` o `gateway/geometria.py`).** En la
+  RSU 4 el servidor envió un solo M1 y nunca lo renovó ni lo canceló con
+  M3. El watchdog RNF-03 de la RSU (`T_CAD_SEGUNDOS = 3.0`,
+  `agent/ntcip1211.py`) soltó la prioridad (`rnf03_sin_actualizacion`).
+  - **Causa:** la trayectoria se acerca a la RSU 4 por La Mar, se desvía una
+    cuadra por Calle Napo y vuelve a La Mar. La geocerca (`SeguidorAcceso`)
+    asigna RSU 4/A a 297 m (t=14 s). En t=26 s el vehículo gira al sur
+    (rumbo 182,9°) a 187 m de la intersección: deja de estar "por delante"
+    y la geocerca lo trata como **cruce**. Por eso marca la intersección
+    como `_excluida` hasta que el vehículo se aleje más de R_i + margen =
+    350 m, y eso no pasa nunca, porque el vehículo vuelve sin salir de
+    ~205 m. Así, la geocerca no vuelve a emitir EMITIR_M1/ACTUALIZAR_M1
+    para la RSU 4. El único M1 sale por la anticipación por ETA (RF8,
+    t=49 s, a 69 m), que no tiene renovación propia: el servidor solo
+    renueva por decisión de la geocerca. Tampoco hay M3 `cruce`, porque la
+    geocerca nunca consideró vigente esa solicitud. Además, el cruce por
+    avance sobre la ruta (`MARGEN_CRUCE_M`, `servidor/gestor_mision.py:80`)
+    está definido pero no se usa en ninguna parte.
+  - **Reproducción:** es determinista y no depende del factor. Se
+    reprodujo offline pasando `trayectoria_hospital_nino.csv` por
+    `GestorMision` con reloj simulado: M1 en t=49 y ninguna decisión de
+    geocerca para la RSU 4 después de t=25. La RSU 5 sí recibe EMITIR_M1
+    a 148 m y renovaciones a 1 Hz.
+  - **Impacto a velocidad real (`--factor 1`, 2026-10-30 02:45, broker
+    aparte, `resultados/demo/2026-10-30T024239/`):** M1 a 68,9 m y
+    caducidad 3,2 s después, con el vehículo a **40 m** de la intersección.
+    El vehículo pasa por el centro 8 s después del M1, así que llega a la
+    intersección ~5 s después de que la RSU ya soltó la prioridad. Con
+    `--factor 4` no se notaba porque el vehículo cruzaba antes de la
+    caducidad.
+  - **Corrección mínima propuesta (pendiente de aprobación):** en
+    `servidor/gestor_mision.py::procesar_mp`, renovar cada parada en
+    solicitada/en_cola/concedida a cada MP aunque la geocerca no la
+    confirme, y cerrarla con M3 `cruce` cuando
+    `distancia_recorrida_m > distancia_llegada_m + MARGEN_CRUCE_M`. Es el
+    criterio por avance sobre la ruta que el servidor ya puede calcular y
+    que la constante sugiere que estaba previsto. Alternativa (cambia la
+    semántica de ssec:emision): en `SeguidorAcceso`, tratar como "cruce" y
+    excluir la intersección solo si el vehículo estuvo cerca del centro
+    (p. ej. ≤ R_g); un giro lejano sería "rumbo_divergente", sin exclusión.
+    En ambos casos, agregar la trayectoria con rodeo como prueba de
+    regresión.
 - Si se quiere detectar RSU_ID repetidos también en procesos lanzados a
   mano desde una terminal, el cambio mínimo sería en `agent/rsu_middleware.py`
   (no hecho, requiere aprobación): publicar un mensaje retenido de presencia
