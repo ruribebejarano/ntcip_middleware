@@ -53,14 +53,17 @@ consola/backend/
   api.py                     rutas FastAPI + SSE (/sse)
   estado.py                  foto en memoria de todo lo que se muestra
   bus.py                     difusor de eventos hacia los clientes SSE
-  mqtt_cliente.py            suscriptor MQTT 5 (rsu/#, veh/#)
-  snmp_poller.py             sondeo SNMPv3 (semáforo/PRS/tiempos), 1 solo hilo
-  obu_local.py               lee resultados/obu_vivo/estado.json
+  mqtt_cliente.py            suscriptor MQTT 5 (rsu/#, veh/#, obu/#, servidor/+/respuestas)
+  mision.py                  misión vista desde el broker: MI/MR/MP/ME/M1/M2/M3/MF -> estado por RSU + línea de tiempo
+  snmp_poller.py             sondeo SNMPv3 de UNA RSU (semáforo/PRS/tiempos), 1 solo hilo
+  snmp_multi.py              sondeo SNMPv3 de VARIAS RSU (fase NTCIP 1202, ~1 Hz c/u), modo multi-RSU
+  demo_rsu.py                registro de RSU + estado.json del lanzador -> RSU a mostrar y su puerto SNMP
+  obu_local.py               LEGADO: lee resultados/obu_vivo/estado.json (ya no lo escribe nadie)
   eventos_remotos.py         ssh tail eventos_rsu_<id>.csv / eventos_ctrl_<id>.csv
   estado_banco.py            tailscale, systemctl, journalctl, pi.sh clock
   pruebas.py                 lanza gateway/obu_emulada.py como subproceso
   analisis.py                reusa scripts/analisis/*.py para la pantalla de ensayos
-  mapa.py                    proyecta config/registro_rsu.json (gateway/geometria.py)
+  mapa.py                    proyecta el registro (gateway/geometria.py) + calles del grafo OSM de data/
   registro_comandos.py       auditoría -> resultados/consola/registro_comandos.jsonl
 consola/static/              HTML + CSS + JS (sin build, sin CDN)
 ```
@@ -101,7 +104,7 @@ rato largo contra SNMP real.
 |---|---|
 | Indicadores de la barra superior (broker, RSU, SNMPv3, controlador, relojes) | `estado_banco.py` (cada 15 s) + `mqtt_cliente.py` (conexión) + `snmp_poller.py` (último error) |
 | Fila de métricas (solicitudes activas, L, RTT, PDR, fase) | Cálculo aproximado en el navegador a partir de los eventos SSE de esta sesión (`monitoreo.js`) — **no** es la métrica con rigor estadístico; esa está en "Ensayos y métricas" |
-| Mapa del corredor | `GET /api/mapa` (geometría, una vez) + evento SSE `obu` (posición, cada 0.5 s desde el archivo local de la OBU) |
+| Mapa en vivo | `GET /api/mapa` (registro, una vez) + `GET /api/mapa/calles` (calles del grafo OSM de `data/`) + eventos SSE `mision` (ruta MR), `mision_pos` (MP), `rsu_fase` y `rsu_prioridad`; ver "Demo con varias RSU" |
 | Semáforo (NTCIP 1202) | evento SSE `snmp_semaforo`, cada 0.5 s |
 | priorityRequestTable (NTCIP 1211) | evento SSE `snmp_prs`, cada 2 s |
 | Ficha de la OBU | evento SSE `obu` |
@@ -134,6 +137,117 @@ ahí las órdenes que la RSU le da al controlador (`request_priority`,
 `activar_cola_rf06`, `clear_priority_m3`, `rechazada`, `caducidad`),
 leídas de los mismos eventos que traduce la pantalla de monitoreo.
 
+## Demo con varias RSU
+
+Sirve para ver una misión completa sobre varias intersecciones desde una
+sola pantalla, sin una ventana por RSU ni por controlador.
+
+**1. Levantar todo** (un controlador emulado y una RSU por intersección,
+más el servidor central y la consola, en segundo plano y sin ventanas;
+Mosquitto ya debe estar corriendo):
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts\demo\lanzar_rsus.ps1 -Registro E:\Tesis\ntcip_app\app_obu\pruebas\registro_rsu_hospital_nino.json -ConServidor -ConConsola
+```
+
+La consola abre el navegador en `http://127.0.0.1:8080/`, directamente en
+la pantalla **Misión (varias RSU)**.
+
+**2. Lanzar la OBU emulada:**
+
+```bash
+.venv\Scripts\python.exe gateway\obu_emulada.py --broker-host 127.0.0.1 --factor 4 --trayectoria E:\Tesis\ntcip_app\app_obu\pruebas\trayectoria_hospital_nino.csv
+```
+
+**3. Detener todo:**
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts\demo\detener_rsus.ps1
+```
+
+### Qué hace el lanzador (`scripts/demo/lanzar_rsus.ps1`)
+
+- Lee el registro de RSU y, por cada intersección, levanta un
+  `controller/controller_emulator.py` y un `agent/rsu_middleware.py` con
+  `Start-Process -WindowStyle Hidden`. Les pasa las mismas variables de
+  entorno que esos programas ya leen (`RSU_ID`, `SNMP_PORT`,
+  `CONTROLLER_PORT`, `MQTT_BROKER_HOST/PORT`, `RSU_EVENTOS_DIR`). No cambia
+  nada de `agent/`, `controller/` ni `servidor/`.
+- Asigna los puertos solo: el primer UDP libre desde 1170 para SNMP y el
+  primer TCP libre desde 9100 para el controlador (`-SnmpBase`, `-CtrlBase`).
+- Deja todo en `resultados/demo/<fecha>/`: un `.log` y un `.err.log` por
+  proceso, los `eventos_*.csv` de cada RSU en `rsu<id>/` y los del servidor
+  en `servidor/`, y `estado.json` (puertos y PID). Copia ese estado a
+  `resultados/demo/actual.json`. Nada de esto se versiona (`.gitignore`).
+- **Antes de lanzar nada, comprueba que no haya RSU_ID repetidos.**
+  Revisa que el registro no repita `rsu_id`. Revisa que ninguna corrida
+  anterior del lanzador tenga vivo un middleware con esos RSU_ID. Revisa
+  que ningún otro `rsu_middleware.py` de la máquina los use: busca `RSU_ID=`
+  en la línea de comandos del proceso y de sus padres, que es donde lo
+  dejan las ventanas de `app_obu/pruebas/demo_*.ps1`. Con `-ConServidor`,
+  revisa además que no haya ya otro `servidor/main.py`. Si algo choca,
+  aborta y dice qué PID es. Un proceso lanzado a mano con `$env:RSU_ID` en
+  una terminal no muestra su RSU_ID desde fuera, así que ese caso aborta
+  como "RSU_ID desconocido". `-Forzar` se salta la comprobación, pero solo
+  tiene sentido si el otro proceso usa **otro broker**: el choque es por
+  broker, porque ambos usan el mismo client_id MQTT
+  `rsu-middleware-<RSU_ID>`.
+- Opciones: `-Rsus 4,6` (solo esas RSU), `-Broker`/`-BrokerPort`,
+  `-ConServidor` (servidor central con `REGISTRO_RSU_PATH` = ese registro),
+  `-ConConsola` (consola con `--estado-demo`), `-SinNavegador`.
+- `detener_rsus.ps1` solo detiene los PID que registró el lanzador, con sus
+  procesos hijos (el `python.exe` del venv es un lanzador que crea el
+  intérprete real como hijo). `-Todas` recorre todas las corridas de
+  `resultados/demo/`. `-SinConsola` deja la consola abierta para revisar
+  la línea de tiempo.
+
+### Cómo sabe la consola qué RSU mostrar
+
+La consola entra en **modo multi-RSU** (`consola/backend/demo_rsu.py`) si
+se arranca con `python consola/servidor.py --estado-demo resultados/demo/actual.json`
+(es lo que hace `-ConConsola`) o con `--registro <registro.json>`:
+
+- las RSU salen del registro (del `--registro`, o del campo `registro` del
+  estado del lanzador);
+- el puerto SNMP de cada una sale del `estado.json` del lanzador. Una RSU
+  del registro que no esté ahí se sondea en `SNMP_HOST:SNMP_PORT` de
+  `consola/.env` solo si su `rsu_id` es `RSU_ID` (la Pi). Si no, aparece
+  "sin conexión" con el motivo "sin puerto SNMP conocido": no se inventa
+  un puerto.
+
+Sin ninguno de los dos argumentos, la consola se comporta como antes (una
+sola RSU, la de `consola/.env`).
+
+### Qué muestra la pantalla "Misión (varias RSU)"
+
+| Elemento | Fuente |
+|---|---|
+| Fase de cada RSU | `consola/backend/snmp_multi.py`: un GET SNMPv3 por RSU a ~1 Hz de `phaseStatusGroupReds/Yellows/Greens` (NTCIP 1202, los que ya expone `agent/rsu_middleware.py`), cada una en su puerto |
+| "sin conexión" | sin respuesta en 0,8 s (`SNMP_MULTI_TIMEOUT_S`). Cada RSU tiene su propia tarea asyncio, así que una RSU caída no frena el sondeo de las demás |
+| Estado de la solicitud por RSU | `consola/backend/mision.py`: el de la parada en el último ME del servidor, adelantado por M1/M2/M3 cuando llegan antes. Estados del contrato (`docs/CONTRATO_OBU.md` §4): pendiente, solicitada, en cola, concedida, en espera, rechazada, cancelada. **"liberada" es una etiqueta de la consola, no del contrato**: es una parada cancelada cuyo M3 llevó motivo `cruce` (el vehículo ya cruzó). Con cualquier otro motivo (desvío, conflicto, botón, destino, tiempo máximo, o `caducidad` del watchdog de la RSU) se muestra "cancelada" con su motivo |
+| Tiempo en ese estado | reloj de la consola (el instante en que vio el cambio); se congela con el MF |
+| Mapa en vivo | ruta del MR, posición del MP con su estela, y cada RSU como un semáforo con la luz de su fase y un anillo del color de su estado de prioridad. Rueda: zoom; arrastrar: mover; doble clic: encuadrar |
+| Calles de fondo | grafo vial de OpenStreetMap ya cacheado en `data/grafo_san_miguel_real.graphml` (el mismo que usa `servidor/rutas.py`), leído localmente. Sin teselas, sin CDN y sin servicios externos |
+| Línea de tiempo | MI, MR (y recálculos), el primer M1 a cada RSU (las renovaciones a 1 Hz solo se cuentan), cada M2 que cambia de estado, M3 con su motivo y MF |
+
+La consola solo **escucha** (`obu/#`, `rsu/#`, `servidor/+/respuestas`):
+no publica ni decide nada. MP y ME (≈1 Hz) alimentan el mapa y las
+tarjetas, pero no se listan en "Tráfico MQTT" ni en el registro de
+comandos.
+
+Limitaciones conocidas:
+
+- En modo multi-RSU no corre `snmp_poller.py`, para no tener dos hilos con
+  pysnmp a la vez (ver la nota de más arriba). Por eso los paneles
+  "Semáforo RSU" y "priorityRequestTable" de *Monitoreo en vivo* quedan sin
+  datos. Los indicadores "RSU", "Controlador" y "Relojes" de la barra
+  superior siguen siendo los de la Raspberry Pi por SSH (`estado_banco.py`).
+- La consola sigue una misión a la vez (la última con MI). Si se abre con
+  la misión ya armada, la adopta cuando llega el siguiente MR (un
+  recálculo); antes de eso no la ve.
+- El estado de la solicitud es lo que viaja por el broker: no se lee la
+  `priorityRequestTable` (NTCIP 1211) de cada RSU por SNMP.
+
 ## Pruebas automatizadas
 
 ```bash
@@ -142,8 +256,9 @@ python -m pytest -q tests
 
 Cubren: traducción de eventos a texto (`tests/test_traduccion_eventos.py`),
 cálculo de métricas expuestas por la API de ensayos
-(`tests/test_consola_analisis.py`) y persistencia/filtrado del registro de
-comandos (`tests/test_consola_registro_comandos.py`).
+(`tests/test_consola_analisis.py`), persistencia/filtrado del registro de
+comandos (`tests/test_consola_registro_comandos.py`) y estado por RSU / línea
+de tiempo de la misión (`tests/test_consola_mision.py`).
 
 ## Seguridad y alcance
 

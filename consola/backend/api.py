@@ -14,9 +14,11 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from consola.backend import analisis, config, estado_banco, eventos_remotos, mapa, mqtt_cliente, obu_local, pruebas, snmp_poller
+from consola.backend import (analisis, config, demo_rsu, estado_banco, eventos_remotos, mapa, mqtt_cliente, obu_local,
+                             pruebas, snmp_multi, snmp_poller)
 from consola.backend.bus import BUS
 from consola.backend.estado import ESTADO
+from consola.backend.mision import SEGUIDOR
 from consola.backend.registro_comandos import REGISTRO
 
 ESTATICOS = Path(__file__).resolve().parent.parent / "static"
@@ -26,7 +28,13 @@ ESTATICOS = Path(__file__).resolve().parent.parent / "static"
 async def lifespan(_app: FastAPI):
     BUS.fijar_loop(asyncio.get_running_loop())
     mqtt_cliente.iniciar()
-    snmp_poller.iniciar()
+    # Un solo hilo con pysnmp a la vez (docs/CONSOLA.md, "pysnmp + asyncio
+    # en Windows"): en modo multi-RSU, snmp_multi.py sondea todas las RSU
+    # del registro (incluida la Pi si esta en el) y snmp_poller.py no corre.
+    if config.MODO_MULTI_RSU:
+        snmp_multi.iniciar()
+    else:
+        snmp_poller.iniciar()
     obu_local.iniciar()
     eventos_remotos.iniciar()
     estado_banco.iniciar()
@@ -47,12 +55,28 @@ def api_estado() -> dict:
         "snmp_host": f"{config.SNMP_HOST}:{config.SNMP_PORT}",
         "rsu_id": config.RSU_ID,
         "ssh_alias": config.SSH_HOST_ALIAS,
+        "modo_multi_rsu": config.MODO_MULTI_RSU,
     }, **ESTADO.foto()}
 
 
 @app.get("/api/mapa")
 def api_mapa() -> dict:
     return mapa.geometria_corredor()
+
+
+@app.get("/api/mapa/calles")
+def api_mapa_calles(sur: float, oeste: float, norte: float, este: float) -> dict:
+    return mapa.calles(sur, oeste, norte, este)
+
+
+@app.get("/api/demo")
+def api_demo() -> dict:
+    return demo_rsu.resumen()
+
+
+@app.get("/api/mision")
+def api_mision() -> dict:
+    return SEGUIDOR.foto()
 
 
 @app.get("/sse")

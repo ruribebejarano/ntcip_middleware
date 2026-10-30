@@ -20,7 +20,11 @@
     configurarMenu();
     relojLocal();
     Consola.sse.conectar();
+    await Consola.mapa.cargar(["svg-mapa", "svg-mapa-mision"]);
+    const demo = await Consola.mision.init();
     await Consola.monitoreo.init();
+    // Con varias RSU (lanzador de scripts/demo/), se abre directo en la mision.
+    if (demo.modo_multi_rsu) document.querySelector('.item-menu[data-vista="mision"]').click();
     Consola.ensayos.init();
     Consola.comandos.init();
   });

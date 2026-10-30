@@ -48,6 +48,9 @@ resultados/demo_lazo_tmp/
 # registro de auditoria de consola/ (ver docs/CONSOLA.md): se regenera solo,
 # no es evidencia curada.
 resultados/consola/
+# lanzador de demos sin ventanas (scripts/demo/lanzar_rsus.ps1): logs,
+# eventos y estado.json de cada corrida; se regeneran, no son evidencia curada.
+resultados/demo/
 
 # cache de descarga de osmnx/Overpass (scripts/datos/regenerar_grafo.py):
 # se regenera solo; lo que SI se versiona es el .graphml ya cacheado en

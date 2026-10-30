@@ -41,6 +41,8 @@ class EstadoCompartido:
             "ts": 0.0,
         }
 
+        self.rsu_fase: dict[str, dict] = {}  # rsu_id -> ultima lectura de snmp_multi.py (modo multi-RSU)
+
         self.procesos: dict[str, dict] = {}  # nombre_prueba -> {"activo": bool, "pid": int|None, "lineas": deque}
 
     # --- MQTT ---
@@ -66,6 +68,10 @@ class EstadoCompartido:
     def set_snmp_tiempos(self, tiempos: dict) -> None:
         with self._lock:
             self.snmp_tiempos = tiempos
+
+    def set_rsu_fase(self, rsu_id: str, estado: dict) -> None:
+        with self._lock:
+            self.rsu_fase[rsu_id] = estado
 
     # --- OBU local ---
     def set_obu(self, datos: Optional[dict]) -> None:
@@ -112,6 +118,7 @@ class EstadoCompartido:
                          "mensajes": list(self.mensajes_mqtt)[:60]},
                 "snmp": {"semaforo": self.snmp_semaforo, "tabla_prs": self.snmp_tabla_prs,
                          "tiempos": self.snmp_tiempos, "ultima_lectura_ts": self.snmp_ultima_lectura_ts},
+                "rsu_fase": dict(self.rsu_fase),
                 "obu": self.obu,
                 "eventos_lazo": list(self.eventos_lazo)[:200],
                 "banco": self.banco,

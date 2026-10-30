@@ -21,6 +21,7 @@
 
   <nav class="menu-lateral" id="menu-lateral">
     <button class="item-menu activo" data-vista="monitoreo">Monitoreo en vivo</button>
+    <button class="item-menu" data-vista="mision">Misión (varias RSU)</button>
     <button class="item-menu" data-vista="ensayos">Ensayos y métricas</button>
     <button class="item-menu" data-vista="comandos">Registro de comandos</button>
   </nav>
@@ -39,8 +40,8 @@
 
       <div class="rejilla-monitoreo">
         <div class="panel panel-mapa">
-          <div class="panel-titulo">Corredor (RSU, geocercas y accesos)</div>
-          <svg id="svg-mapa" viewBox="-400 -400 800 800" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="panel-titulo">Mapa en vivo (ruta MR, OBU por MP, fase de cada RSU) · rueda: zoom, doble clic: encuadrar</div>
+          <svg id="svg-mapa" preserveAspectRatio="xMidYMid meet"></svg>
         </div>
 
         <div class="panel panel-lateral">
@@ -94,6 +95,34 @@
           <div class="panel-titulo">Eventos del lazo (OBU / RSU / controlador)</div>
           <div class="registro" id="registro-eventos" tabindex="0"></div>
         </div>
+      </div>
+    </section>
+
+    <section id="vista-mision" class="vista">
+      <div class="fila-metricas">
+        <div class="metrica"><div class="metrica-etiqueta">OBU</div><div class="metrica-valor chica" id="mision-obu">—</div></div>
+        <div class="metrica"><div class="metrica-etiqueta">Misión</div><div class="metrica-valor chica" id="mision-id">—</div></div>
+        <div class="metrica"><div class="metrica-etiqueta">Estado</div><div class="metrica-valor chica" id="mision-estado">sin misión</div></div>
+        <div class="metrica"><div class="metrica-etiqueta">Duración</div><div class="metrica-valor chica" id="mision-duracion">—</div></div>
+        <div class="metrica"><div class="metrica-etiqueta">Ruta (MR)</div><div class="metrica-valor chica" id="mision-ruta">—</div></div>
+      </div>
+      <div class="nota-chica" id="mision-registro"></div>
+
+      <div class="rejilla-mision">
+        <div class="panel panel-mapa panel-mapa-grande">
+          <div class="panel-titulo">Mapa en vivo · calles: grafo OpenStreetMap local (data/) · rueda: zoom, arrastrar: mover, doble clic: encuadrar</div>
+          <svg id="svg-mapa-mision" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="leyenda" id="leyenda-prioridad"></div>
+        </div>
+        <div class="panel panel-tarjetas">
+          <div class="panel-titulo">RSU · fase por SNMPv3 (~1 Hz) y solicitud de prioridad</div>
+          <div id="tarjetas-rsu" class="tarjetas-rsu"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-titulo">Línea de tiempo de la misión (MI, MR, M1 por RSU, M2, M3 con motivo, MF)</div>
+        <div class="linea-tiempo" id="linea-tiempo" tabindex="0"></div>
       </div>
     </section>
 
@@ -173,6 +202,7 @@
 <script src="js/utils.js"></script>
 <script src="js/graficos.js"></script>
 <script src="js/mapa.js"></script>
+<script src="js/mision.js"></script>
 <script src="js/monitoreo.js"></script>
 <script src="js/ensayos.js"></script>
 <script src="js/comandos.js"></script>
