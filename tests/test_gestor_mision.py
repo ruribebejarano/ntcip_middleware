@@ -208,3 +208,50 @@ def test_conflicto_se_libera_al_desarmar_el_ganador():
     gestor.desarmar_mision("obu-b", motivo="boton")
     # Al liberarse el conflicto, A deja de estar "en_espera" (se promueve).
     assert mision_a.paradas["X"].estado != ESTADO_EN_ESPERA
+
+
+# --- Rodeo lejos de la interseccion (defecto del 2026-10-30) ---------------
+
+
+def _recorrido_con_rodeo(gestor) -> None:
+    """Avanza hacia SINT-C (a ~288 m de A), a ~180 m da media vuelta dos
+    muestras (rumbo 180, sigue sobre la ruta: no es desvio) y retoma hacia
+    el norte hasta pasar SINT-C. Es la forma minima del rodeo por Calle Napo
+    del escenario hospital_nino: la geocerca toma el giro como "cruce",
+    excluye SINT-C hasta alejarse > R_i + margen y ya no la vuelve a seguir."""
+    lat_a, lon_a = NODOS_RUTA["A"]
+    muestras = [(m, 0.0) for m in range(0, 110, 10)] + [(100, 180.0), (90, 180.0)]
+    muestras += [(m, 0.0) for m in range(90, 420, 10)]
+    for paso_m, rumbo in muestras:
+        lat, lon = desplazar(lat_a, lon_a, 0.0, float(paso_m))
+        gestor.procesar_mp("obu-1", lat, lon, VELOCIDAD_KMH, rumbo_deg=rumbo)
+
+
+def test_rodeo_sin_respaldo_reproduce_el_defecto(monkeypatch):
+    """Comprueba que el escenario de prueba de abajo reproduce de verdad el
+    defecto: sin el respaldo por ruta, SINT-C recibe un unico M1 (por ETA),
+    nunca renovado ni cancelado."""
+    gestor, reg = _gestor()
+    monkeypatch.setattr(gestor, "_respaldo_por_ruta", lambda *_a, **_k: None)
+    gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    _recorrido_con_rodeo(gestor)
+    m1_c = [c for r, c in reg.m1 if c["id_solicitud"].endswith("SINT-C")]
+    assert [c["seq"] for c in m1_c] == [1]
+    assert not [c for _, c in reg.m3 if c["id_solicitud"].endswith("SINT-C")]
+
+
+def test_rodeo_la_solicitud_se_renueva_y_se_cierra_por_avance_en_ruta():
+    gestor, reg = _gestor()
+    gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    _recorrido_con_rodeo(gestor)
+    mision = gestor.misiones["obu-1"]
+
+    m1_c = [c for r, c in reg.m1 if c["id_solicitud"].endswith("SINT-C")]
+    # Una renovacion por MP desde el primer M1 (seq consecutivos, sin
+    # huecos): la RSU nunca pasa T_cad sin actualizacion.
+    assert [c["seq"] for c in m1_c] == list(range(1, len(m1_c) + 1))
+    assert len(m1_c) > 1
+    m3_c = [c for _, c in reg.m3 if c["id_solicitud"].endswith("SINT-C")]
+    assert [c["motivo"] for c in m3_c] == ["cruce"]
+    assert m3_c[0]["seq"] == m1_c[-1]["seq"] + 1
+    assert mision.paradas["SINT-C"].estado == ESTADO_CANCELADA

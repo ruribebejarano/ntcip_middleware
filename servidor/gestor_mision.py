@@ -77,7 +77,7 @@ UMBRAL_DESVIO_M = 60.0            # distancia perpendicular a la ruta que dispar
 TIEMPO_MAXIMO_MISION_S = 1800.0   # 30 min: límite de seguridad de una misión armada [REVISAR con asesor]
 ANTICIPACION_MINIMA_S = 8.0       # margen mínimo servidor->RSU + transición de fase (RF8) [REVISAR con asesor]
 VELOCIDAD_RESPALDO_KMH = 30.0     # si no hay velocidad OBD-II/GPS válida (MP sin "velocidad_kmh" útil) [REVISAR con asesor]
-MARGEN_CRUCE_M = 20.0             # cuanto puede "pasarse" la distancia acumulada antes de considerar la parada cruzada
+MARGEN_CRUCE_M = 20.0             # cuanto puede "pasarse" la distancia acumulada antes de considerar la parada cruzada [REVISAR con asesor]
 
 ESTADO_PENDIENTE = "pendiente"
 ESTADO_SOLICITADA = "solicitada"
@@ -86,6 +86,8 @@ ESTADO_CONCEDIDA = "concedida"
 ESTADO_CANCELADA = "cancelada"
 ESTADO_RECHAZADA = "rechazada"
 ESTADO_EN_ESPERA = "en_espera"  # por conflicto (servidor/conflictos.py)
+# Solicitud viva en la RSU: hay que renovarla a 1 Hz o la RSU la da por caducada (RNF-03).
+_ESTADOS_VIGENTES = (ESTADO_SOLICITADA, ESTADO_EN_COLA, ESTADO_CONCEDIDA)
 
 _ESTADO_DESDE_M2 = {
     "recibida": ESTADO_SOLICITADA,
@@ -237,6 +239,10 @@ class GestorMision:
         mision.distancia_recorrida_m = progreso.distancia_acumulada_m
         mision.ultima_velocidad_kmh = velocidad_kmh if velocidad_kmh and velocidad_kmh > 1.0 else self.velocidad_respaldo_kmh
 
+        # seq de cada parada antes de este MP: el paso 3 no renueva lo que
+        # los pasos 1 o 2 ya emitieron o renovaron aquí mismo.
+        seq_antes = {iid: ep.seq for iid, ep in mision.paradas.items()}
+
         # 1) Anticipación por ETA: la primera parada pendiente, si ya está
         #    dentro del margen de anticipación mínima, se solicita AUNQUE la
         #    geocerca todavía no la haya detectado (RF8).
@@ -254,8 +260,32 @@ class GestorMision:
         for dec in mision.seguidor.actualizar(lat, lon, rumbo_deg):
             self._aplicar_decision_geocerca(mision, dec)
 
+        # 3) Respaldo por avance sobre la ruta: una solicitud viva que la
+        #    geocerca no renovó en este MP se renueva igual, y se cierra con
+        #    M3 "cruce" cuando el avance pasa la parada + MARGEN_CRUCE_M.
+        #    Sin esto, una solicitud emitida por ETA (paso 1) en una
+        #    intersección que la geocerca no sigue (p. ej. excluida tras un
+        #    giro lejos del centro, como en el rodeo del escenario
+        #    hospital_nino) nunca se renovaba y la RSU la daba por caducada
+        #    (RNF-03) antes de que llegara el vehículo; ver
+        #    docs/bitacora/2026-10-30_consola-multi-rsu.md.
+        self._respaldo_por_ruta(mision, seq_antes)
+
         self._revisar_tiempo_maximo(mision)
         self.enviar_me(obu_id, self._cuerpo_me(mision))
+
+    def _respaldo_por_ruta(self, mision: Mision, seq_antes: dict[str, int]) -> None:
+        for iid in mision.orden:
+            ep = mision.paradas[iid]
+            if ep.estado not in _ESTADOS_VIGENTES:
+                continue
+            distancia_restante = ep.parada.distancia_llegada_m - mision.distancia_recorrida_m
+            if distancia_restante < -MARGEN_CRUCE_M:
+                self._cancelar_parada(mision, ep, motivo="cruce")
+                continue
+            ep.eta_s = self._eta(distancia_restante, mision.ultima_velocidad_kmh)
+            if ep.seq == seq_antes.get(iid):
+                self._renovar(mision, ep)
 
     def _eta(self, distancia_restante_m: float, velocidad_kmh: float) -> Optional[float]:
         if distancia_restante_m <= 0:
@@ -479,6 +509,11 @@ class GestorMision:
         for p in nueva_ruta.paradas:
             if p.interseccion_id not in mision.paradas:
                 mision.paradas[p.interseccion_id] = EstadoParada(p)
+            else:
+                # distancia_llegada_m se mide sobre la ruta NUEVA (el avance
+                # vuelve a 0): sin esto, el respaldo por ruta de procesar_mp
+                # compararía contra la distancia de la ruta anterior.
+                mision.paradas[p.interseccion_id].parada = p
 
         self._log(EVT_RUTA_RECALCULADA, mision.mision_id, motivo="desvio",
                   n_paradas_antes=paradas_antes, n_paradas_despues=len(nueva_ruta.paradas))
