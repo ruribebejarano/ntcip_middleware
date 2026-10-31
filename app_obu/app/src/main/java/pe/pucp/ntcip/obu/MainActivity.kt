@@ -372,7 +372,7 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(h.nombre)
             .setMessage(getString(R.string.hospital_ir_a, distanciaTexto(h.lat, h.lon)))
-            .setPositiveButton(R.string.destino_confirmar_si) { _, _ -> fijarDestino(Destino(h.nombre, h.lat, h.lon)) }
+            .setPositiveButton(R.string.destino_confirmar_si) { _, _ -> elegirDestinoUsuario(Destino(h.nombre, h.lat, h.lon)) }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
@@ -414,7 +414,7 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(R.string.destino_confirmar_titulo)
             .setMessage(destino.nombre)
-            .setPositiveButton(R.string.destino_confirmar_si) { _, _ -> fijarDestino(destino) }
+            .setPositiveButton(R.string.destino_confirmar_si) { _, _ -> elegirDestinoUsuario(destino) }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
@@ -432,10 +432,28 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(R.string.destinos_predefinidos)
             .setItems(etiquetas.toTypedArray()) { _, i ->
-                fijarDestino(destinos[i])
+                elegirDestinoUsuario(destinos[i])
                 centrarEn(GeoPoint(destinos[i].lat, destinos[i].lon))
             }
             .show()
+    }
+
+    /**
+     * Destino elegido por el usuario (mapa, hospital, lista). Una
+     * trayectoria grabada solo va a SU destino: si está activa, se pasa a
+     * Ruta libre, si no el vehículo seguiría el CSV hacia otro lado y el
+     * servidor recalcularía la ruta una y otra vez (visto en la tablet el
+     * 2026-10-31 con "Mariano Cornejo (grabada)" y un hospital de destino).
+     */
+    private fun elegirDestinoUsuario(d: Destino) {
+        if (prefs.modoSimulado && !Escenarios.esRutaLibre(prefs)) {
+            prefs.escenarioId = Escenarios.ID_RUTA_LIBRE
+            construirChipsEscenario()
+            actualizarTextoOrigen()
+            reiniciarPosicionIdle()
+            Toast.makeText(this, R.string.paso_a_ruta_libre, Toast.LENGTH_LONG).show()
+        }
+        fijarDestino(d)
     }
 
     private fun fijarDestino(d: Destino) {

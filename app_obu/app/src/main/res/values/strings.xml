@@ -32,6 +32,7 @@
     <string name="aviso_demo">×2 y ×4 solo para demos: quedan marcados como "demo" en el CSV de eventos.</string>
     <string name="destinos_predefinidos">Hospitales y clínicas cercanos…</string>
     <string name="escenario_ruta_libre">Ruta libre</string>
+    <string name="paso_a_ruta_libre">Cambiado a Ruta libre: la trayectoria grabada solo va a su propio destino. El vehículo seguirá la ruta que calcule el servidor.</string>
     <string name="origen_libre">Origen: %1$s</string>
     <string name="destino_aqui">Destino aquí</string>
     <string name="origen_aqui">Origen aquí (el vehículo emulado parte de este punto)</string>

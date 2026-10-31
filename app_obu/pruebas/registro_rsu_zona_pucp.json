@@ -1,6 +1,6 @@
 {
   "version": "app-obu-zona-pucp",
-  "descripcion": "Registro 'zona PUCP' (ver app_obu/README.md): 10 RSU en cruces semaforizados reales (highway=traffic_signals de grafo_san_miguel_real.graphml) por los que pasan las rutas del servidor desde la PUCP (Av. Universitaria) hacia los hospitales y clínicas con emergencia de hospitales_zona_pucp.json. Generado por app_obu/pruebas/generar_zona_pucp.py. rsu_id 11-20 (1: Pi; 2-7: otros escenarios -- mismo RSU_ID contra el mismo broker = mismo client_id MQTT).",
+  "descripcion": "Registro 'zona PUCP' (ver app_obu/README.md): 23 RSU en cruces semaforizados reales (highway=traffic_signals de grafo_san_miguel_real.graphml) por los que pasan las rutas del servidor desde la PUCP (Av. Universitaria) hacia los hospitales y clínicas con emergencia de hospitales_zona_pucp.json, más toda intersección semaforizada a menos de 1500 m del campus. Generado por app_obu/pruebas/generar_zona_pucp.py. rsu_id desde 11 (1: Pi; 2-7: otros escenarios -- mismo RSU_ID contra el mismo broker = mismo client_id MQTT).",
   "origen": {
     "base": {
       "lat": -12.071468,
@@ -19,6 +19,7 @@
         "lon": -77.0590298
       },
       "rutas_que_pasan": 4,
+      "criterio": "rutas_hospitales",
       "accesos": [
         {
           "acceso_id": "A",
@@ -56,6 +57,7 @@
         "lon": -77.0626077
       },
       "rutas_que_pasan": 2,
+      "criterio": "rutas_hospitales",
       "accesos": [
         {
           "acceso_id": "A",
@@ -93,6 +95,7 @@
         "lon": -77.0661707
       },
       "rutas_que_pasan": 2,
+      "criterio": "rutas_hospitales",
       "accesos": [
         {
           "acceso_id": "A",
@@ -130,6 +133,7 @@
         "lon": -77.0572941
       },
       "rutas_que_pasan": 2,
+      "criterio": "rutas_hospitales",
       "accesos": [
         {
           "acceso_id": "A",
@@ -167,6 +171,7 @@
         "lon": -77.0824782
       },
       "rutas_que_pasan": 1,
+      "criterio": "rutas_hospitales",
       "accesos": [
         {
           "acceso_id": "A",
@@ -204,6 +209,7 @@
         "lon": -77.0687708
       },
       "rutas_que_pasan": 1,
+      "criterio": "rutas_hospitales",
       "accesos": [
         {
           "acceso_id": "A",
@@ -241,6 +247,7 @@
         "lon": -77.0617178
       },
       "rutas_que_pasan": 4,
+      "criterio": "rutas_hospitales",
       "accesos": [
         {
           "acceso_id": "A",
@@ -278,6 +285,7 @@
         "lon": -77.0537116
       },
       "rutas_que_pasan": 3,
+      "criterio": "rutas_hospitales",
       "accesos": [
         {
           "acceso_id": "A",
@@ -315,6 +323,7 @@
         "lon": -77.0652388
       },
       "rutas_que_pasan": 2,
+      "criterio": "rutas_hospitales",
       "accesos": [
         {
           "acceso_id": "A",
@@ -346,6 +355,7 @@
         "lon": -77.0511095
       },
       "rutas_que_pasan": 2,
+      "criterio": "rutas_hospitales",
       "accesos": [
         {
           "acceso_id": "A",
@@ -370,6 +380,476 @@
           "rumbo_llegada_deg": 309.1,
           "grupo_semaforico": 2,
           "nota": "Jirón Mariscal Toribio Luzuriaga (nodo 263388533 -> 263389393)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "21",
+      "interseccion_id": "OSM-ZONA-1355562672",
+      "nombre": "Avenida Universitaria / Calle Los Tulipanes",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.064256,
+        "lon": -77.0783232
+      },
+      "rutas_que_pasan": 0,
+      "criterio": "radio_1500m",
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 75.7,
+          "grupo_semaforico": 1,
+          "nota": "Calle Los Tulipanes (nodo 1273785270 -> 1355562672)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 166.8,
+          "grupo_semaforico": 2,
+          "nota": "Avenida Universitaria (nodo 4332528861 -> 1355562672)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 251.6,
+          "grupo_semaforico": 1,
+          "nota": "Calle Los Tulipanes (nodo 494413680 -> 1355562672)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 352.1,
+          "grupo_semaforico": 2,
+          "nota": "Avenida Universitaria (nodo 2461132332 -> 1355562672)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "22",
+      "interseccion_id": "OSM-ZONA-9989609577",
+      "nombre": "Avenida Mariano Cornejo / Calle Avenida Astral",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0679278,
+        "lon": -77.0738778
+      },
+      "rutas_que_pasan": 0,
+      "criterio": "radio_1500m",
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 6.4,
+          "grupo_semaforico": 1,
+          "nota": "Calle Avenida Astral (nodo 874898790 -> 9989609577)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 84.8,
+          "grupo_semaforico": 2,
+          "nota": "Avenida Mariano Cornejo (nodo 4336221944 -> 9989609577)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 269.1,
+          "grupo_semaforico": 2,
+          "nota": "Avenida Mariano Cornejo (nodo 1836204832 -> 9989609577)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "23",
+      "interseccion_id": "OSM-ZONA-589642633",
+      "nombre": "Avenida Manuel Cipriano Dulanto / Avenida Universitaria / Prolongación Avenida M",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0749304,
+        "lon": -77.0796581
+      },
+      "rutas_que_pasan": 0,
+      "criterio": "radio_1500m",
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 32.2,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Universitaria (nodo 4332507067 -> 589642633)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 93.1,
+          "grupo_semaforico": 2,
+          "nota": "Prolongación Avenida Mariscal José de la Mar (nodo 589642572 -> 589642633)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 221.2,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Universitaria (nodo 589642608 -> 589642633)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 282.9,
+          "grupo_semaforico": 2,
+          "nota": "Avenida Manuel Cipriano Dulanto (nodo 650000841 -> 589642633)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "24",
+      "interseccion_id": "OSM-ZONA-650001523",
+      "nombre": "Calle Chamaya / Prolongación Avenida Mariscal José de la Mar",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0747965,
+        "lon": -77.082222
+      },
+      "rutas_que_pasan": 0,
+      "criterio": "radio_1500m",
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 3.1,
+          "grupo_semaforico": 1,
+          "nota": "Calle Chamaya (nodo 3962686473 -> 650001523)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 95.3,
+          "grupo_semaforico": 2,
+          "nota": "Prolongación Avenida Mariscal José de la Mar (nodo 494493627 -> 650001523)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 183.2,
+          "grupo_semaforico": 1,
+          "nota": "Calle Chamaya (nodo 3962740783 -> 650001523)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 273.1,
+          "grupo_semaforico": 2,
+          "nota": "Prolongación Avenida Mariscal José de la Mar (nodo 3962644883 -> 650001523)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "25",
+      "interseccion_id": "OSM-ZONA-494746323",
+      "nombre": "Avenida Santa Bernardita / Calle Santa Teodosia",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0634138,
+        "lon": -77.0748592
+      },
+      "rutas_que_pasan": 0,
+      "criterio": "radio_1500m",
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 75.8,
+          "grupo_semaforico": 1,
+          "nota": "Calle Santa Teodosia (nodo 5543194928 -> 494746323)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 166.6,
+          "grupo_semaforico": 2,
+          "nota": "Avenida Santa Bernardita (nodo 4332540340 -> 494746323)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 260.1,
+          "grupo_semaforico": 1,
+          "nota": "Calle Santa Teodosia (nodo 2168739224 -> 494746323)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "26",
+      "interseccion_id": "OSM-ZONA-649999455",
+      "nombre": "Avenida Universitaria / Calle 7",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0770711,
+        "lon": -77.080823
+      },
+      "rutas_que_pasan": 0,
+      "criterio": "radio_1500m",
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 10.7,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Universitaria (nodo 12396847032 -> 649999455)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 122.5,
+          "grupo_semaforico": 2,
+          "nota": "Calle 7 (nodo 650000403 -> 649999455)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 204.1,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Universitaria (nodo 610703537 -> 649999455)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 278.2,
+          "grupo_semaforico": 2,
+          "nota": "Calle 7 (nodo 649999333 -> 649999455)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "27",
+      "interseccion_id": "OSM-ZONA-8237351488",
+      "nombre": "Avenida República de Venezuela / Avenida Universitaria",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0603403,
+        "lon": -77.0790453
+      },
+      "rutas_que_pasan": 0,
+      "criterio": "radio_1500m",
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 77.4,
+          "grupo_semaforico": 1,
+          "nota": "Avenida República de Venezuela (nodo 9432447921 -> 8237351488)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 168.2,
+          "grupo_semaforico": 2,
+          "nota": "Avenida Universitaria (nodo 9432447922 -> 8237351488)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 256.9,
+          "grupo_semaforico": 1,
+          "nota": "Avenida República de Venezuela (nodo 494631995 -> 8237351488)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 349.5,
+          "grupo_semaforico": 2,
+          "nota": "Avenida Universitaria (nodo 316802240 -> 8237351488)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "28",
+      "interseccion_id": "OSM-ZONA-10915486536",
+      "nombre": "Avenida Alejandro Bertello / Calle Mercurio / Calle Santa Teodosia",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0643815,
+        "lon": -77.0712641
+      },
+      "rutas_que_pasan": 0,
+      "criterio": "radio_1500m",
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 39.3,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Alejandro Bertello (nodo 499773518 -> 10915486536)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 129.8,
+          "grupo_semaforico": 2,
+          "nota": "Calle Santa Teodosia (nodo 10915486535 -> 10915486536)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 218.8,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Alejandro Bertello (nodo 499734194 -> 10915486536)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 310.2,
+          "grupo_semaforico": 2,
+          "nota": "Calle Mercurio (nodo 10697822830 -> 10915486536)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "29",
+      "interseccion_id": "OSM-ZONA-10011691220",
+      "nombre": "Avenida Parque de las Leyendas / Prolongación Avenida Mariscal José de la Mar",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.073674,
+        "lon": -77.0871242
+      },
+      "rutas_que_pasan": 0,
+      "criterio": "radio_1500m",
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 22.3,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Parque de las Leyendas (nodo 650007624 -> 10011691220)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 199.1,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Parque de las Leyendas (nodo 317337732 -> 10011691220)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 290.4,
+          "grupo_semaforico": 2,
+          "nota": "Prolongación Avenida Mariscal José de la Mar (nodo 317337956 -> 10011691220)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "30",
+      "interseccion_id": "OSM-ZONA-331597613",
+      "nombre": "Avenida Universitaria / Avenida de La Marina",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0783346,
+        "lon": -77.0811315
+      },
+      "rutas_que_pasan": 0,
+      "criterio": "radio_1500m",
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 22.7,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Universitaria (nodo 316802214 -> 331597613)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 94.8,
+          "grupo_semaforico": 2,
+          "nota": "Avenida de La Marina (nodo 331597615 -> 331597613)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 200.1,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Universitaria (nodo 462980385 -> 331597613)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 280.6,
+          "grupo_semaforico": 2,
+          "nota": "Avenida de La Marina (nodo 331597611 -> 331597613)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "31",
+      "interseccion_id": "OSM-ZONA-1355562708",
+      "nombre": "Avenida República de Venezuela / Calle Teniente Arístides del Carpio Muñoz",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0596498,
+        "lon": -77.0774555
+      },
+      "rutas_que_pasan": 0,
+      "criterio": "radio_1500m",
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 78.1,
+          "grupo_semaforico": 1,
+          "nota": "Avenida República de Venezuela (nodo 1273453012 -> 1355562708)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 166.3,
+          "grupo_semaforico": 2,
+          "nota": "Calle Teniente Arístides del Carpio Muñoz (nodo 1273778813 -> 1355562708)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 273.0,
+          "grupo_semaforico": 1,
+          "nota": "Avenida República de Venezuela (nodo 1355562702 -> 1355562708)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "32",
+      "interseccion_id": "OSM-ZONA-1181353062",
+      "nombre": "Avenida Brigida Silva de Ochoa / Avenida de La Marina",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0781471,
+        "lon": -77.0869926
+      },
+      "rutas_que_pasan": 0,
+      "criterio": "radio_1500m",
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 9.1,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Brigida Silva de Ochoa (nodo 593898350 -> 1181353062)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 90.9,
+          "grupo_semaforico": 2,
+          "nota": "Avenida de La Marina (nodo 4041852033 -> 1181353062)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 180.2,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Brigida Silva de Ochoa (nodo 4041865391 -> 1181353062)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 271.3,
+          "grupo_semaforico": 2,
+          "nota": "Avenida de La Marina (nodo 593898351 -> 1181353062)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "33",
+      "interseccion_id": "OSM-ZONA-611484206",
+      "nombre": "Avenida Parque de las Leyendas / Avenida de La Marina",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0779601,
+        "lon": -77.0886006
+      },
+      "rutas_que_pasan": 0,
+      "criterio": "radio_1500m",
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 3.5,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Parque de las Leyendas (nodo 4347476110 -> 611484206)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 92.4,
+          "grupo_semaforico": 2,
+          "nota": "Avenida de La Marina (nodo 607236164 -> 611484206)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 181.8,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Parque de las Leyendas (nodo 4041852511 -> 611484206)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 271.4,
+          "grupo_semaforico": 2,
+          "nota": "Avenida de La Marina (nodo 317337941 -> 611484206)"
         }
       ]
     }

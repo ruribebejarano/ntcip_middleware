@@ -130,6 +130,10 @@ PUCP (ver "Zona PUCP"). Las fuentes emulan posiciones a ~5 Hz (el MP sigue a
     Nacional de Salud del Niño: según OSM, ese está en Av. Brasil (Breña),
     -12.06500, -77.04644. Para ir al INSN real, usar Ruta libre.
   - El vehículo queda **quieto** en el origen hasta "Iniciar emergencia".
+  - Con una trayectoria grabada activa, **elegir otro destino** (mapa,
+    hospital o lista) **pasa solo a Ruta libre**: una grabada solo va a su
+    propio destino, y seguirla hacia otro hospital hacía que el vehículo se
+    fuera "por otros lados" mientras el servidor recalculaba la ruta.
   - **Velocidad de demo ×1 / ×2 / ×4**: acelera solo el reloj (las
     velocidades del MP no se escalan). Con ×2/×4 el CSV de eventos lleva un
     evento `demo` (`{"factor": 4}`) al inicio y `demo_factor` en cada
@@ -204,7 +208,7 @@ trayectoria, destino) a `escenarios.json`; recompilar.
   (el MI sale apenas el broker responde; el vehículo no avanza sin servidor)
   y se muestra "Sin conexión con el servidor" desde el principio.
 
-## Zona PUCP: 10 RSU y hospitales cercanos
+## Zona PUCP: 23 RSU y hospitales cercanos
 
 `pruebas/generar_zona_pucp.py` arma, a partir de OSM:
 
@@ -212,13 +216,23 @@ trayectoria, destino) a `escenarios.json`; recompilar.
   emergencia** dentro del grafo (Overpass: `amenity`/`healthcare` =
   `hospital`|`clinic`; clínicas solo con `emergency=yes`). © colaboradores
   de OpenStreetMap, ODbL.
-- `pruebas/registro_rsu_zona_pucp.json`: **10 RSU (rsu_id 11–20)** en
-  cruces con `highway=traffic_signals` del propio grafo por los que pasan las
-  rutas del servidor desde la PUCP a esos hospitales. Elección greedy: primero
-  los cruces que dan semáforo a rutas que aún no tienen ninguno, luego los más
-  transitados; separación ≥ 250 m entre RSU y ≥ 350 m de la base. 12 de los
-  14 destinos quedan con al menos una RSU (los otros: el Centro Médico PUCP,
-  a 400 m, y el Geriátrico San José, cuya ruta no cruza semáforos de OSM).
+- `pruebas/registro_rsu_zona_pucp.json`: **23 RSU (rsu_id 11–33)** en
+  cruces con `highway=traffic_signals` del propio grafo:
+  - **11–20, por rutas**: cruces por los que pasan las rutas del servidor
+    desde la PUCP a esos hospitales. Elección greedy: primero los que dan
+    semáforo a rutas que aún no tienen ninguno, luego los más transitados;
+    separación ≥ 250 m entre RSU y ≥ 350 m de la base. 12 de los 14 destinos
+    quedan con al menos una RSU (los otros: el Centro Médico PUCP, a 400 m, y
+    el Geriátrico San José, cuya ruta no cruza semáforos de OSM).
+  - **21–33, por radio**: toda intersección semaforizada a menos de 1,5 km
+    del campus (`--radio-m`), para que cualquier ruta que salga de la PUCP o
+    pase cerca encuentre semáforos (Av. Universitaria, La Marina, Riva
+    Agüero, Venezuela, Parque de las Leyendas, Mariano Cornejo...). Las
+    señales de OSM se agrupan por cruce (≤ 40 m) y cada cruce se representa
+    con el nodo del grafo más cercano con `street_count ≥ 3`.
+  - Al regenerar, las RSU por rutas del registro existente **conservan su
+    rsu_id**; con `--radio-m 2000` serían 30 RSU (cada RSU son 2 procesos,
+    ~90 MB: 23 RSU + servidor + consola ≈ 2,2 GB).
 - Ambos se copian a `app/src/main/assets/zona/` **solo para dibujarlos** en
   el mapa; el registro que vale es el que carga el servidor.
 

@@ -1,6 +1,7 @@
 """Genera el escenario "zona PUCP": hospitales/clínicas cercanos (de OSM) y
-un registro de RSU con ~10 intersecciones semaforizadas reales por las que
-pasan las rutas desde la PUCP hacia ellos (ver app_obu/README.md, sección
+un registro de RSU con las intersecciones semaforizadas reales por las que
+pasan las rutas desde la PUCP hacia ellos, más todas las que están en un
+radio del campus (ver app_obu/README.md, sección
 "Zona PUCP").
 
 Entradas:
@@ -12,7 +13,9 @@ Entradas:
 Salidas (en --salida-dir, por defecto app_obu/pruebas/):
 - hospitales_zona_pucp.json  hospitales + clínicas con emergencia, dentro del
                              grafo (también se copia a los assets de la app);
-- registro_rsu_zona_pucp.json rsu_id 11..20 (1: Pi; 2-7: otros escenarios).
+- registro_rsu_zona_pucp.json rsu_id desde 11 (1: Pi; 2-7: otros escenarios):
+                             primero las elegidas por rutas (11-20), luego
+                             las del radio (--radio-m, 1,5 km por defecto).
 
 Criterio de elección de las RSU (todo sobre el grafo real):
 1. ruta servidor/rutas.py::calcular_ruta desde la base (PUCP, Av.
@@ -34,6 +37,7 @@ Uso (desde la raíz del repo):
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import math
 import shutil
@@ -50,6 +54,7 @@ from servidor import rutas as rutas_mod  # noqa: E402
 DIR_PRUEBAS = Path(__file__).resolve().parent
 ASSETS_APP = RAIZ / "app_obu" / "app" / "src" / "main" / "assets" / "zona"
 BASE_PUCP = (-12.071468, -77.078353)  # mismo origen que el escenario PUCP (Av. Universitaria)
+CENTRO_PUCP = (-12.0691, -77.0791)    # centro del campus, para el radio de RSU
 RSU_ID_INICIAL = 11
 
 
@@ -97,7 +102,10 @@ def accesos_de(G, nodo_id: str) -> list[dict]:
         if any(delta_psi(rumbo, c[0]) < 20 for c in crudos):
             continue
         datos = G[v][nodo_id] if G.has_edge(v, nodo_id) else G[nodo_id][v]
-        crudos.append((rumbo, f"{datos.get('name') or '(sin nombre)'} (nodo {v} -> {nodo_id})"))
+        nombre = str(datos.get("name") or "(sin nombre)")
+        if nombre.startswith("["):  # OSMnx guarda como texto la lista de nombres de una arista fusionada
+            nombre = ast.literal_eval(nombre)[0]
+        crudos.append((rumbo, f"{nombre} (nodo {v} -> {nodo_id})"))
     crudos.sort()
     base = crudos[0][0]
     salida = []
@@ -115,6 +123,10 @@ def main() -> None:
     ap.add_argument("--n-rsu", type=int, default=10)
     ap.add_argument("--separacion-m", type=float, default=250.0)
     ap.add_argument("--min-desde-base-m", type=float, default=350.0)
+    ap.add_argument("--radio-m", type=float, default=1500.0,
+                    help="además: toda intersección semaforizada a menos de esto del centro de la PUCP (0 = ninguna)")
+    ap.add_argument("--separacion-radio-m", type=float, default=120.0,
+                    help="separación mínima de las RSU agregadas por radio respecto de las demás")
     ap.add_argument("--salida-dir", type=Path, default=DIR_PRUEBAS)
     ap.add_argument("--sin-assets", action="store_true", help="no copiar a los assets de la app")
     args = ap.parse_args()
@@ -147,13 +159,59 @@ def main() -> None:
         p = (G.nodes[nid]["y"], G.nodes[nid]["x"])
         return all(_dist(p, (G.nodes[e]["y"], G.nodes[e]["x"])) >= args.separacion_m for e in elegidos)
 
+    # Las RSU ya publicadas por rutas (registro existente) se conservan con
+    # su rsu_id: la demo, la consola y las notas ya las nombran así.
+    previo = args.salida_dir / "registro_rsu_zona_pucp.json"
     elegidos: list[str] = []
+    if previo.exists():
+        for r in json.loads(previo.read_text(encoding="utf-8"))["rsu"]:
+            if r.get("criterio", "rutas_hospitales") == "rutas_hospitales":
+                elegidos.append(r["interseccion_id"].removeprefix("OSM-ZONA-"))
+        print(f"Se conservan {len(elegidos)} RSU por rutas de {previo.name}")
     while len(elegidos) < args.n_rsu:
         sin_cubrir = [r for r, c in candidatos_por_ruta.items() if c and not (c & set(elegidos))]
-        opciones = [n for n in pasos if n not in elegidos and lejos_de_elegidos(n)]
+        opciones = sorted(n for n in pasos if n not in elegidos and lejos_de_elegidos(n))  # orden fijo: desempate reproducible
         if not opciones:
             break
         elegidos.append(max(opciones, key=lambda n: (sum(n in candidatos_por_ruta[r] for r in sin_cubrir), pasos[n])))
+    n_por_rutas = len(elegidos)
+
+    # Segunda etapa: TODA intersección semaforizada dentro de --radio-m del
+    # campus, para que cualquier ruta que salga de la PUCP o pase cerca
+    # encuentre semáforos (no solo las rutas hacia los hospitales). Las
+    # señales de OSM se agrupan por cruce (<= 40 m) y se representa cada
+    # cruce con el nodo del grafo con street_count >= 3 más cercano a su
+    # centroide; se agregan de la más cercana a la más lejana del campus.
+    # Van DESPUÉS de las elegidas por rutas: así esas conservan sus rsu_id.
+    if args.radio_m > 0:
+        grupos: list[list[tuple[float, float]]] = []
+        for _, la, lo in senales:
+            for g in grupos:
+                cx = sum(p[0] for p in g) / len(g)
+                cy = sum(p[1] for p in g) / len(g)
+                if _dist((la, lo), (cx, cy)) <= 40:
+                    g.append((la, lo))
+                    break
+            else:
+                grupos.append([(la, lo)])
+        cruces = []
+        for g in grupos:
+            c = (sum(p[0] for p in g) / len(g), sum(p[1] for p in g) / len(g))
+            if _dist(c, CENTRO_PUCP) > args.radio_m:
+                continue
+            cerca = [(_dist(c, (d["y"], d["x"])), nid) for nid, d in G.nodes(data=True)
+                     if int(d.get("street_count", 0) or 0) >= 3 and abs(d["y"] - c[0]) < 0.0005 and abs(d["x"] - c[1]) < 0.0005]
+            cerca = [x for x in cerca if x[0] <= 40]
+            if cerca:
+                cruces.append(min(cerca)[1])
+        for nid in sorted(set(cruces), key=lambda n: _dist((G.nodes[n]["y"], G.nodes[n]["x"]), CENTRO_PUCP)):
+            p = (G.nodes[nid]["y"], G.nodes[nid]["x"])
+            if nid in elegidos or _dist(p, BASE_PUCP) < 100:
+                continue
+            if any(_dist(p, (G.nodes[e]["y"], G.nodes[e]["x"])) < args.separacion_radio_m for e in elegidos):
+                continue
+            elegidos.append(nid)
+    print(f"{n_por_rutas} RSU por rutas a hospitales + {len(elegidos) - n_por_rutas} por radio de {args.radio_m:.0f} m")
 
     rsu = []
     for i, nid in enumerate(elegidos):
@@ -167,6 +225,7 @@ def main() -> None:
             "codigo_mml": None,
             "centro": {"lat": round(d["y"], 7), "lon": round(d["x"], 7)},
             "rutas_que_pasan": pasos[nid],
+            "criterio": "rutas_hospitales" if i < n_por_rutas else f"radio_{args.radio_m:.0f}m",
             "accesos": acc,
         })
     registro = {
@@ -175,7 +234,8 @@ def main() -> None:
             f"Registro 'zona PUCP' (ver app_obu/README.md): {len(rsu)} RSU en cruces semaforizados reales "
             f"(highway=traffic_signals de {Path(rutas_mod.GRAFO_REAL_DEFAULT).name}) por los que pasan las rutas "
             "del servidor desde la PUCP (Av. Universitaria) hacia los hospitales y clínicas con emergencia de "
-            "hospitales_zona_pucp.json. Generado por app_obu/pruebas/generar_zona_pucp.py. rsu_id 11-20 (1: Pi; "
+            "hospitales_zona_pucp.json, más toda intersección semaforizada a menos de "
+            f"{args.radio_m:.0f} m del campus. Generado por app_obu/pruebas/generar_zona_pucp.py. rsu_id desde 11 (1: Pi; "
             "2-7: otros escenarios -- mismo RSU_ID contra el mismo broker = mismo client_id MQTT)."
         ),
         "origen": {"base": {"lat": BASE_PUCP[0], "lon": BASE_PUCP[1]},
