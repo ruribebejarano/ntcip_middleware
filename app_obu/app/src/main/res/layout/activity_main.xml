@@ -135,6 +135,14 @@
                             app:singleSelection="true" />
 
                         <TextView
+                            android:id="@+id/textoOrigen"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textSize="15sp"
+                            android:visibility="gone" />
+
+                        <TextView
                             style="@style/TituloSeccion"
                             android:text="@string/seccion_velocidad_demo" />
 
@@ -190,6 +198,14 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/textoGnssDetalle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textSize="13sp"
+                        android:visibility="gone" />
+
+                    <TextView
                         style="@style/TituloSeccion"
                         android:text="@string/seccion_destino" />
 
@@ -206,6 +222,13 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:text="@string/destinos_predefinidos" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/ayuda_mapa"
+                        android:textSize="12sp" />
                 </LinearLayout>
 
                 <!-- ===== Con misión ===== -->

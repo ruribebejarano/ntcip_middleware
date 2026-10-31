@@ -2,10 +2,13 @@ package pe.pucp.ntcip.obu.velocidad
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.location.GnssStatus
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -69,6 +72,11 @@ class FuenteGnss(
     private val _estado = MutableStateFlow<EstadoGnss>(EstadoGnss.Buscando)
     val estado: StateFlow<EstadoGnss> = _estado
 
+    private val _satelites = MutableStateFlow<Pair<Int, Int>?>(null)
+
+    /** (vistos, usados en el fix), del GnssStatus; null antes del primer reporte. */
+    val satelites: StateFlow<Pair<Int, Int>?> = _satelites
+
     @SuppressLint("MissingPermission") // el llamador ya pidió ACCESS_FINE_LOCATION antes de usar esta clase
     override val muestras: Flow<MuestraPosicion> = callbackFlow {
         var ultimaLecturaMs = 0L
@@ -102,6 +110,13 @@ class FuenteGnss(
             }
         }
         lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 0f, listener)
+        val callbackSatelites = object : GnssStatus.Callback() {
+            override fun onSatelliteStatusChanged(status: GnssStatus) {
+                val usados = (0 until status.satelliteCount).count { status.usedInFix(it) }
+                _satelites.value = status.satelliteCount to usados
+            }
+        }
+        lm.registerGnssStatusCallback(callbackSatelites, Handler(Looper.getMainLooper()))
         // Sin lecturas nuevas (bajo techo, túnel), Android simplemente deja
         // de llamar a onLocationChanged: el último estado quedaría "listo"
         // para siempre si nadie lo vence.
@@ -113,7 +128,9 @@ class FuenteGnss(
         }
         awaitClose {
             lm.removeUpdates(listener)
+            lm.unregisterGnssStatusCallback(callbackSatelites)
             _estado.value = EstadoGnss.Inactivo
+            _satelites.value = null
         }
     }
 

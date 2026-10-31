@@ -27,6 +27,13 @@ class MqttObuClient(
     private val json = jsonObu
     private var cliente: Mqtt5BlockingClient? = null
 
+    // El cliente existe desde ANTES de conectar: con reconexión automática,
+    // connect() puede quedarse reintentando (broker inalcanzable) y, si la
+    // misión termina en ese lapso, hay que poder cerrarlo -- si no, sigue
+    // reintentando en segundo plano y se conecta más tarde como una sesión
+    // fantasma (visto el 2026-10-31 con Tailscale en otra cuenta).
+    @Volatile private var construido: Mqtt5BlockingClient? = null
+
     suspend fun conectar() = withContext(Dispatchers.IO) {
         val c = Mqtt5Client.builder()
             .identifier("obu-$obuId")
@@ -38,6 +45,7 @@ class MqttObuClient(
             // Sin TLS: broker de desarrollo plano, permitido por §1 del
             // contrato para esta etapa (ver seguridad/TlsConfig.kt).
             .buildBlocking()
+        construido = c
 
         c.connect()
 
@@ -63,15 +71,21 @@ class MqttObuClient(
     suspend fun enviarMF(mf: MensajeMF) = publicar("obu/$obuId/mision", json.encodeToString(mf))
 
     private suspend fun publicar(topico: String, cuerpoJson: String) = withContext(Dispatchers.IO) {
-        cliente?.publishWith()
-            ?.topic(topico)
-            ?.qos(MqttQos.AT_LEAST_ONCE)
-            ?.payload(cuerpoJson.toByteArray(StandardCharsets.UTF_8))
-            ?.send()
+        // runCatching: con la conexión caída (reconectando) HiveMQ lanza
+        // excepción en vez de encolar; perder un MP es preferible a cerrar la app.
+        runCatching {
+            cliente?.publishWith()
+                ?.topic(topico)
+                ?.qos(MqttQos.AT_LEAST_ONCE)
+                ?.payload(cuerpoJson.toByteArray(StandardCharsets.UTF_8))
+                ?.send()
+        }
     }
 
     suspend fun desconectar() = withContext(Dispatchers.IO) {
-        runCatching { cliente?.disconnect() }
+        // disconnect() también detiene la reconexión automática en curso.
+        runCatching { (cliente ?: construido)?.disconnect() }
         cliente = null
+        construido = null
     }
 }

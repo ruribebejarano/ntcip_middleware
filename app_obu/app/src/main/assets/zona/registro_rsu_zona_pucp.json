@@ -1,0 +1,377 @@
+{
+  "version": "app-obu-zona-pucp",
+  "descripcion": "Registro 'zona PUCP' (ver app_obu/README.md): 10 RSU en cruces semaforizados reales (highway=traffic_signals de grafo_san_miguel_real.graphml) por los que pasan las rutas del servidor desde la PUCP (Av. Universitaria) hacia los hospitales y clínicas con emergencia de hospitales_zona_pucp.json. Generado por app_obu/pruebas/generar_zona_pucp.py. rsu_id 11-20 (1: Pi; 2-7: otros escenarios -- mismo RSU_ID contra el mismo broker = mismo client_id MQTT).",
+  "origen": {
+    "base": {
+      "lat": -12.071468,
+      "lon": -77.078353
+    },
+    "grupo_semaforico": "Valor de relleno; el plan semafórico real lo entrega el CCGT."
+  },
+  "rsu": [
+    {
+      "rsu_id": "11",
+      "interseccion_id": "OSM-ZONA-674944534",
+      "nombre": "Avenida Paso de los Andes / Avenida Simón Bolivar",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0718794,
+        "lon": -77.0590298
+      },
+      "rutas_que_pasan": 4,
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 2.7,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Paso de los Andes (nodo 12433135947 -> 674944534)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 102.5,
+          "grupo_semaforico": 2,
+          "nota": "Avenida Simón Bolivar (nodo 316803100 -> 674944534)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 182.5,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Paso de los Andes (nodo 316803295 -> 674944534)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 284.9,
+          "grupo_semaforico": 2,
+          "nota": "Avenida Simón Bolivar (nodo 799340905 -> 674944534)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "12",
+      "interseccion_id": "OSM-ZONA-674939488",
+      "nombre": "Avenida Antonio José de Sucre / Avenida General José María Egusquiza",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0737735,
+        "lon": -77.0626077
+      },
+      "rutas_que_pasan": 2,
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 28.9,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Antonio José de Sucre (nodo 2059583470 -> 674939488)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 136.4,
+          "grupo_semaforico": 2,
+          "nota": "Avenida General José María Egusquiza (nodo 670402125 -> 674939488)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 207.8,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Antonio José de Sucre (nodo 674939564 -> 674939488)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 319.8,
+          "grupo_semaforico": 2,
+          "nota": "Avenida General José María Egusquiza (nodo 674939489 -> 674939488)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "13",
+      "interseccion_id": "OSM-ZONA-606182740",
+      "nombre": "Avenida de La Marina / Paseo de la Libertad",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.08354,
+        "lon": -77.0661707
+      },
+      "rutas_que_pasan": 2,
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 19.9,
+          "grupo_semaforico": 1,
+          "nota": "Paseo de la Libertad (nodo 606182733 -> 606182740)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 110.9,
+          "grupo_semaforico": 2,
+          "nota": "Avenida de La Marina (nodo 606182739 -> 606182740)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 199.2,
+          "grupo_semaforico": 1,
+          "nota": "Paseo de la Libertad (nodo 3465594394 -> 606182740)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 293.3,
+          "grupo_semaforico": 2,
+          "nota": "Avenida de La Marina (nodo 331597605 -> 606182740)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "14",
+      "interseccion_id": "OSM-ZONA-263389383",
+      "nombre": "Avenida General Eugenio Garzón / Avenida San Felipe",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0814914,
+        "lon": -77.0572941
+      },
+      "rutas_que_pasan": 2,
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 38.8,
+          "grupo_semaforico": 1,
+          "nota": "Avenida General Eugenio Garzón (nodo 263388340 -> 263389383)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 129.1,
+          "grupo_semaforico": 2,
+          "nota": "Avenida San Felipe (nodo 263389680 -> 263389383)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 203.7,
+          "grupo_semaforico": 1,
+          "nota": "Avenida General Eugenio Garzón (nodo 263389384 -> 263389383)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 308.9,
+          "grupo_semaforico": 2,
+          "nota": "Avenida San Felipe (nodo 2060102918 -> 263389383)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "15",
+      "interseccion_id": "OSM-ZONA-3962740796",
+      "nombre": "Avenida José de la Riva Agüero / Calle Los Naranjos",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0630341,
+        "lon": -77.0824782
+      },
+      "rutas_que_pasan": 1,
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 84.9,
+          "grupo_semaforico": 1,
+          "nota": "Calle Los Naranjos (nodo 1273934812 -> 3962740796)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 168.9,
+          "grupo_semaforico": 2,
+          "nota": "Avenida José de la Riva Agüero (nodo 7283635371 -> 3962740796)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 258.8,
+          "grupo_semaforico": 1,
+          "nota": "Calle Los Naranjos (nodo 1273979875 -> 3962740796)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 347.6,
+          "grupo_semaforico": 2,
+          "nota": "Avenida José de la Riva Agüero (nodo 3962740794 -> 3962740796)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "16",
+      "interseccion_id": "OSM-ZONA-605041162",
+      "nombre": "Avenida Brasil / Jirón Francisco Bolognesi",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0930812,
+        "lon": -77.0687708
+      },
+      "rutas_que_pasan": 1,
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 38.8,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Brasil (nodo 605041174 -> 605041162)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 110.2,
+          "grupo_semaforico": 2,
+          "nota": "Jirón Francisco Bolognesi (nodo 605673663 -> 605041162)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 219.0,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Brasil (nodo 605673726 -> 605041162)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 288.6,
+          "grupo_semaforico": 2,
+          "nota": "Jirón Francisco Bolognesi (nodo 263386171 -> 605041162)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "17",
+      "interseccion_id": "OSM-ZONA-316803097",
+      "nombre": "Avenida Antonio José de Sucre / Avenida José de San Martín / Avenida Simón Boliv",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0716261,
+        "lon": -77.0617178
+      },
+      "rutas_que_pasan": 4,
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 21.7,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Antonio José de Sucre (nodo 674939564 -> 316803097)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 76.8,
+          "grupo_semaforico": 2,
+          "nota": "Avenida Simón Bolivar (nodo 670402129 -> 316803097)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 194.7,
+          "grupo_semaforico": 1,
+          "nota": "Avenida José de San Martín (nodo 316803526 -> 316803097)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 267.8,
+          "grupo_semaforico": 2,
+          "nota": "Avenida Simón Bolivar (nodo 316809596 -> 316803097)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "18",
+      "interseccion_id": "OSM-ZONA-263393294",
+      "nombre": "Avenida Brasil / Avenida Húsares de Junín / Avenida Simón Bolivar",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0751363,
+        "lon": -77.0537116
+      },
+      "rutas_que_pasan": 3,
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 38.8,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Brasil (nodo 10700234402 -> 263393294)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 96.7,
+          "grupo_semaforico": 2,
+          "nota": "Avenida Simón Bolivar (nodo 316803105 -> 263393294)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 218.3,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Brasil (nodo 263392919 -> 263393294)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 309.2,
+          "grupo_semaforico": 2,
+          "nota": "Avenida Húsares de Junín (nodo 263389391 -> 263393294)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "19",
+      "interseccion_id": "OSM-ZONA-638357935",
+      "nombre": "Avenida Manuel Cipriano Dulanto / Figari",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0788402,
+        "lon": -77.0652388
+      },
+      "rutas_que_pasan": 2,
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 84.1,
+          "grupo_semaforico": 1,
+          "nota": "Figari (nodo 638356992 -> 638357935)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 232.0,
+          "grupo_semaforico": 1,
+          "nota": "Figari (nodo 638357936 -> 638357935)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 271.0,
+          "grupo_semaforico": 1,
+          "nota": "Avenida Manuel Cipriano Dulanto (nodo 638358082 -> 638357935)"
+        }
+      ]
+    },
+    {
+      "rsu_id": "20",
+      "interseccion_id": "OSM-ZONA-263389393",
+      "nombre": "Avenida General Eugenio Garzón / Jirón Mariscal Toribio Luzuriaga",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0739505,
+        "lon": -77.0511095
+      },
+      "rutas_que_pasan": 2,
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 38.8,
+          "grupo_semaforico": 1,
+          "nota": "Avenida General Eugenio Garzón (nodo 263389392 -> 263389393)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 128.4,
+          "grupo_semaforico": 2,
+          "nota": "Jirón Mariscal Toribio Luzuriaga (nodo 263395368 -> 263389393)"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 219.6,
+          "grupo_semaforico": 1,
+          "nota": "Avenida General Eugenio Garzón (nodo 263389394 -> 263389393)"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 309.1,
+          "grupo_semaforico": 2,
+          "nota": "Jirón Mariscal Toribio Luzuriaga (nodo 263388533 -> 263389393)"
+        }
+      ]
+    }
+  ]
+}

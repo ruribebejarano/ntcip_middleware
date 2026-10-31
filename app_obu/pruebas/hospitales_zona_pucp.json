@@ -1,0 +1,122 @@
+{
+  "fuente": "OpenStreetMap (Overpass API), amenity/healthcare = hospital|clinic; clínicas solo con emergency=yes. © colaboradores de OpenStreetMap, ODbL.",
+  "base": {
+    "nombre": "PUCP (Av. Universitaria)",
+    "lat": -12.071468,
+    "lon": -77.078353
+  },
+  "hospitales": [
+    {
+      "nombre": "Centro Médico PUCP",
+      "tipo": "clinic",
+      "lat": -12.0698105,
+      "lon": -77.0793665,
+      "emergencia": true,
+      "osm": "node/1943486021"
+    },
+    {
+      "nombre": "Hospital Geriátrico San José",
+      "tipo": "hospital",
+      "lat": -12.0868606,
+      "lon": -77.0806031,
+      "emergencia": true,
+      "osm": "way/866156340"
+    },
+    {
+      "nombre": "Hospital Santa Rosa",
+      "tipo": "hospital",
+      "lat": -12.0723555,
+      "lon": -77.0610282,
+      "emergencia": true,
+      "osm": "way/73954281"
+    },
+    {
+      "nombre": "Hospital Centro Médico Naval",
+      "tipo": "hospital",
+      "lat": -12.0587576,
+      "lon": -77.089862,
+      "emergencia": true,
+      "osm": "way/433817288"
+    },
+    {
+      "nombre": "Clínica Stella Maris",
+      "tipo": "hospital",
+      "lat": -12.0708003,
+      "lon": -77.0597313,
+      "emergencia": true,
+      "osm": "way/195079449"
+    },
+    {
+      "nombre": "Clinica Centenario Peruano Japonesa",
+      "tipo": "hospital",
+      "lat": -12.0730561,
+      "lon": -77.059471,
+      "emergencia": true,
+      "osm": "way/195568056"
+    },
+    {
+      "nombre": "Hospital Central Militar Coronel Luis Arias Schreiber",
+      "tipo": "hospital",
+      "lat": -12.0862779,
+      "lon": -77.0612312,
+      "emergencia": false,
+      "osm": "way/175012617"
+    },
+    {
+      "nombre": "Hospital Nacional PNP Luis N. Saenz",
+      "tipo": "hospital",
+      "lat": -12.0849729,
+      "lon": -77.0599318,
+      "emergencia": true,
+      "osm": "way/278393025"
+    },
+    {
+      "nombre": "UBAB Jesús María",
+      "tipo": "hospital",
+      "lat": -12.071483,
+      "lon": -77.0498354,
+      "emergencia": false,
+      "osm": "node/4552742992"
+    },
+    {
+      "nombre": "Policlínico Peruano Japonés",
+      "tipo": "hospital",
+      "lat": -12.0877134,
+      "lon": -77.0546996,
+      "emergencia": false,
+      "osm": "node/5008524121"
+    },
+    {
+      "nombre": "Hospital Víctor Larco Herrera",
+      "tipo": "hospital",
+      "lat": -12.0972266,
+      "lon": -77.0655498,
+      "emergencia": true,
+      "osm": "way/39557243"
+    },
+    {
+      "nombre": "Instituto Nacional de Salud del Niño",
+      "tipo": "hospital",
+      "lat": -12.0649978,
+      "lon": -77.0464372,
+      "emergencia": true,
+      "osm": "way/194898813"
+    },
+    {
+      "nombre": "Clínica El Golf",
+      "tipo": "clinic",
+      "lat": -12.0984615,
+      "lon": -77.0517865,
+      "emergencia": true,
+      "osm": "way/129197997"
+    },
+    {
+      "nombre": "Hospital Nacional Edgardo Rebagliati Martins",
+      "tipo": "hospital",
+      "lat": -12.078364,
+      "lon": -77.0398924,
+      "emergencia": true,
+      "osm": "way/39413837"
+    }
+  ]
+}

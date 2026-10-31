@@ -24,6 +24,7 @@
     <color name="semaforo_pendiente">#757575</color>
     <color name="semaforo_solicitando">#1565C0</color>
     <color name="semaforo_verde">#2E7D32</color>
+    <color name="semaforo_cambiando">#FF8F00</color>
     <color name="semaforo_despeje">#F9A825</color>
     <color name="semaforo_en_espera">#EF6C00</color>
     <color name="semaforo_cruzada">#81C784</color>

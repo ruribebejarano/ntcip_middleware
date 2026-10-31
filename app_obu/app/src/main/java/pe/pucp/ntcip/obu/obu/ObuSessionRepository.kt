@@ -22,6 +22,9 @@ data class EstadoSesion(
     // Lo escribe quien tenga la fuente GNSS arrancada (misma invariante
     // que ultimaPosicion); Inactivo en modo "Ruta emulada".
     val estadoGnss: EstadoGnss = EstadoGnss.Inactivo,
+    // (vistos, usados en el fix) del último GnssStatus -- para explicar un
+    // "buscando señal" (bajo techo: muchos vistos, ninguno usado).
+    val satelitesGnss: Pair<Int, Int>? = null,
     val sinConexionServidor: Boolean = false,
     val motivoFinReciente: String? = null,
 )

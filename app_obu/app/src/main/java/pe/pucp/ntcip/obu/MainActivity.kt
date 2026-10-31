@@ -6,6 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
@@ -44,6 +47,7 @@ import pe.pucp.ntcip.obu.obu.Escenarios
 import pe.pucp.ntcip.obu.obu.EstadoSesion
 import pe.pucp.ntcip.obu.obu.EstadoVisual
 import pe.pucp.ntcip.obu.obu.GeometriaRuta
+import pe.pucp.ntcip.obu.obu.Hospital
 import pe.pucp.ntcip.obu.obu.MensajeMR
 import pe.pucp.ntcip.obu.obu.ObuSessionRepository
 import pe.pucp.ntcip.obu.obu.ObuSessionService
@@ -53,6 +57,7 @@ import pe.pucp.ntcip.obu.obu.VistaMision
 import pe.pucp.ntcip.obu.velocidad.EstadoGnss
 import pe.pucp.ntcip.obu.velocidad.FuenteGnss
 import pe.pucp.ntcip.obu.velocidad.FuenteSimulada
+import pe.pucp.ntcip.obu.velocidad.Recorrido
 
 /**
  * Pantalla única (docs/CONTRATO_OBU.md §6: nada más mientras hay misión).
@@ -77,6 +82,10 @@ class MainActivity : AppCompatActivity() {
     private var siguiendo = true
     private var misionActivaAntes = false
     private val verdesAvisados = mutableSetOf<String>()
+    private val marcadoresZona = mutableListOf<Marker>()
+    private var aproximadaMarker: Marker? = null
+    private var ubicacionAproximada: Pair<Double, Double>? = null
+    private var firmaTira: List<Pair<String, EstadoVisual>>? = null
 
     private val pedirPermisos = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         if (!ObuSessionRepository.estado.value.misionActiva) iniciarSeguimientoIdle()
@@ -98,11 +107,12 @@ class MainActivity : AppCompatActivity() {
         val eventosMapa = object : MapEventsReceiver {
             override fun singleTapConfirmedHelper(p: GeoPoint) = false
             override fun longPressHelper(p: GeoPoint): Boolean {
-                if (!ObuSessionRepository.estado.value.misionActiva) confirmarDestino(p)
+                if (!ObuSessionRepository.estado.value.misionActiva) alPulsarMapa(p)
                 return true
             }
         }
         binding.mapa.overlays.add(MapEventsOverlay(eventosMapa))
+        dibujarCapasZona()
         configurarSeguimientoMapa()
 
         binding.botonAjustes.setOnClickListener { startActivity(Intent(this, AjustesActivity::class.java)) }
@@ -139,6 +149,7 @@ class MainActivity : AppCompatActivity() {
         binding.selectorFactor.check(when (prefs.factorDemo) { 2 -> R.id.factor2; 4 -> R.id.factor4; else -> R.id.factor1 })
         construirChipsEscenario()
         if (prefs.modoSimulado && destinoElegido == null) Escenarios.actual(this, prefs)?.let { fijarDestino(it.destino) }
+        actualizarTextoOrigen()
         if (!ObuSessionRepository.estado.value.misionActiva) iniciarSeguimientoIdle()
     }
 
@@ -178,8 +189,9 @@ class MainActivity : AppCompatActivity() {
         val grupo = binding.grupoEscenarios
         grupo.setOnCheckedStateChangeListener(null)
         grupo.removeAllViews()
-        val actual = Escenarios.actual(this, prefs)?.id ?: Escenarios.ID_ARCHIVO
-        val opciones = Escenarios.lista(this).map { it.id to it.nombre }.toMutableList()
+        val actual = Escenarios.idActual(this, prefs)
+        val opciones = (listOf(Escenarios.ID_RUTA_LIBRE to getString(R.string.escenario_ruta_libre)) +
+            Escenarios.lista(this).map { it.id to it.nombre }).toMutableList()
         if (prefs.trayectoriaUri != null) {
             val nombreArchivo = FuenteSimulada.nombreVisible(this, Uri.parse(prefs.trayectoriaUri))
             opciones += Escenarios.ID_ARCHIVO to getString(R.string.escenario_archivo, nombreArchivo)
@@ -196,9 +208,10 @@ class MainActivity : AppCompatActivity() {
         }
         grupo.setOnCheckedStateChangeListener { g, ids ->
             val id = ids.firstOrNull()?.let { g.findViewById<Chip>(it)?.tag as? String } ?: return@setOnCheckedStateChangeListener
-            if (id == (Escenarios.actual(this, prefs)?.id ?: Escenarios.ID_ARCHIVO)) return@setOnCheckedStateChangeListener
+            if (id == Escenarios.idActual(this, prefs)) return@setOnCheckedStateChangeListener
             prefs.escenarioId = id
             Escenarios.porId(this, id)?.let { fijarDestino(it.destino); centrarEn(GeoPoint(it.destino.lat, it.destino.lon)) }
+            actualizarTextoOrigen()
             reiniciarPosicionIdle()
         }
     }
@@ -219,6 +232,12 @@ class MainActivity : AppCompatActivity() {
         // Ruta emulada: el vehículo queda QUIETO en el primer punto hasta
         // "Iniciar emergencia" (ObuSessionService reproduce desde ahí). No
         // depende del permiso de ubicación.
+        quitarUbicacionAproximada()
+        if (prefs.modoSimulado && Escenarios.esRutaLibre(prefs)) {
+            val o = origenLibre()
+            ObuSessionRepository.actualizar { it.copy(ultimaPosicion = o.lat to o.lon) }
+            return
+        }
         if (prefs.modoSimulado) {
             jobFuenteIdle = lifecycleScope.launch {
                 val inicio = withContext(Dispatchers.IO) {
@@ -236,10 +255,131 @@ class MainActivity : AppCompatActivity() {
         val fuente = FuenteGnss(this)
         jobFuenteIdle = lifecycleScope.launch {
             launch { fuente.estado.collect { e -> ObuSessionRepository.actualizar { it.copy(estadoGnss = e) } } }
+            launch { fuente.satelites.collect { s -> ObuSessionRepository.actualizar { it.copy(satelitesGnss = s) } } }
             fuente.muestras.collect { m ->
                 ObuSessionRepository.actualizar { it.copy(ultimaPosicion = m.lat to m.lon) }
             }
         }
+        seguirUbicacionAproximada(jobFuenteIdle!!)
+    }
+
+    /**
+     * Ubicación aproximada por red (Wi-Fi/antenas), SOLO para mostrar en el
+     * mapa mientras el GPS busca señal: nunca es origen del MI ni va en un
+     * MP (el contrato exige GNSS real, ver FuenteGnss).
+     */
+    @SuppressLint("MissingPermission") // solo se llama con ACCESS_FINE_LOCATION concedido
+    private fun seguirUbicacionAproximada(job: Job) {
+        val lm = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (!lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) return
+        val listener = LocationListener { loc: Location -> mostrarUbicacionAproximada(loc.latitude, loc.longitude) }
+        lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)?.let { mostrarUbicacionAproximada(it.latitude, it.longitude) }
+        lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000L, 0f, listener)
+        job.invokeOnCompletion { lm.removeUpdates(listener) }
+    }
+
+    private fun mostrarUbicacionAproximada(lat: Double, lon: Double) {
+        ubicacionAproximada = lat to lon
+        val m = aproximadaMarker ?: Marker(binding.mapa).also {
+            it.title = getString(R.string.ubicacion_aproximada)
+            it.icon = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.argb(90, 120, 120, 120))
+                setStroke(dp(2), Color.GRAY)
+                setSize(dp(40), dp(40))
+            }
+            it.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+            binding.mapa.overlays.add(it)
+            aproximadaMarker = it
+        }
+        m.position = GeoPoint(lat, lon)
+        // Sin fix GPS todavía: centrar en la aproximada para que se vea dónde está la tablet.
+        if (siguiendo && ObuSessionRepository.estado.value.ultimaPosicion == null) binding.mapa.controller.animateTo(m.position)
+        binding.mapa.invalidate()
+        aplicarPanelInicio(ObuSessionRepository.estado.value)
+    }
+
+    private fun quitarUbicacionAproximada() {
+        aproximadaMarker?.let { binding.mapa.overlays.remove(it) }
+        aproximadaMarker = null
+        ubicacionAproximada = null
+    }
+
+    // --- Ruta libre: origen elegido en el mapa ------------------------------
+
+    private fun origenLibre(): Destino = prefs.origenLibre ?: Escenarios.base(this)
+
+    private fun actualizarTextoOrigen() {
+        val libre = Escenarios.esRutaLibre(prefs)
+        binding.textoOrigen.visibility = if (libre) View.VISIBLE else View.GONE
+        if (libre) binding.textoOrigen.text = getString(R.string.origen_libre, origenLibre().nombre)
+    }
+
+    private fun alPulsarMapa(p: GeoPoint) {
+        val punto = Destino(getString(R.string.destino_punto, p.latitude, p.longitude), p.latitude, p.longitude)
+        if (!(prefs.modoSimulado && Escenarios.esRutaLibre(prefs))) {
+            confirmarDestino(p)
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(punto.nombre)
+            .setItems(arrayOf(getString(R.string.destino_aqui), getString(R.string.origen_aqui))) { _, i ->
+                if (i == 0) fijarDestino(punto) else fijarOrigenLibre(punto)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun fijarOrigenLibre(o: Destino) {
+        prefs.origenLibre = o
+        actualizarTextoOrigen()
+        reiniciarPosicionIdle()
+    }
+
+    // --- Hospitales y RSU de la zona (assets/zona/) ------------------------
+
+    private fun dibujarCapasZona() {
+        val cruz = ContextCompat.getDrawable(this, R.drawable.ic_hospital)
+        for (h in Escenarios.hospitales(this)) {
+            binding.mapa.overlays.add(Marker(binding.mapa).apply {
+                position = GeoPoint(h.lat, h.lon)
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                icon = cruz
+                title = h.nombre
+                setOnMarkerClickListener { _, _ -> alTocarHospital(h); true }
+            })
+        }
+        for (r in Escenarios.rsuZona(this)) {
+            val m = Marker(binding.mapa).apply {
+                position = GeoPoint(r.centro.lat, r.centro.lon)
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                icon = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(color(R.color.semaforo_pendiente))
+                    setStroke(dp(2), Color.WHITE)
+                    setSize(dp(16), dp(16))
+                }
+                title = "RSU ${r.rsu_id}"
+                snippet = r.nombre
+            }
+            marcadoresZona += m
+            binding.mapa.overlays.add(m)
+        }
+    }
+
+    private fun alTocarHospital(h: Hospital) {
+        if (ObuSessionRepository.estado.value.misionActiva) return
+        AlertDialog.Builder(this)
+            .setTitle(h.nombre)
+            .setMessage(getString(R.string.hospital_ir_a, distanciaTexto(h.lat, h.lon)))
+            .setPositiveButton(R.string.destino_confirmar_si) { _, _ -> fijarDestino(Destino(h.nombre, h.lat, h.lon)) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun distanciaTexto(lat: Double, lon: Double): String {
+        val desde = ObuSessionRepository.estado.value.ultimaPosicion ?: ubicacionAproximada ?: return ""
+        return "%.1f km en línea recta".format(Recorrido.distanciaM(desde, lat to lon) / 1000)
     }
 
     // --- Mapa: seguir / centrar ------------------------------------------
@@ -280,10 +420,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun elegirDestinoPredefinido() {
-        val destinos = Escenarios.destinos(this)
+        val desde = ObuSessionRepository.estado.value.ultimaPosicion ?: ubicacionAproximada
+        val hospitales = Escenarios.hospitales(this).let { lista ->
+            if (desde == null) lista else lista.sortedBy { Recorrido.distanciaM(desde, it.lat to it.lon) }
+        }
+        val destinos = hospitales.map { Destino(it.nombre, it.lat, it.lon) }
+        val etiquetas = hospitales.map { h ->
+            val km = desde?.let { " · %.1f km".format(Recorrido.distanciaM(it, h.lat to h.lon) / 1000) } ?: ""
+            h.nombre + km
+        }
         AlertDialog.Builder(this)
             .setTitle(R.string.destinos_predefinidos)
-            .setItems(destinos.map { it.nombre }.toTypedArray()) { _, i ->
+            .setItems(etiquetas.toTypedArray()) { _, i ->
                 fijarDestino(destinos[i])
                 centrarEn(GeoPoint(destinos[i].lat, destinos[i].lon))
             }
@@ -315,7 +463,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun aplicarEstado(estado: EstadoSesion) {
         if (misionActivaAntes && !estado.misionActiva) alTerminarMision(estado)
-        if (!misionActivaAntes && estado.misionActiva) verdesAvisados.clear()
+        if (!misionActivaAntes && estado.misionActiva) {
+            verdesAvisados.clear()
+            firmaTira = null
+        }
         misionActivaAntes = estado.misionActiva
 
         // Pantalla siempre encendida durante la misión.
@@ -342,14 +493,19 @@ class MainActivity : AppCompatActivity() {
                 posicionMarker = it
             }
             marcador.position = p
-            if (siguiendo) binding.mapa.controller.animateTo(p)
+            // Las fuentes emiten a ~5 Hz: animación corta para un seguimiento fluido.
+            if (siguiendo) binding.mapa.controller.animateTo(p, null, ANIMACION_SEGUIR_MS)
             binding.mapa.invalidate()
         }
 
         dibujarRuta(estado.ultimaRuta)
 
         binding.avisoSinConexion.visibility = if (estado.misionActiva && estado.sinConexionServidor) View.VISIBLE else View.GONE
-        binding.avisoSinFix.visibility = if (estado.misionActiva && estado.sinFixGnss) View.VISIBLE else View.GONE
+        binding.avisoSinFix.visibility = if (estado.misionActiva && estado.sinFixGnss && !prefs.modoSimulado) View.VISIBLE else View.GONE
+        // RSU de la zona: referencia con GPS real o ruta libre (el servidor
+        // corre registro_rsu_zona_pucp.json); en misión mandan las del MR.
+        val verZona = !estado.misionActiva && (!prefs.modoSimulado || Escenarios.esRutaLibre(prefs))
+        marcadoresZona.forEach { it.setVisible(verZona) }
 
         // Nada más en pantalla mientras hay misión (docs/CONTRATO_OBU.md §6).
         binding.botonAjustes.visibility = if (estado.misionActiva) View.GONE else View.VISIBLE
@@ -367,8 +523,13 @@ class MainActivity : AppCompatActivity() {
         ObuSessionRepository.actualizar { it.copy(motivoFinReciente = null) }
         // Vuelve al inicio con el escenario listo para repetir: en ruta
         // emulada, destino del escenario y vehículo otra vez en el primer punto.
-        quitarDestino()
-        if (prefs.modoSimulado) Escenarios.actual(this, prefs)?.let { fijarDestino(it.destino) }
+        firmaTira = null
+        if (prefs.modoSimulado && !Escenarios.esRutaLibre(prefs)) {
+            quitarDestino()
+            Escenarios.actual(this, prefs)?.let { fijarDestino(it.destino) }
+        } else if (!prefs.modoSimulado) {
+            quitarDestino()
+        } // ruta libre: se conservan origen y destino, listo para repetir
         siguiendo = true
         binding.botonCentrar.visibility = View.GONE
         iniciarSeguimientoIdle()
@@ -407,6 +568,7 @@ class MainActivity : AppCompatActivity() {
         val simulado = prefs.modoSimulado
         binding.panelEmulada.visibility = if (simulado) View.VISIBLE else View.GONE
         binding.textoEstadoGnss.visibility = if (simulado) View.GONE else View.VISIBLE
+        binding.textoGnssDetalle.visibility = View.GONE
         if (simulado) return
         val (texto, color) = if (!permisosUbicacionOk()) {
             getString(R.string.gnss_sin_permiso) to R.color.estado_cancelada
@@ -423,6 +585,17 @@ class MainActivity : AppCompatActivity() {
         }
         binding.textoEstadoGnss.text = texto
         binding.textoEstadoGnss.setBackgroundColor(color(color))
+
+        val detalle = mutableListOf<String>()
+        estado.satelitesGnss?.let { (vistos, usados) -> detalle += getString(R.string.gnss_satelites, vistos, usados) }
+        if (estado.estadoGnss !is EstadoGnss.Listo) detalle += getString(R.string.gnss_consejo)
+        val donde = estado.ultimaPosicion ?: ubicacionAproximada
+        if (donde != null && !Escenarios.cobertura(this).contiene(donde.first, donde.second)) {
+            detalle += getString(R.string.gnss_fuera_cobertura)
+        }
+        if (estado.ultimaPosicion == null && ubicacionAproximada != null) detalle += getString(R.string.gnss_aproximada_visible)
+        binding.textoGnssDetalle.text = detalle.joinToString("\n")
+        binding.textoGnssDetalle.visibility = if (detalle.isEmpty()) View.GONE else View.VISIBLE
     }
 
     private fun aplicarPanelMision(estado: EstadoSesion) {
@@ -447,7 +620,7 @@ class MainActivity : AppCompatActivity() {
         val paradas: List<ParadaEstado> = estado.ultimoEstado?.paradas?.takeIf { it.isNotEmpty() }
             ?: mr?.paradas?.map { ParadaEstado(it.interseccion_id, it.rsu_id, it.acceso_id, "pendiente") }
             ?: emptyList()
-        fun visual(p: ParadaEstado) = VistaMision.estadoVisual(p.estado, progreso, distancias[p.interseccion_id])
+        fun visual(p: ParadaEstado) = VistaMision.estadoVisual(p.estado, progreso, distancias[p.interseccion_id], p.fase)
 
         // Tarjeta grande: el próximo semáforo.
         val proximo = estado.ultimoEstado?.proximo
@@ -473,10 +646,14 @@ class MainActivity : AppCompatActivity() {
 
         // Vibración corta al pasar a verde (una vez por intersección).
         for (p in paradas) {
-            if (p.estado == "concedida" && verdesAvisados.add(p.interseccion_id) && prefs.vibrarAlVerde) vibrarCorto()
+            if (visual(p) == EstadoVisual.VERDE && verdesAvisados.add(p.interseccion_id) && prefs.vibrarAlVerde) vibrarCorto()
         }
 
-        // Tira de chips y marcadores del mapa.
+        // Tira de chips y marcadores del mapa: solo si cambió algún estado
+        // (la posición llega a ~5 Hz; rehacer los chips cada vez parpadea).
+        val firma = paradas.map { it.interseccion_id to visual(it) }
+        if (firma == firmaTira) return
+        firmaTira = firma
         binding.tiraRsu.removeAllViews()
         for (p in paradas) {
             val v = visual(p)
@@ -505,6 +682,7 @@ class MainActivity : AppCompatActivity() {
             EstadoVisual.PENDIENTE -> R.string.sem_pendiente
             EstadoVisual.SOLICITANDO -> R.string.sem_solicitando
             EstadoVisual.VERDE -> R.string.sem_verde
+            EstadoVisual.CAMBIANDO -> R.string.sem_cambiando
             EstadoVisual.DESPEJE -> R.string.sem_despeje
             EstadoVisual.EN_ESPERA -> R.string.sem_en_espera
             EstadoVisual.CRUZADA -> R.string.sem_cruzada
@@ -517,6 +695,7 @@ class MainActivity : AppCompatActivity() {
         EstadoVisual.PENDIENTE -> R.color.semaforo_pendiente
         EstadoVisual.SOLICITANDO -> R.color.semaforo_solicitando
         EstadoVisual.VERDE -> R.color.semaforo_verde
+        EstadoVisual.CAMBIANDO -> R.color.semaforo_cambiando
         EstadoVisual.DESPEJE -> R.color.semaforo_despeje
         EstadoVisual.EN_ESPERA -> R.color.semaforo_en_espera
         EstadoVisual.CRUZADA -> R.color.semaforo_cruzada
@@ -592,6 +771,10 @@ class MainActivity : AppCompatActivity() {
     // --- Permisos y batería ------------------------------------------------
 
     private fun color(id: Int) = ContextCompat.getColor(this, id)
+
+    private companion object {
+        const val ANIMACION_SEGUIR_MS = 250L
+    }
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 

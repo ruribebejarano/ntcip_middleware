@@ -32,6 +32,9 @@ class VistaMisionTest {
     @Test
     fun `estados del ME a estados visuales`() {
         assertEquals(EstadoVisual.VERDE, VistaMision.estadoVisual("concedida", 0.0, 300.0))
+        assertEquals(EstadoVisual.VERDE, VistaMision.estadoVisual("concedida", 0.0, 300.0, fase = "verde"))
+        assertEquals(EstadoVisual.CAMBIANDO, VistaMision.estadoVisual("concedida", 0.0, 300.0, fase = "todo_rojo"))
+        assertEquals(EstadoVisual.CAMBIANDO, VistaMision.estadoVisual("concedida", 0.0, 300.0, fase = "amarillo"))
         assertEquals(EstadoVisual.SOLICITANDO, VistaMision.estadoVisual("solicitada", 0.0, 300.0))
         assertEquals(EstadoVisual.DESPEJE, VistaMision.estadoVisual("en_cola", 0.0, 300.0))
         assertEquals(EstadoVisual.EN_ESPERA, VistaMision.estadoVisual("en_espera", 0.0, 300.0))

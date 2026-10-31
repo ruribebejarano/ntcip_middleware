@@ -106,32 +106,63 @@ vertical el panel pasa debajo del mapa. Girar la tablet no reinicia nada
 
 **Mapa.** Sigue al vehículo (punto azul) hasta que el usuario lo toca o
 arrastra; entonces deja de seguirlo y aparece el botón **Centrar** para
-volver. El alfiler es el destino.
+volver. El alfiler es el destino. Las **cruces rojas** son hospitales y
+clínicas con emergencia de OSM y los **puntos grises**, las RSU de la zona
+PUCP (ver "Zona PUCP"). Las fuentes emulan posiciones a ~5 Hz (el MP sigue a
+1 Hz), así que el vehículo se desplaza de forma continua.
 
 ### Sin misión
 
 - **Posición: Ruta emulada / GPS real** (misma preferencia que en Ajustes).
-- Con **Ruta emulada**:
-  - **Escenario**: chips con los escenarios incluidos en la app
-    (`app/src/main/assets/escenarios/escenarios.json`: hoy **PUCP** y
-    **Hospital del Niño**). Elegir uno carga su trayectoria **y** su
-    destino; se recuerda el último. El vehículo queda **quieto en el
-    primer punto** de la trayectoria (que es el origen del MI) y recién se
-    mueve al pulsar "Iniciar emergencia".
-  - **Velocidad de demo ×1 / ×2 / ×4**: acelera solo el reloj de la
-    reproducción, como `--factor` de `gateway/obu_emulada.py` (las
+- Con **Ruta emulada**, chips de escenario:
+  - **Ruta libre** (por defecto): eliges **origen y destino en el mapa**
+    (pulsación larga → "Destino aquí" / "Origen aquí"; origen por defecto:
+    PUCP, Av. Universitaria). Al iniciar, el servidor calcula la ruta real
+    sobre el grafo de OSM (`servidor/rutas.py`) y el vehículo emulado
+    **recorre esa ruta** (la del MR) a 40 km/h; si el servidor recalcula,
+    sigue por la nueva desde donde iba. No hace falta ninguna trayectoria
+    grabada. Al terminar, origen y destino quedan puestos para repetir.
+  - **PUCP (grabada)** / **Mariano Cornejo (grabada)**: las trayectorias
+    CSV de `pruebas/` (`app/src/main/assets/escenarios/escenarios.json`).
+    Elegir una carga su trayectoria y su destino. **Ojo:** la segunda es la
+    del antiguo escenario "Hospital del Niño", pero su destino
+    (-12.0664649, -77.0626982, Av. Mariano Cornejo) **no** es el Instituto
+    Nacional de Salud del Niño: según OSM, ese está en Av. Brasil (Breña),
+    -12.06500, -77.04644. Para ir al INSN real, usar Ruta libre.
+  - El vehículo queda **quieto** en el origen hasta "Iniciar emergencia".
+  - **Velocidad de demo ×1 / ×2 / ×4**: acelera solo el reloj (las
     velocidades del MP no se escalan). Con ×2/×4 el CSV de eventos lleva un
     evento `demo` (`{"factor": 4}`) al inicio y `demo_factor` en cada
     `MP_tx`: **esas corridas no se usan en mediciones**. Durante la misión se
     ve la pastilla "DEMO ×4".
-- Con **GPS real**: estado del GNSS -- gris "Buscando señal GNSS…" (ninguna
-  lectura del proveedor GPS en los últimos 5 s), naranja "Precisión 45 m —
-  esperando ≤ 30 m" (no pasa el criterio de "Criterio de fix GNSS
-  válido"), verde "GNSS listo · ±6 m". **"Iniciar emergencia" solo se
-  habilita en verde**; si la señal se pierde vuelve a gris en ≤ 6 s.
-- **Destino**: **pulsación larga** sobre el mapa (pide confirmación) o
-  **Destinos predefinidos…** (empieza por "Hospital del Niño",
-  -12.0664649, -77.0626982; lista en el mismo `escenarios.json`).
+- Con **GPS real**: estado del GNSS -- gris "Buscando señal GNSS…", naranja
+  "Precisión 45 m — esperando ≤ 30 m", verde "GNSS listo · ±6 m".
+  **"Iniciar emergencia" solo se habilita en verde.** Debajo:
+  - satélites a la vista y usados en el fix (muchos vistos y 0 usados = bajo
+    techo o sin cielo despejado);
+  - un **círculo gris** con la ubicación aproximada por red (Wi-Fi/antenas),
+    solo como referencia mientras no hay fix: nunca es origen del MI ni va
+    en un MP;
+  - un aviso si la posición está **fuera de la zona de rutas del servidor**
+    (la caja del grafo: lat −12.110 a −12.053, lon −77.095 a −77.026).
+- **Destino**: pulsación larga sobre el mapa, tocar una cruz roja, o
+  **Hospitales y clínicas cercanos…** (lista ordenada por distancia).
+
+### Por qué el GPS real "no detecta" la ubicación (prueba del 2026-10-31)
+
+En la tablet el proveedor `gps` **nunca había tenido un fix**: estaba bajo
+techo y, sin datos móviles, no tiene A-GPS. Solo había ubicación aproximada
+por red (en casa, ~lon −76.95, **fuera del grafo**). Para una prueba con GPS
+real:
+
+1. Salir al aire libre con la app abierta en "GPS real" y esperar el verde
+   (la primera vez puede tardar varios minutos; el hotspot del celular
+   encendido ayuda a la siguiente).
+2. Hacerla **dentro de la zona del grafo** (alrededor de la PUCP). Desde
+   casa, el servidor enlazaría el origen al nodo más cercano del borde del
+   grafo, a kilómetros: habría que regenerarlo con
+   `scripts/datos/regenerar_grafo.py` incluyendo la zona (ver "Escenario
+   casa").
 
 Para agregar el escenario **Casa**: copiar `pruebas/trayectoria_casa.csv` a
 `app/src/main/assets/escenarios/` y sumar su entrada (id, nombre,
@@ -142,8 +173,11 @@ trayectoria, destino) a `escenarios.json`; recompilar.
 - Pastillas **EMULADA** (morado) o **GPS ±7 m** (verde; naranja si la
   precisión pasa de 30 m; rojo "GPS · sin fix"), y **DEMO ×N** si aplica.
 - **Tarjeta grande del próximo semáforo**, con color e ícono: gris
-  PENDIENTE, azul SOLICITANDO, verde VERDE CONCEDIDO, ámbar ESPERANDO
-  DESPEJE (`en_cola`), naranja EN ESPERA (otra unidad, conflicto), y su ETA.
+  PENDIENTE, azul SOLICITANDO, naranja CAMBIANDO A VERDE (concedida, pero
+  el controlador reporta todavía amarillo/todo rojo: la calle transversal se
+  está despejando), verde VERDE CONCEDIDO (solo con fase `verde`), ámbar
+  ESPERANDO DESPEJE (`en_cola`), naranja EN ESPERA (otra unidad, conflicto),
+  y su ETA. La vibración salta con el verde real, no con la concesión.
   Mientras no llega el MR: "Conectando con el servidor…" (sin conexión) o
   "Esperando la ruta del servidor…".
 - Debajo, en letra pequeña, **cómo se logró el verde**: "Extensión de verde
@@ -169,6 +203,35 @@ trayectoria, destino) a `escenarios.json`; recompilar.
 - Sin conexión con el broker, la ruta emulada **no arranca** hasta conectar
   (el MI sale apenas el broker responde; el vehículo no avanza sin servidor)
   y se muestra "Sin conexión con el servidor" desde el principio.
+
+## Zona PUCP: 10 RSU y hospitales cercanos
+
+`pruebas/generar_zona_pucp.py` arma, a partir de OSM:
+
+- `pruebas/hospitales_zona_pucp.json`: 14 hospitales y clínicas **con
+  emergencia** dentro del grafo (Overpass: `amenity`/`healthcare` =
+  `hospital`|`clinic`; clínicas solo con `emergency=yes`). © colaboradores
+  de OpenStreetMap, ODbL.
+- `pruebas/registro_rsu_zona_pucp.json`: **10 RSU (rsu_id 11–20)** en
+  cruces con `highway=traffic_signals` del propio grafo por los que pasan las
+  rutas del servidor desde la PUCP a esos hospitales. Elección greedy: primero
+  los cruces que dan semáforo a rutas que aún no tienen ninguno, luego los más
+  transitados; separación ≥ 250 m entre RSU y ≥ 350 m de la base. 12 de los
+  14 destinos quedan con al menos una RSU (los otros: el Centro Médico PUCP,
+  a 400 m, y el Geriátrico San José, cuya ruta no cruza semáforos de OSM).
+- Ambos se copian a `app/src/main/assets/zona/` **solo para dibujarlos** en
+  el mapa; el registro que vale es el que carga el servidor.
+
+Levantar todo con ese registro (desde `E:\Tesis\ntcip_middleware`, rama
+master):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\demo\lanzar_rsus.ps1 -Registro E:\Tesis\ntcip_app\app_obu\pruebas\registro_rsu_zona_pucp.json -ConServidor -ConConsola
+```
+
+Verificado con `GestorMision` (40 km/h desde la PUCP): al INSN pasa por las
+RSU 17 → 11 → 18; al Rebagliati, 17 → 11 → 18 → 20; al Hospital PNP Luis
+N. Sáenz, 19 → 14; al Centro Médico Naval, 15.
 
 ## Probar en la tablet real
 

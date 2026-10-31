@@ -1,21 +1,18 @@
 {
-  "_nota": "Escenarios de prueba incluidos en la app (ver app_obu/README.md, 'Escenarios incluidos'). Cada trayectoria es copia de app_obu/pruebas/; el destino es el mismo que se uso para generarla (registro_rsu_<id>.json, campo 'origen'). Para agregar 'Casa': copiar trayectoria_casa.csv aqui y sumar una entrada.",
+  "_nota": "Trayectorias grabadas para 'Ruta emulada' (ver app_obu/README.md, 'Pantalla principal'). Cada CSV es copia de app_obu/pruebas/. La opcion 'Ruta libre' (origen y destino en el mapa, el vehiculo sigue la ruta que calcula el servidor) no necesita entrada aqui. 'hospital_nino' conserva su id por compatibilidad, pero su destino NO es el Instituto Nacional de Salud del Nino (Brena, -12.0650,-77.0464 en OSM): es el final de la trayectoria en Av. Mariano Cornejo.",
   "escenarios": [
     {
       "id": "pucp",
-      "nombre": "PUCP",
+      "nombre": "PUCP (grabada)",
       "trayectoria": "escenarios/trayectoria_pucp.csv",
       "destino": {"nombre": "Av. Abraham Lincoln (escenario PUCP)", "lat": -12.0754746, "lon": -77.0755802}
     },
     {
       "id": "hospital_nino",
-      "nombre": "Hospital del Niño",
+      "nombre": "Mariano Cornejo (grabada)",
       "trayectoria": "escenarios/trayectoria_hospital_nino.csv",
-      "destino": {"nombre": "Hospital del Niño", "lat": -12.0664649, "lon": -77.0626982}
+      "destino": {"nombre": "Av. Mariano Cornejo (fin de la trayectoria)", "lat": -12.0664649, "lon": -77.0626982}
     }
   ],
-  "destinos": [
-    {"nombre": "Hospital del Niño", "lat": -12.0664649, "lon": -77.0626982},
-    {"nombre": "Av. Abraham Lincoln (escenario PUCP)", "lat": -12.0754746, "lon": -77.0755802}
-  ]
+  "cobertura_grafo": {"sur": -12.10955, "norte": -12.05274, "oeste": -77.09508, "este": -77.02557}
 }

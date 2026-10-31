@@ -13,7 +13,7 @@ import kotlin.math.hypot
  */
 
 /** Cómo se dibuja una parada (tarjeta grande, chips de la tira y marcadores del mapa). */
-enum class EstadoVisual { PENDIENTE, SOLICITANDO, VERDE, DESPEJE, EN_ESPERA, CRUZADA, OMITIDA, CANCELADA }
+enum class EstadoVisual { PENDIENTE, SOLICITANDO, CAMBIANDO, VERDE, DESPEJE, EN_ESPERA, CRUZADA, OMITIDA, CANCELADA }
 
 /**
  * Polilínea del MR con distancia acumulada. El MR trae, por parada, solo
@@ -66,11 +66,13 @@ object VistaMision {
      * "cancelada por cruce" de "cancelada por desvío o rumbo": se decide
      * por posición -- cancelada con el vehículo ya pasado el cruce = cruzada.
      */
-    fun estadoVisual(estado: String, progresoM: Double?, distanciaLlegadaM: Double?): EstadoVisual {
+    fun estadoVisual(estado: String, progresoM: Double?, distanciaLlegadaM: Double?, fase: String? = null): EstadoVisual {
         val pasada = progresoM != null && distanciaLlegadaM != null && progresoM >= distanciaLlegadaM - MARGEN_CRUCE_M
         val claramentePasada = progresoM != null && distanciaLlegadaM != null && progresoM > distanciaLlegadaM + MARGEN_CRUCE_M
         return when (estado) {
-            "concedida" -> EstadoVisual.VERDE
+            // Concedida pero el controlador todavía despejando el cruce
+            // (amarillo / todo rojo de la calle transversal): no es verde aún.
+            "concedida" -> if (fase != null && fase != "verde") EstadoVisual.CAMBIANDO else EstadoVisual.VERDE
             "solicitada" -> EstadoVisual.SOLICITANDO
             "en_cola" -> EstadoVisual.DESPEJE
             "en_espera" -> EstadoVisual.EN_ESPERA

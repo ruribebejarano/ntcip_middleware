@@ -49,11 +49,23 @@ class FuenteSimulada(
         if (filas.isEmpty()) return@flow
         val t0Mono = System.nanoTime()
         val t0Tray = filas[0].tS
-        for (fila in filas) {
-            val objetivoNs = t0Mono + ((fila.tS - t0Tray) / factor * 1_000_000_000.0).toLong()
-            val esperaMs = (objetivoNs - System.nanoTime()) / 1_000_000L
-            if (esperaMs > 0) delay(esperaMs)
-            emit(muestraDe(fila))
+        // Entre fila y fila (1 s de trayectoria) se emiten puntos
+        // interpolados cada ~PASO_MS de reloj real, para que el mapa se
+        // mueva fluido; el MP sigue a 1 Hz con la última muestra.
+        emit(muestraDe(filas[0]))
+        for ((a, b) in filas.zipWithNext()) {
+            val pasos = maxOf(1, ((b.tS - a.tS) / factor * 1000 / PASO_MS).toInt())
+            for (k in 1..pasos) {
+                val f = k.toDouble() / pasos
+                val tS = a.tS + f * (b.tS - a.tS)
+                val objetivoNs = t0Mono + ((tS - t0Tray) / factor * 1_000_000_000.0).toLong()
+                val esperaMs = (objetivoNs - System.nanoTime()) / 1_000_000L
+                if (esperaMs > 0) delay(esperaMs)
+                emit(
+                    if (k == pasos) muestraDe(b)
+                    else muestraDe(a).copy(lat = a.lat + f * (b.lat - a.lat), lon = a.lon + f * (b.lon - a.lon)),
+                )
+            }
         }
     }
 
@@ -107,6 +119,7 @@ class FuenteSimulada(
         // simulado por defecto y la prueba en mesa documentada son la
         // misma corrida, sin tener que elegir un archivo.
         const val TRAYECTORIA_INTEGRADA = "trayectorias/avenida_ab_s1.csv"
+        private const val PASO_MS = 200L
 
         /**
          * Nombre de archivo para mostrar en la UI ("trayectoria_casa.csv"),

@@ -20,8 +20,8 @@ import pe.pucp.ntcip.obu.ObuApp
 import pe.pucp.ntcip.obu.R
 import pe.pucp.ntcip.obu.velocidad.EstadoGnss
 import pe.pucp.ntcip.obu.velocidad.FuenteGnss
+import pe.pucp.ntcip.obu.velocidad.FuenteRutaServidor
 import pe.pucp.ntcip.obu.velocidad.FuentePosicion
-import pe.pucp.ntcip.obu.velocidad.FuenteSimulada
 import pe.pucp.ntcip.obu.velocidad.MuestraPosicion
 import kotlin.random.Random
 
@@ -137,6 +137,7 @@ class ObuSessionService : LifecycleService() {
 
         lifecycleScope.launch {
             runCatching { cliente.conectar() }
+            if (terminando) return@launch // se terminó mientras conectaba: no se arma nada
             val ahora = System.currentTimeMillis()
             cliente.enviarMI(
                 MensajeMI(
@@ -156,13 +157,20 @@ class ObuSessionService : LifecycleService() {
 
     private fun iniciarFuentePosicion(prefs: Prefs) {
         val fuente: FuentePosicion = if (prefs.modoSimulado) {
-            Escenarios.fuente(this, prefs, factorDemo.toDouble())
+            if (Escenarios.esRutaLibre(prefs)) {
+                FuenteRutaServidor({ ObuSessionRepository.estado.value.ultimaRuta }, factor = factorDemo.toDouble())
+            } else {
+                Escenarios.fuente(this, prefs, factorDemo.toDouble())
+            }
         } else {
             FuenteGnss(this)
         }
-        jobEstadoGnss = (fuente as? FuenteGnss)?.estado?.onEach { e ->
-            ObuSessionRepository.actualizar { it.copy(estadoGnss = e) }
-        }?.launchIn(lifecycleScope)
+        jobEstadoGnss = (fuente as? FuenteGnss)?.let { gnss ->
+            lifecycleScope.launch {
+                launch { gnss.estado.collect { e -> ObuSessionRepository.actualizar { it.copy(estadoGnss = e) } } }
+                gnss.satelites.collect { s -> ObuSessionRepository.actualizar { it.copy(satelitesGnss = s) } }
+            }
+        }
         jobFuente = fuente.muestras.onEach { muestra ->
             ultimaMuestra = muestra
             ultimaMuestraEnMs = SystemClock.elapsedRealtime()
@@ -170,7 +178,7 @@ class ObuSessionService : LifecycleService() {
         }.onCompletion { causa ->
             // Fin natural de la trayectoria emulada (no cancelación): la
             // misión termina sola, como gateway/obu_emulada.py.
-            if (causa == null && fuente is FuenteSimulada) terminarPorFinTrayectoria()
+            if (causa == null && fuente !is FuenteGnss) terminarPorFinTrayectoria()
         }.launchIn(lifecycleScope)
     }
 

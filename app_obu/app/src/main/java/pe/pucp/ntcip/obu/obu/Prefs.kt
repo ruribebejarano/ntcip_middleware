@@ -37,6 +37,11 @@ class Prefs(context: Context) {
         get() = sp.getInt(CLAVE_FACTOR_DEMO, 1)
         set(v) = sp.edit().putInt(CLAVE_FACTOR_DEMO, v).apply()
 
+    /** Origen de la "Ruta libre" (pulsación larga > "Origen aquí"); null = la base de la zona (PUCP). */
+    var origenLibre: Destino?
+        get() = sp.getString(CLAVE_ORIGEN_LIBRE, null)?.let { runCatching { jsonObu.decodeFromString(Destino.serializer(), it) }.getOrNull() }
+        set(v) = sp.edit().putString(CLAVE_ORIGEN_LIBRE, v?.let { jsonObu.encodeToString(Destino.serializer(), it) }).apply()
+
     var vibrarAlVerde: Boolean
         get() = sp.getBoolean(CLAVE_VIBRAR, true)
         set(v) = sp.edit().putBoolean(CLAVE_VIBRAR, v).apply()
@@ -56,5 +61,6 @@ class Prefs(context: Context) {
         private const val CLAVE_ESCENARIO = "escenario_id"
         private const val CLAVE_FACTOR_DEMO = "factor_demo"
         private const val CLAVE_VIBRAR = "vibrar_al_verde"
+        private const val CLAVE_ORIGEN_LIBRE = "origen_libre"
     }
 }
