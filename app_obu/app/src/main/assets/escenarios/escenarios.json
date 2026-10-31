@@ -1,0 +1,21 @@
+{
+  "_nota": "Escenarios de prueba incluidos en la app (ver app_obu/README.md, 'Escenarios incluidos'). Cada trayectoria es copia de app_obu/pruebas/; el destino es el mismo que se uso para generarla (registro_rsu_<id>.json, campo 'origen'). Para agregar 'Casa': copiar trayectoria_casa.csv aqui y sumar una entrada.",
+  "escenarios": [
+    {
+      "id": "pucp",
+      "nombre": "PUCP",
+      "trayectoria": "escenarios/trayectoria_pucp.csv",
+      "destino": {"nombre": "Av. Abraham Lincoln (escenario PUCP)", "lat": -12.0754746, "lon": -77.0755802}
+    },
+    {
+      "id": "hospital_nino",
+      "nombre": "Hospital del Niño",
+      "trayectoria": "escenarios/trayectoria_hospital_nino.csv",
+      "destino": {"nombre": "Hospital del Niño", "lat": -12.0664649, "lon": -77.0626982}
+    }
+  ],
+  "destinos": [
+    {"nombre": "Hospital del Niño", "lat": -12.0664649, "lon": -77.0626982},
+    {"nombre": "Av. Abraham Lincoln (escenario PUCP)", "lat": -12.0754746, "lon": -77.0755802}
+  ]
+}

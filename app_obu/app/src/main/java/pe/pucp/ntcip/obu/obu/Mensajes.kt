@@ -99,6 +99,13 @@ data class ParadaEstado(
     val estado: String,
     val eta_s: Double? = null,
     val fase: String? = null,
+    // Cómo se consiguió el verde -- campos que agregará el servidor (otra
+    // sesión); mientras no lleguen quedan null y la app muestra solo
+    // estado y fase (ver VistaMision.textoDetalle).
+    val fase_al_recibir: String? = null,
+    val accion: String? = null,
+    val t_hasta_verde_ms: Long? = null,
+    val anticipacion_s: Double? = null,
 )
 
 /** `estado` de una parada, en español natural (docs/CONTRATO_OBU.md §4, ME). */

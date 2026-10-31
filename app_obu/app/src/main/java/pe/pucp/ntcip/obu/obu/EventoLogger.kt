@@ -21,6 +21,7 @@ object EventosObu {
     const val MR_RX = "MR_rx"
     const val ME_RX = "ME_rx"
     const val MUESTRA = "muestra"
+    const val DEMO = "demo"         // extra: factor. Corrida en ruta emulada acelerada (x2/x4): NO usar en mediciones
 
     // Eventos propios de la app Android, sin equivalente en common/events.py
     // (no se tocó ese archivo -- fuera de app_obu/, ver instrucciones de la

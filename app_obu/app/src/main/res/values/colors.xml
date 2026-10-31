@@ -20,6 +20,16 @@
     <color name="gnss_esperando">#EF6C00</color>
     <color name="gnss_buscando">#757575</color>
 
+    <!-- Semáforo de la pantalla de misión (VistaMision.EstadoVisual) -->
+    <color name="semaforo_pendiente">#757575</color>
+    <color name="semaforo_solicitando">#1565C0</color>
+    <color name="semaforo_verde">#2E7D32</color>
+    <color name="semaforo_despeje">#F9A825</color>
+    <color name="semaforo_en_espera">#EF6C00</color>
+    <color name="semaforo_cruzada">#81C784</color>
+    <color name="semaforo_omitida">#BDBDBD</color>
+    <color name="semaforo_cancelada">#C62828</color>
+
     <color name="boton_iniciar">#2E7D32</color>
     <color name="boton_terminar">#C62828</color>
 </resources>

@@ -15,8 +15,15 @@ import java.io.InputStreamReader
  * gateway/obu_emulada.py (columnas t_s, lat, lon, rumbo_deg,
  * velocidad_kmh, leídas por nombre de cabecera, no por posición -- la
  * trayectoria de referencia trae columnas extra de verdad de terreno que
- * se ignoran aquí). Reproduce siempre a factor 1 (tiempo real); no hace
- * falta el --factor de obu_emulada.py para una prueba manual corta.
+ * se ignoran aquí).
+ *
+ * [factor] acelera la reproducción (1 = tiempo real), igual que --factor de
+ * obu_emulada.py: solo el reloj, la velocidad_kmh de cada fila no se
+ * escala (el servidor ve la misma geometría y velocidades que a x1, solo
+ * más rápido). Es solo para demos -- ver EventosObu.DEMO.
+ *
+ * El flujo TERMINA al llegar a la última fila: ObuSessionService lo usa
+ * para cerrar la misión sola (MF motivo="destino", como obu_emulada.py).
  *
  * `fuente_velocidad` va como "simulada" en el MP -- valor NO contemplado
  * en el enum de docs/CONTRATO_OBU.md ("obd2"|"gps"|"respaldo"); es un
@@ -26,7 +33,16 @@ import java.io.InputStreamReader
 class FuenteSimulada(
     private val context: Context,
     private val uriTrayectoria: Uri?,
+    private val assetTrayectoria: String = TRAYECTORIA_INTEGRADA,
+    private val factor: Double = 1.0,
 ) : FuentePosicion {
+
+    /**
+     * Primera fila de la trayectoria, sin reproducir nada: antes de iniciar
+     * la misión el vehículo queda quieto ahí (y esa es la posición que va
+     * como origen del MI, coherente con donde arranca la reproducción).
+     */
+    fun primerPunto(): MuestraPosicion? = leerFilas().firstOrNull()?.let { muestraDe(it) }
 
     override val muestras: Flow<MuestraPosicion> = flow {
         val filas = leerFilas()
@@ -34,21 +50,21 @@ class FuenteSimulada(
         val t0Mono = System.nanoTime()
         val t0Tray = filas[0].tS
         for (fila in filas) {
-            val objetivoNs = t0Mono + ((fila.tS - t0Tray) * 1_000_000_000.0).toLong()
+            val objetivoNs = t0Mono + ((fila.tS - t0Tray) / factor * 1_000_000_000.0).toLong()
             val esperaMs = (objetivoNs - System.nanoTime()) / 1_000_000L
             if (esperaMs > 0) delay(esperaMs)
-            emit(
-                MuestraPosicion(
-                    lat = fila.lat,
-                    lon = fila.lon,
-                    velocidadKmh = fila.velocidadKmh,
-                    rumboDeg = fila.rumboDeg,
-                    fuenteVelocidad = "simulada",
-                    tsMs = System.currentTimeMillis(),
-                )
-            )
+            emit(muestraDe(fila))
         }
     }
+
+    private fun muestraDe(fila: FilaCsv) = MuestraPosicion(
+        lat = fila.lat,
+        lon = fila.lon,
+        velocidadKmh = fila.velocidadKmh,
+        rumboDeg = fila.rumboDeg,
+        fuenteVelocidad = "simulada",
+        tsMs = System.currentTimeMillis(),
+    )
 
     private data class FilaCsv(
         val tS: Double,
@@ -62,10 +78,10 @@ class FuenteSimulada(
         val lector: BufferedReader = if (uriTrayectoria != null) {
             BufferedReader(InputStreamReader(context.contentResolver.openInputStream(uriTrayectoria)))
         } else {
-            BufferedReader(InputStreamReader(context.assets.open(TRAYECTORIA_INTEGRADA)))
+            BufferedReader(InputStreamReader(context.assets.open(assetTrayectoria)))
         }
         return lector.use { r ->
-            val cabecera = r.readLine()?.split(",") ?: return emptyList()
+            val cabecera = r.readLine()?.removePrefix("\uFEFF")?.split(",") ?: return emptyList()
             val idx = cabecera.withIndex().associate { (i, n) -> n.trim() to i }
             r.lineSequence()
                 .filter { it.isNotBlank() }

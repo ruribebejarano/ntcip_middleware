@@ -1,189 +1,313 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Horizontal (tablet): mapa a la izquierda, panel a la derecha.
+     En vertical MainActivity.aplicarOrientacion() apila el panel debajo. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/raiz"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    android:orientation="horizontal">
 
-    <org.osmdroid.views.MapView
-        android:id="@+id/mapa"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+    <FrameLayout
+        android:id="@+id/contenedorMapa"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1">
 
-    <LinearLayout
-        android:id="@+id/panelAvisos"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top"
-        android:orientation="vertical">
+        <org.osmdroid.views.MapView
+            android:id="@+id/mapa"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
-        <TextView
-            android:id="@+id/avisoSinConexion"
-            style="@style/AvisoBanner"
-            android:text="@string/aviso_sin_conexion"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/avisoSinFix"
-            style="@style/AvisoBanner"
-            android:text="@string/aviso_sin_fix"
-            android:visibility="gone" />
-    </LinearLayout>
-
-    <ImageButton
-        android:id="@+id/botonAjustes"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_gravity="top|end"
-        android:layout_margin="12dp"
-        android:background="@android:color/white"
-        android:contentDescription="@string/titulo_ajustes"
-        android:src="@android:drawable/ic_menu_preferences" />
-
-    <LinearLayout
-        android:id="@+id/panelInferior"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:background="@android:color/white"
-        android:orientation="vertical"
-        android:padding="16dp">
-
-        <!-- Sin misión: de dónde sale la posición (misma preferencia que
-             "Modo simulado" en Ajustes). -->
         <LinearLayout
-            android:id="@+id/panelFuente"
+            android:id="@+id/panelAvisos"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
+            android:layout_gravity="top"
             android:orientation="vertical">
 
-            <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/selectorFuente"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:selectionRequired="true"
-                app:singleSelection="true">
-
-                <Button
-                    android:id="@+id/opcionEmulada"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/fuente_emulada" />
-
-                <Button
-                    android:id="@+id/opcionGps"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/fuente_gps" />
-            </com.google.android.material.button.MaterialButtonToggleGroup>
-
-            <LinearLayout
-                android:id="@+id/filaTrayectoria"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/textoTrayectoria"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:ellipsize="middle"
-                    android:singleLine="true"
-                    android:textSize="15sp" />
-
-                <Button
-                    android:id="@+id/botonCambiarTrayectoria"
-                    style="?attr/borderlessButtonStyle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/cambiar_trayectoria" />
-            </LinearLayout>
+            <TextView
+                android:id="@+id/avisoSinConexion"
+                style="@style/AvisoBanner"
+                android:text="@string/aviso_sin_conexion"
+                android:visibility="gone" />
 
             <TextView
-                android:id="@+id/textoEstadoGnss"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:gravity="center"
-                android:padding="8dp"
-                android:textColor="@android:color/white"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:id="@+id/avisoSinFix"
+                style="@style/AvisoBanner"
+                android:text="@string/aviso_sin_fix"
+                android:visibility="gone" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/textoPedirDestino"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:gravity="center"
-            android:text="@string/pedir_destino"
-            android:textSize="16sp" />
+        <ImageButton
+            android:id="@+id/botonAjustes"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="12dp"
+            android:background="@android:color/white"
+            android:contentDescription="@string/titulo_ajustes"
+            android:src="@android:drawable/ic_menu_preferences" />
 
-        <!-- Con misión: indicador discreto de la fuente activa. -->
-        <TextView
-            android:id="@+id/indicadorFuente"
+        <Button
+            android:id="@+id/botonCentrar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="start"
-            android:layout_marginBottom="8dp"
-            android:paddingStart="8dp"
-            android:paddingTop="2dp"
-            android:paddingEnd="8dp"
-            android:paddingBottom="2dp"
-            android:textColor="@android:color/white"
-            android:textSize="12sp"
-            android:textStyle="bold"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            android:drawableStart="@android:drawable/ic_menu_mylocation"
+            android:text="@string/centrar"
             android:visibility="gone" />
+    </FrameLayout>
 
-        <LinearLayout
-            android:id="@+id/tarjetaProximo"
+    <LinearLayout
+        android:id="@+id/panelLateral"
+        android:layout_width="380dp"
+        android:layout_height="match_parent"
+        android:background="@android:color/white"
+        android:elevation="4dp"
+        android:orientation="vertical">
+
+        <ScrollView
+            android:id="@+id/scrollPanel"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:visibility="gone">
+            android:layout_height="0dp"
+            android:layout_weight="1">
 
-            <TextView
-                android:id="@+id/proximoTitulo"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center"
-                android:textSize="14sp" />
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <TextView
-                android:id="@+id/proximoEstado"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:padding="12dp"
-                android:textColor="@android:color/white"
-                android:textSize="28sp"
-                android:textStyle="bold" />
+                <!-- ===== Sin misión ===== -->
+                <LinearLayout
+                    android:id="@+id/panelInicio"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/proximoEta"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:textSize="18sp" />
-        </LinearLayout>
+                    <TextView
+                        style="@style/TituloSeccion"
+                        android:text="@string/seccion_posicion" />
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/selectorFuente"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <Button
+                            android:id="@+id/opcionEmulada"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/fuente_emulada" />
+
+                        <Button
+                            android:id="@+id/opcionGps"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/fuente_gps" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <!-- Ruta emulada: escenario + velocidad de demo -->
+                    <LinearLayout
+                        android:id="@+id/panelEmulada"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/TituloSeccion"
+                            android:text="@string/seccion_escenario" />
+
+                        <com.google.android.material.chip.ChipGroup
+                            android:id="@+id/grupoEscenarios"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:selectionRequired="true"
+                            app:singleSelection="true" />
+
+                        <TextView
+                            style="@style/TituloSeccion"
+                            android:text="@string/seccion_velocidad_demo" />
+
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/selectorFactor"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:selectionRequired="true"
+                            app:singleSelection="true">
+
+                            <Button
+                                android:id="@+id/factor1"
+                                style="?attr/materialButtonOutlinedStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="×1" />
+
+                            <Button
+                                android:id="@+id/factor2"
+                                style="?attr/materialButtonOutlinedStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="×2" />
+
+                            <Button
+                                android:id="@+id/factor4"
+                                style="?attr/materialButtonOutlinedStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="×4" />
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                        <TextView
+                            android:id="@+id/avisoDemo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/aviso_demo"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/textoEstadoGnss"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:padding="8dp"
+                        android:textColor="@android:color/white"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        style="@style/TituloSeccion"
+                        android:text="@string/seccion_destino" />
+
+                    <TextView
+                        android:id="@+id/textoDestino"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="16sp" />
+
+                    <Button
+                        android:id="@+id/botonDestinos"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/destinos_predefinidos" />
+                </LinearLayout>
+
+                <!-- ===== Con misión ===== -->
+                <LinearLayout
+                    android:id="@+id/panelMision"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/indicadorFuente"
+                            style="@style/Pastilla" />
+
+                        <TextView
+                            android:id="@+id/indicadorDemo"
+                            style="@style/Pastilla"
+                            android:layout_marginStart="6dp"
+                            android:background="@color/fuente_emulada"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/tarjetaSemaforo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="12dp">
+
+                        <ImageView
+                            android:id="@+id/iconoSemaforo"
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_semaforo" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/semaforoEstado"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textColor="@android:color/white"
+                                android:textSize="24sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/semaforoTitulo"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textColor="@android:color/white"
+                                android:textSize="14sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/semaforoEta"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@android:color/white"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/semaforoDetalle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        style="@style/TituloSeccion"
+                        android:text="@string/seccion_semaforos_ruta" />
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/tiraRsu"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
 
         <Button
             android:id="@+id/botonAccion"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="64dp"
+            android:layout_margin="12dp"
             android:text="@string/boton_iniciar"
             android:textColor="@android:color/white"
             android:textSize="18sp" />
     </LinearLayout>
 
-</FrameLayout>
+</LinearLayout>

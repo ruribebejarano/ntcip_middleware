@@ -13,6 +13,29 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/ajustes_host" />
+        <RadioGroup
+            android:id="@+id/grupoHost"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <RadioButton
+                android:id="@+id/hostTailscale"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/ajustes_host_tailscale" />
+            <RadioButton
+                android:id="@+id/hostEmulador"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="@string/ajustes_host_emulador" />
+            <RadioButton
+                android:id="@+id/hostManual"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="@string/ajustes_host_manual" />
+        </RadioGroup>
         <EditText
             android:id="@+id/campoHost"
             android:layout_width="match_parent"
@@ -51,16 +74,24 @@
             android:layout_marginTop="20dp"
             android:text="@string/ajustes_modo_simulado" />
 
+        <Switch
+            android:id="@+id/interruptorVibrar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/ajustes_vibrar" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/ajustes_trayectoria" />
+            android:layout_marginTop="20dp"
+            android:text="@string/ajustes_avanzado"
+            android:textStyle="bold" />
         <TextView
             android:id="@+id/textoTrayectoriaElegida"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/ajustes_trayectoria_integrada"
+            android:text="@string/ajustes_sin_archivo"
             android:textStyle="italic" />
 
         <LinearLayout
@@ -81,7 +112,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/ajustes_trayectoria_integrada" />
+                android:text="@string/ajustes_quitar_archivo" />
         </LinearLayout>
 
         <Button

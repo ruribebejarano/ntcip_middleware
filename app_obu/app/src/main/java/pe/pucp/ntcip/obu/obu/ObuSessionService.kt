@@ -11,12 +11,14 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import pe.pucp.ntcip.obu.MainActivity
 import pe.pucp.ntcip.obu.ObuApp
 import pe.pucp.ntcip.obu.R
+import pe.pucp.ntcip.obu.velocidad.EstadoGnss
 import pe.pucp.ntcip.obu.velocidad.FuenteGnss
 import pe.pucp.ntcip.obu.velocidad.FuentePosicion
 import pe.pucp.ntcip.obu.velocidad.FuenteSimulada
@@ -47,6 +49,9 @@ class ObuSessionService : LifecycleService() {
 
     private var jobFuente: Job? = null
     private var jobEstadoGnss: Job? = null
+    private var jobIndicador: Job? = null
+    private var factorDemo = 1
+    private var terminando = false // botón, fin de trayectoria y fin del servidor pueden coincidir: un solo cierre
     private var jobTicker: Job? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -73,6 +78,7 @@ class ObuSessionService : LifecycleService() {
         val prefs = Prefs(this)
         val nuevoObuId = "ses-" + Random.nextBytes(3).joinToString("") { "%02x".format(it.toInt() and 0xFF) }
         obuId = nuevoObuId
+        terminando = false
         misionId = null
         seq = 0
         ultimaMuestra = null
@@ -86,7 +92,7 @@ class ObuSessionService : LifecycleService() {
         iniciarNotificacionPrimerPlano()
 
         ObuSessionRepository.reiniciar()
-        ObuSessionRepository.actualizar { it.copy(misionActiva = true, obuId = nuevoObuId) }
+        ObuSessionRepository.actualizar { it.copy(misionActiva = true, obuId = nuevoObuId, ultimaPosicion = origenLat to origenLon) }
 
         val cliente = MqttObuClient(
             host = prefs.brokerHost,
@@ -104,11 +110,30 @@ class ObuSessionService : LifecycleService() {
         )
         mqtt = cliente
 
-        // La fuente arranca ya (no después de conectar): conectar() puede
+        // Factor de demo: solo en ruta emulada. Cualquier corrida acelerada
+        // queda marcada en el CSV (evento "demo" + "demo_factor" en cada
+        // MP_tx) para no mezclarla con las mediciones.
+        factorDemo = if (prefs.modoSimulado) prefs.factorDemo.coerceIn(1, 4) else 1
+        if (factorDemo != 1) eventoLogger.log(EventosObu.DEMO, "-", mapOf("factor" to factorDemo))
+
+        // GNSS: arranca ya (no después de conectar): conectar() puede
         // tardar varios segundos sin red, y mientras tanto el indicador de
         // la UI quedaría en "sin fix" aunque el GNSS esté listo. No publica
-        // nada por sí sola -- el ticker de MP arranca después del MI.
-        iniciarFuentePosicion(prefs)
+        // nada por sí sola -- el ticker de MP arranca después del MI. La
+        // ruta emulada, en cambio, espera al MI: si arrancara antes, el
+        // vehículo ya habría avanzado al publicarse el primer MP.
+        if (!prefs.modoSimulado) iniciarFuentePosicion(prefs)
+
+        // Indicador de conexión desde ya, no recién después del MI: con
+        // reconexión automática, conectar() espera hasta que el broker
+        // responda (sin Tailscale, broker caído...) y sin esto la pantalla
+        // solo diría "Esperando la ruta" sin explicar por qué.
+        jobIndicador = lifecycleScope.launch {
+            while (isActive) {
+                actualizarIndicadorConexion()
+                delay(1000)
+            }
+        }
 
         lifecycleScope.launch {
             runCatching { cliente.conectar() }
@@ -124,14 +149,14 @@ class ObuSessionService : LifecycleService() {
             eventoLogger.log(EventosObu.MI_TX, "-", mapOf("clase" to prefs.clase, "destino_lat" to destinoLat, "destino_lon" to destinoLon))
             medirReloj("inicio")
 
+            if (prefs.modoSimulado) iniciarFuentePosicion(prefs)
             iniciarTickerPublicacion()
         }
     }
 
     private fun iniciarFuentePosicion(prefs: Prefs) {
         val fuente: FuentePosicion = if (prefs.modoSimulado) {
-            val uri = prefs.trayectoriaUri?.let { android.net.Uri.parse(it) }
-            FuenteSimulada(this, uri)
+            Escenarios.fuente(this, prefs, factorDemo.toDouble())
         } else {
             FuenteGnss(this)
         }
@@ -142,6 +167,10 @@ class ObuSessionService : LifecycleService() {
             ultimaMuestra = muestra
             ultimaMuestraEnMs = SystemClock.elapsedRealtime()
             ObuSessionRepository.actualizar { it.copy(ultimaPosicion = muestra.lat to muestra.lon) }
+        }.onCompletion { causa ->
+            // Fin natural de la trayectoria emulada (no cancelación): la
+            // misión termina sola, como gateway/obu_emulada.py.
+            if (causa == null && fuente is FuenteSimulada) terminarPorFinTrayectoria()
         }.launchIn(lifecycleScope)
     }
 
@@ -149,7 +178,6 @@ class ObuSessionService : LifecycleService() {
         jobTicker = lifecycleScope.launch {
             while (isActive) {
                 publicarMpSiHayFix()
-                actualizarIndicadorConexion()
                 delay(1000)
             }
         }
@@ -180,7 +208,7 @@ class ObuSessionService : LifecycleService() {
                 // medido o heredado del último real conocido -- ver
                 // FuenteGnss/EvaluadorFixGnss.
                 "precision_m" to muestra.precisionM, "rumbo_medido" to muestra.rumboMedido,
-            ),
+            ) + (if (factorDemo != 1) mapOf("demo_factor" to factorDemo) else emptyMap()),
         )
     }
 
@@ -228,6 +256,8 @@ class ObuSessionService : LifecycleService() {
     // --- Fin de misión ---------------------------------------------------
 
     private fun terminarPorBoton() {
+        if (terminando) return
+        terminando = true
         val idActual = obuId ?: run { stopSelf(); return }
         lifecycleScope.launch {
             mqtt?.enviarMF(MensajeMF(obu_id = idActual, motivo = "boton", ts_ms = System.currentTimeMillis()))
@@ -237,7 +267,25 @@ class ObuSessionService : LifecycleService() {
         }
     }
 
+    private fun terminarPorFinTrayectoria() {
+        if (terminando) return
+        terminando = true
+        val idActual = obuId ?: return
+        lifecycleScope.launch {
+            // Unos MP más en la última posición (sigue "vigente" por
+            // UMBRAL_FIX_MS) para que el servidor procese el cruce final.
+            delay(ESPERA_FIN_TRAYECTORIA_MS)
+            mqtt?.enviarMF(MensajeMF(obu_id = idActual, motivo = "destino", ts_ms = System.currentTimeMillis()))
+            eventos?.log(EventosObu.MF_TX, "-", mapOf("motivo" to "destino"))
+            ObuSessionRepository.actualizar { it.copy(motivoFinReciente = "destino") }
+            medirReloj("fin")
+            finalizarLocal()
+        }
+    }
+
     private fun terminarPorServidor(motivo: String) {
+        if (terminando) return
+        terminando = true
         ObuSessionRepository.actualizar { it.copy(motivoFinReciente = motivo) }
         lifecycleScope.launch {
             medirReloj("fin")
@@ -249,8 +297,14 @@ class ObuSessionService : LifecycleService() {
         jobTicker?.cancel()
         jobFuente?.cancel()
         jobEstadoGnss?.cancel()
+        jobIndicador?.cancel()
         mqtt?.desconectar()
-        ObuSessionRepository.actualizar { it.copy(misionActiva = false) }
+        // Ruta, estados y GNSS de esta misión ya no sirven en la pantalla de
+        // inicio; motivoFinReciente se conserva para avisarlo.
+        ObuSessionRepository.actualizar {
+            it.copy(misionActiva = false, ultimaRuta = null, ultimoEstado = null, sinFixGnss = false,
+                sinConexionServidor = false, estadoGnss = EstadoGnss.Inactivo, ultimaPosicion = null)
+        }
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -289,6 +343,7 @@ class ObuSessionService : LifecycleService() {
         jobTicker?.cancel()
         jobFuente?.cancel()
         jobEstadoGnss?.cancel()
+        jobIndicador?.cancel()
         super.onDestroy()
     }
 
@@ -303,5 +358,6 @@ class ObuSessionService : LifecycleService() {
         private const val NOTIFICACION_ID = 1
         private const val UMBRAL_FIX_MS = 2500L
         private const val UMBRAL_SIN_CONEXION_MS = 5000L
+        private const val ESPERA_FIN_TRAYECTORIA_MS = 2000L
     }
 }

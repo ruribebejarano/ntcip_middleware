@@ -79,42 +79,96 @@ sobre la raíz del repositorio) y dejar que sincronice.
 
 ## Ajustes de la app (nada hardcodeado)
 
-Pantalla de Ajustes (ícono de engranaje, arriba a la derecha -- solo
+Pantalla de Ajustes (ícono de llave, arriba a la derecha del mapa -- solo
 visible cuando no hay misión activa, ver §6 del contrato):
 
-- **Host / puerto del broker MQTT.** Para el entorno de desarrollo de
-  esta sesión: host `100.121.77.97` (IP de Tailscale de la laptop),
-  puerto `1883`, **sin TLS** -- permitido por §1 del contrato solo para
-  desarrollo; nunca el broker de producción sin cifrar.
+- **Host del broker MQTT**, con hosts predefinidos: **Tailscale**
+  `100.121.77.97` (la laptop en el tailnet; es el valor por defecto en una
+  instalación nueva), **Emulador** `10.0.2.2` (la laptop vista desde el
+  emulador de Android) y **Manual** (habilita el campo). Puerto `1883`,
+  **sin TLS** -- permitido por §1 del contrato solo para desarrollo; nunca
+  el broker de producción sin cifrar.
 - **Clase NTCIP 1211** (por defecto 1 -- la única reconocida hoy por
   `agent/ntcip1211.py::CLASES_EMERGENCIA_RECONOCIDAS`).
-- **Modo simulado** y la trayectoria CSV que usa (ver abajo). Es la misma
-  preferencia que el selector "Ruta emulada / GPS real" de la pantalla
-  principal: cambiarla en un lado se ve en el otro.
+- **Ruta emulada (sin GNSS)**: misma preferencia que el selector de la
+  pantalla principal.
+- **Vibrar al conceder el verde** (activado por defecto).
+- **Avanzado: trayectoria propia**: "Elegir archivo…" carga un CSV propio
+  (aparece como un escenario más, "Archivo: x.csv"); "Quitar archivo propio"
+  vuelve a los escenarios incluidos.
+- Exportar CSV de eventos y revisar la optimización de batería.
 
-## Pantalla principal: Ruta emulada / GPS real
+## Pantalla principal
 
-Sin misión activa, el panel inferior muestra un selector de dos opciones
-(misma preferencia que "Modo simulado" en Ajustes):
+Horizontal (la tablet): **mapa a la izquierda, panel a la derecha**. En
+vertical el panel pasa debajo del mapa. Girar la tablet no reinicia nada
+(`configChanges` en el manifiesto).
 
-- **Ruta emulada**: debajo, el nombre del archivo de trayectoria en uso
-  (`trayectoria_casa.csv`, o `avenida_ab_s1.csv (incluida)`) y un botón
-  **Cambiar** que abre el selector de archivos de Android.
-- **GPS real**: debajo, el estado del GNSS --
-  gris "Buscando señal GNSS…" (ninguna lectura del proveedor GPS en los
-  últimos 5 s), naranja "Precisión 45 m — esperando ≤ 30 m" (hay lectura
-  pero no pasa el criterio de §"Criterio de fix GNSS válido"), verde "GNSS
-  listo · ±6 m". **"Iniciar emergencia" solo se habilita en verde** (además
-  de tener destino elegido); si la señal se pierde, vuelve a gris en ≤ 6 s
-  y el botón se deshabilita aunque haya una posición anterior en el mapa.
+**Mapa.** Sigue al vehículo (punto azul) hasta que el usuario lo toca o
+arrastra; entonces deja de seguirlo y aparece el botón **Centrar** para
+volver. El alfiler es el destino.
 
-Al cambiar de opción se descarta la posición de la fuente anterior (no
-sirve como origen del MI de la nueva).
+### Sin misión
 
-Durante la misión el selector desaparece y queda un indicador pequeño
-sobre la tarjeta del semáforo: **EMULADA** (morado) o **GPS ±7 m** (verde;
-naranja si la precisión empeora por encima de 30 m; rojo "GPS · sin fix"
-sin lecturas). Reemplaza al antiguo aviso rojo "MODO SIMULADO".
+- **Posición: Ruta emulada / GPS real** (misma preferencia que en Ajustes).
+- Con **Ruta emulada**:
+  - **Escenario**: chips con los escenarios incluidos en la app
+    (`app/src/main/assets/escenarios/escenarios.json`: hoy **PUCP** y
+    **Hospital del Niño**). Elegir uno carga su trayectoria **y** su
+    destino; se recuerda el último. El vehículo queda **quieto en el
+    primer punto** de la trayectoria (que es el origen del MI) y recién se
+    mueve al pulsar "Iniciar emergencia".
+  - **Velocidad de demo ×1 / ×2 / ×4**: acelera solo el reloj de la
+    reproducción, como `--factor` de `gateway/obu_emulada.py` (las
+    velocidades del MP no se escalan). Con ×2/×4 el CSV de eventos lleva un
+    evento `demo` (`{"factor": 4}`) al inicio y `demo_factor` en cada
+    `MP_tx`: **esas corridas no se usan en mediciones**. Durante la misión se
+    ve la pastilla "DEMO ×4".
+- Con **GPS real**: estado del GNSS -- gris "Buscando señal GNSS…" (ninguna
+  lectura del proveedor GPS en los últimos 5 s), naranja "Precisión 45 m —
+  esperando ≤ 30 m" (no pasa el criterio de "Criterio de fix GNSS
+  válido"), verde "GNSS listo · ±6 m". **"Iniciar emergencia" solo se
+  habilita en verde**; si la señal se pierde vuelve a gris en ≤ 6 s.
+- **Destino**: **pulsación larga** sobre el mapa (pide confirmación) o
+  **Destinos predefinidos…** (empieza por "Hospital del Niño",
+  -12.0664649, -77.0626982; lista en el mismo `escenarios.json`).
+
+Para agregar el escenario **Casa**: copiar `pruebas/trayectoria_casa.csv` a
+`app/src/main/assets/escenarios/` y sumar su entrada (id, nombre,
+trayectoria, destino) a `escenarios.json`; recompilar.
+
+### Con misión
+
+- Pastillas **EMULADA** (morado) o **GPS ±7 m** (verde; naranja si la
+  precisión pasa de 30 m; rojo "GPS · sin fix"), y **DEMO ×N** si aplica.
+- **Tarjeta grande del próximo semáforo**, con color e ícono: gris
+  PENDIENTE, azul SOLICITANDO, verde VERDE CONCEDIDO, ámbar ESPERANDO
+  DESPEJE (`en_cola`), naranja EN ESPERA (otra unidad, conflicto), y su ETA.
+  Mientras no llega el MR: "Conectando con el servidor…" (sin conexión) o
+  "Esperando la ruta del servidor…".
+- Debajo, en letra pequeña, **cómo se logró el verde**: "Extensión de verde
+  · X s", "Esperó despeje · X s" o "Verde adelantado · X s", a partir de los
+  campos `accion`, `t_hasta_verde_ms`, `anticipacion_s` (y `fase_al_recibir`)
+  que el servidor agregará al ME. Mientras no existan, solo "Estado: … ·
+  fase …". Los valores de `accion` se reconocen por palabra clave
+  (`exten…`, `…despeje…`/`…cola…`, `adelant…`/`anticip…`); si el servidor usa
+  otros nombres, ajustar `VistaMision.textoDetalle`.
+- **Tira de chips** con todas las RSU de la ruta en orden, y un **marcador
+  por RSU en el mapa** del mismo color. Una parada cancelada con el vehículo
+  ya pasado el cruce se muestra como **✓ cruzada** (el ME no distingue
+  "cancelada por cruce" de "cancelada por desvío": se decide por la
+  posición sobre la ruta, con el mismo margen de 20 m que el servidor).
+- **Vibración corta** al pasar a verde (una vez por intersección;
+  desactivable en Ajustes).
+- **Pantalla siempre encendida** mientras dura la misión.
+- **"Terminar emergencia" pide confirmación.**
+- **Fin automático**: al terminar la trayectoria emulada la app espera 2 s
+  (últimos MP en el punto final), envía MF `motivo="destino"` (como
+  `obu_emulada.py`) y vuelve al inicio con el escenario listo para repetir.
+  También termina si el servidor envía `mision_activa=false` en el ME.
+- Sin conexión con el broker, la ruta emulada **no arranca** hasta conectar
+  (el MI sale apenas el broker responde; el vehículo no avanza sin servidor)
+  y se muestra "Sin conexión con el servidor" desde el principio.
 
 ## Probar en la tablet real
 
@@ -180,7 +234,7 @@ por equipo, salvo donde se indica.
    ```
    debe mostrar `0.0.0.0`. Desde la tablet, la app deja de mostrar "Sin
    conexión con el servidor" al iniciar una misión.
-6. **Copiar la trayectoria a la tablet por USB** (para "Ruta emulada"):
+6. **Copiar una trayectoria propia a la tablet por USB** (solo si no es uno de los escenarios incluidos en la app):
    - Con `adb`:
      ```bash
      adb push app_obu/pruebas/trayectoria_casa.csv /sdcard/Download/
@@ -188,7 +242,7 @@ por equipo, salvo donde se indica.
    - Sin `adb`: conectar por USB, en la tablet elegir "Transferir
      archivos" en la notificación de USB, y en el Explorador de Windows
      copiar el `.csv` a `Galaxy Tab S6 Lite > Tablet > Download`.
-   Luego en la app: "Ruta emulada" > **Cambiar** > Descargas > el archivo.
+   Luego en la app: Ajustes > Avanzado > **Elegir archivo…** > Descargas > el archivo (o, mejor, agregarlo como escenario incluido: ver "Pantalla principal").
    La app guarda el permiso de lectura del archivo; no hace falta volver a
    elegirlo tras reiniciar.
 
@@ -669,20 +723,15 @@ powershell -ExecutionPolicy Bypass -File E:\Tesis\ntcip_app\app_obu\pruebas\dete
 
 **OBU -- con la app Android:**
 
-1. Copiar la trayectoria al dispositivo/emulador:
-   ```powershell
-   adb push "E:\Tesis\ntcip_app\app_obu\pruebas\trayectoria_hospital_nino.csv" /sdcard/Download/
-   ```
-2. En Ajustes: host/puerto del broker y clase `1` igual que en los otros
-   escenarios; activar **"Modo simulado"** y en "Trayectoria" tocar
-   **"Elegir archivo"** para seleccionar `trayectoria_hospital_nino.csv`
-   desde Descargas (no la integrada).
-3. En la pantalla principal, tocar como destino un punto sobre **Av.
-   Mariano Cornejo**, cerca de `-12.0677, -77.0629` (el extremo final de la
-   trayectoria, a la altura del Hospital del Niño) y "Iniciar emergencia".
-   **Verificación:** la ruta (MR) debe mostrar `rsu_id` en el orden
-   `"4"` → `"5"` → `"6"`, nunca `"1"`, `"2"` ni `"3"`.
-4. Para el emulador de Android por GPS simulado en vez del modo simulado de
+1. En Ajustes: host del broker (**Tailscale** en la tablet, **Emulador** en
+   el emulador), puerto 1883, clase `1`.
+2. En la pantalla principal: **Ruta emulada** > escenario **Hospital del
+   Niño** (ya incluido en la app: carga la trayectoria y el destino, sin
+   copiar archivos ni tocar el mapa) > velocidad ×1 (×2/×4 solo para mostrar,
+   quedan marcadas como demo) > "Iniciar emergencia".
+3. **Verificación:** la tira de semáforos debe mostrar RSU 4 → 5 → 6 en ese
+   orden, nunca 1, 2 ni 3. Al llegar al final la misión termina sola.
+4. Para el emulador de Android por GPS simulado en vez de la ruta emulada de
    la app: Extended controls → Location → Routes → "Load GPX/KML" →
    `app_obu\pruebas\trayectoria_hospital_nino.gpx` → Play; en ese caso NO
    activar "Modo simulado" en Ajustes.
