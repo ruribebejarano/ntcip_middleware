@@ -88,7 +88,10 @@ def init_ca() -> None:
     cnf = CA_DIR / "openssl.cnf"
     cnf.write_text(_OPENSSL_CNF.format(ca_dir=str(CA_DIR).replace("\\", "/")), encoding="utf-8")
 
-    _run(["openssl", "genrsa", "-out", str(CA_DIR / "ca.key"), "4096"])
+    # PKCS#8 (genpkey), no PKCS#1 (genrsa): B4 -- la app Android parsea la
+    # llave con javax.crypto puro (PKCS8EncodedKeySpec), sin BouncyCastle;
+    # PKCS#1 no lo soporta el JDK sin una libreria aparte.
+    _run(["openssl", "genpkey", "-algorithm", "RSA", "-pkeyopt", "rsa_keygen_bits:4096", "-out", str(CA_DIR / "ca.key")])
     _run([
         "openssl", "req", "-new", "-x509", "-days", str(DIAS_CA),
         "-key", str(CA_DIR / "ca.key"), "-out", str(CA_DIR / "ca.crt"),
@@ -131,7 +134,8 @@ def emitir(tipo: str, id_: str | None) -> None:
     csr = out / f"{nombre_archivo}.csr"
     crt = out / f"{nombre_archivo}.crt"
 
-    _run(["openssl", "genrsa", "-out", str(key), "2048"])
+    # PKCS#8 (genpkey), no PKCS#1 (genrsa) -- ver la nota en init_ca().
+    _run(["openssl", "genpkey", "-algorithm", "RSA", "-pkeyopt", "rsa_keygen_bits:2048", "-out", str(key)])
     _run([
         "openssl", "req", "-new", "-key", str(key), "-out", str(csr),
         "-subj", f"/O=ntcip_middleware (tesis PUCP)/CN={cn}",

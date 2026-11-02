@@ -28,11 +28,21 @@ Referencia de diseño: sección 1.2 de
 - **Estado real de este requisito en el repositorio:** la CA y la
   configuración de Mosquitto con TLS/mTLS están implementadas
   (`scripts/seguridad/`) y la CA se probó de verdad (emisión, verificación,
-  revocación). **No se probó contra un broker real en este entorno** — ver
-  `docs/bitacora/2026-10-22_arquitectura-centralizada.md`. La app no debe
-  construirse contra un broker sin TLS "temporalmente": si el entorno de
-  desarrollo de la app todavía no tiene el broker con TLS listo, usar un
-  broker de prueba separado, nunca el de producción sin cifrar.
+  revocación; llaves en PKCS#8 desde el 2026-11-01, `openssl genpkey`, no
+  `genrsa`, para que la app las parsee sin BouncyCastle). **Actualizado
+  2026-11-01 (B4):** `app_obu/` ya conecta el gancho (`seguridad/
+  TlsConfig.kt`, `obu/MqttObuClient.kt`) al builder de HiveMQ MQTT Client
+  — ver `app_obu/README.md`, sección "TLS 1.3 + mTLS (Etapa 3)" para cómo
+  cargar los certificados en la tablet. **Sigue sin probarse contra un
+  broker real ni en la tablet** (sin hardware en esta sesión) — ver
+  `docs/bitacora/2026-10-22_arquitectura-centralizada.md` — y queda
+  **[REVISAR con asesor]** un problema de diseño abierto: el CN del
+  certificado debe ser fijo, pero el `obu_id` de la app es aleatorio por
+  misión (detalle en la sección de arriba del README de `app_obu/`). La
+  app no debe construirse contra un broker sin TLS "temporalmente": si el
+  entorno de desarrollo de la app todavía no tiene el broker con TLS
+  listo, usar un broker de prueba separado, nunca el de producción sin
+  cifrar.
 - **QoS:** todos los mensajes de este contrato van con **QoS 1** (al menos
   una entrega). La RSU y el servidor ya deduplican por `seq`
   (`agent/rsu_middleware.py::_es_duplicado`); la app debe ignorar un M2/MR/ME
