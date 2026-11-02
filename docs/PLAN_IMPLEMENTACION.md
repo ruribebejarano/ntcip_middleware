@@ -1,10 +1,10 @@
 # Plan de implementación — 12 oct. al 20 nov. de 2026
 
-Este plan sustituye la Fase II en adelante de `CRONOGRAMA.md`. El alcance es el reducido de la tesis: sin Wi-SUN, sin ETA, sin NTCIP 1209, I2I por 4G/Ethernet a través del broker y OBU con criterio de geocerca.
+Este plan sustituye la Fase II en adelante de `CRONOGRAMA.md`. El alcance es el reducido de la tesis: sin Wi-SUN, sin ETA propio de la OBU, sin NTCIP 1209, y OBU con criterio de geocerca. **Actualizado 2026-11-02:** el I2I por 4G/Ethernet a través del broker (P8) se descartó con la arquitectura centralizada del 2026-10-22 — ver la nota de P8 más abajo.
 
 **Regla:** cada hito cierra con (1) un commit, (2) una entrada en `docs/bitacora/` y (3) evidencia en `evidencia/`. Sin evidencia, el hito no existe para la tesis.
 
-Orden de prioridad, si algo se atrasa: **OE3 y OE6 (lazo OBU → RSU → controlador) antes que OE4 (I2I)**.
+Orden de prioridad, si algo se atrasa: **OE3 antes que OE4** (I2I descartado, ver P8; el lazo OBU → servidor → RSU → controlador de OE4/OE5 depende de OE3).
 
 ---
 
@@ -23,7 +23,7 @@ Orden de prioridad, si algo se atrasa: **OE3 y OE6 (lazo OBU → RSU → control
 |---|---|---|
 | CA propia y mTLS en Mosquitto (TLS 1.3) | P4 | Configuración del broker; cliente **rechazado** sin certificado; Wireshark con el *handshake* TLS 1.3 y la carga cifrada |
 | Decisión TLSTM frente a USM (G1) | P4 | Entrada de bitácora con la desviación del diseño |
-| OBU simulada: M1–M3 a 1 Hz, geocerca, lista estática de RSU e identificación de acceso (RF-01 retirado 2026-11-01, ver trabajo futuro; RF-02 a RF-04, RF-14) | P5 | Consola de la OBU emitiendo, actualizando y cancelando; mapa o gráfico de la trayectoria con la geocerca |
+| OBU simulada: M1–M3 a 1 Hz, geocerca, identificación de acceso (RF-01 retirado 2026-11-01, ver trabajo futuro; RF-02 a RF-04, RF-14) — **la lista ordenada de RSU/accesos la calcula y entrega el servidor** (`servidor/rutas.py`), no una lista estática que cargue la OBU (arquitectura centralizada, 2026-10-22) | P5 | Consola de la OBU emitiendo, actualizando y cancelando; mapa o gráfico de la trayectoria con la geocerca |
 
 ## Semana 3 · 26 oct.–1 nov. — Hardware real y campaña V2I
 
@@ -33,13 +33,19 @@ Orden de prioridad, si algo se atrasa: **OE3 y OE6 (lazo OBU → RSU → control
 | ~~Lectura OBD-II real de velocidad (PID 0x0D)~~ — **descartado 2026-11-01:** la OBU retira el lector OBD-II del alcance; la velocidad la aporta el GNSS del propio dispositivo (ver trabajo futuro) | P7 | — |
 | **Campaña de latencia V2I** (sección 4.3) | P6 | Corridas en `resultados/v2i/`; figuras generadas |
 
-## Semana 4 · 2–8 nov. — I2I y lazo completo (OE4, OE6)
+## Semana 4 · 2–8 nov. — Hardware 4G real y TLS en la app (OE2, OE4, OE5)
+
+Reemplaza a la "Semana 4 · I2I y lazo completo" original (P8 descartado,
+ver abajo). Alineado con la Fase IV de `docs/CRONOGRAMA.md` (S8–S10):
+TLS/mTLS contra un broker real y la Raspberry Pi física ya se lograron
+(reporte R11, 30/10; campañas `local` y `pi-lan` del 29/10). Lo que
+sigue pendiente de verdad:
 
 | Hito | Prompt | Evidencia a capturar |
 |---|---|---|
-| Segunda RSU, chrony y M4 a 1 Hz (RF-10 a RF-12) | P8 | `chronyc tracking` en ambas RSU; log de M4 con desfase calculado |
-| **Campaña de sincronización** (sección 4.4) | P8 | Serie temporal del error de sincronización |
-| **Lazo completo** OBU → RSU → controlador (sección 4.5) | P9 | Línea de tiempo de un ensayo; foto del banco completo |
+| Campaña `pi-4g` (lazo y desvío) contra el enlace 4G real, con mTLS activo (OE2, OE5) | P9 | Corridas en `resultados/campana/`; figuras comparadas contra `local`/`pi-lan` (`fig_comparacion`, `fig_rtt_cdf`, `fig_tramos`) |
+| `obu_id` fijo por dispositivo = CN del certificado mTLS, puesta en marcha con la tablet real contra servidor y RSU (OE4) | — (`prompt_integracion_app_obu.md`, ítems 2b y 4) | Logs de la app/servidor/RSU durante la prueba en mesa |
+| Probar la interfaz Ethernet de la Raspberry Pi (OE2) | — | `ip addr`/`scripts/pi.sh red estado` con la interfaz Ethernet activa |
 
 ## Semana 5 · 9–15 nov. — Capítulo 4 y conclusiones
 Pruebas de seguridad (4.6), tabla de cumplimiento (4.7), discusión (4.8) y conclusiones por OE.
@@ -111,14 +117,47 @@ como fuente más precisa a baja velocidad o con mala cobertura GNSS queda
 como trabajo futuro.
 ```
 
-### P8 — I2I y sincronización
+### P8 — I2I y sincronización (descartado 2026-11-01)
 ```
-Implementa el canal I2I según sec:malla de main.tex: cada RSU publica M4 a 1 Hz por el broker con la marca de tiempo de inicio de fase y calcula el desfase respecto de la vecina (RF-11, RF-12). Configura chrony en ambas RSU (scripts/chrony/). Crea scripts/campanas/sync.py, que registre durante X minutos el offset de chrony y la diferencia de marcas de tiempo entre RSU, y scripts/analisis/sync.py, que genere la serie temporal y la distribución del error en F:\tesis2\Overleaf\figuras\resultados\. Si solo hay una Raspberry Pi, dime qué alternativa usar para la segunda RSU (por ejemplo, la PC) y qué limita eso. Bitácora y commit "OE4: ...".
+Descartado 2026-11-01: el canal I2I y M4 desaparecieron del alcance con
+la arquitectura centralizada (2026-10-22, ver prompt_cambio_4G.md y
+docs/bitacora/2026-10-22_arquitectura-centralizada.md). main.tex ya no
+tiene sec:malla ("Malla I2I y Coordinación de Ola Verde"): el servidor
+central decide y coordina las RSU directamente, sin que necesiten
+coordinarse entre sí por un canal propio (RF-11/RF-12 quedan sin objeto).
+
+La sincronización de reloj SÍ sigue vigente, pero por otra razón: no para
+calcular un desfase M4 entre RSU, sino porque las marcas de tiempo de
+cada RSU y del servidor deben ser comparables para medir latencia (OE5).
+Se controla por corrida, no con un canal I2I propio: chrony en la RSU
+(scripts/chrony/) y un prevuelo con `chronyc tracking` en
+scripts/campanas/lazo_centralizado.py antes de cada campaña; si la RSU
+pierde NTP, esa corrida queda marcada "RNF-01 no evaluable" en el
+análisis (scripts/analisis/lazo_centralizado.py), como ya se hace hoy.
 ```
 
-### P9 — Lazo completo
+### P9 — Lazo completo (reescrito 2026-11-02 para la arquitectura centralizada)
 ```
-Crea scripts/campanas/lazo.py para el ensayo de punta a punta (sección 4.5 de main.tex): OBU → broker → RSU → controlador emulado → M2 de vuelta, con trayectorias reproducidas. Guarda las corridas en resultados/lazo/ y genera la línea de tiempo de un ensayo representativo y la tabla resumen de N ensayos en F:\tesis2\Overleaf\figuras\resultados\. Bitácora y commit "OE6: ...".
+El lazo vigente es OBU -> servidor central -> RSU -> controlador (no el
+de la version original de este prompt, donde la OBU emitia M1 directo a
+la RSU sin servidor). Ya esta implementado, no hay que crearlo desde
+cero:
+- Runner: scripts/campanas/lazo_centralizado.py (escenarios "lazo" y
+  "desvio"; configuraciones --config local|pi-lan|pi-4g).
+- Analisis: scripts/analisis/lazo_centralizado.py +
+  scripts/analisis/graficos_campana_centralizada.py (fig_comparacion,
+  fig_rtt_cdf, fig_tramos) + scripts/analisis/resumen_capitulo4.py (tabla
+  de renovacion/caducidad, RF-10/RNF-03).
+
+Estado real (2026-11-02): local y pi-lan ya corridos el 2026-10-29
+(resultados/campana/_figuras_2026-10-29_local_vs_pi-lan/); pi-4g
+preparado (B5, redaccion/plan_pruebas_4G.md) pero todavia sin correr --
+ver la Semana 4 de este documento y la Fase IV (S8-S10) de
+docs/CRONOGRAMA.md. Falta: ejecutar la campana pi-4g con mTLS activo y
+generar sus figuras comparadas contra local/pi-lan. Bitacora y commit
+"OE4: ..." (OE6 ya no existe como objetivo especifico independiente --
+se fusiono con OE5, ver CLAUDE.md; el prefijo "OE6" de la version
+anterior de este prompt quedo heredado de esa numeracion previa).
 ```
 
 ---
