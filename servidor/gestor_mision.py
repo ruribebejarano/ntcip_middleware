@@ -67,6 +67,7 @@ try:
         EVT_MI_REPETIDO,
         EVT_MISION_ARMADA,
         EVT_MISION_DESARMADA,
+        EVT_MP_DESCARTADO,
         EVT_MP_RX,
         EVT_RUTA_CALCULADA,
         EVT_RUTA_RECALCULADA,
@@ -86,6 +87,13 @@ MARGEN_CRUCE_M = 20.0             # cuanto puede "pasarse" la distancia acumulad
 # conservador, igual a MARGEN_CRUCE_M, para no introducir un orden de
 # magnitud nuevo sin validar con datos de campo.
 UMBRAL_LLEGADA_DESTINO_M = MARGEN_CRUCE_M
+
+# item 2a.4 de prompt_integracion_app_obu.md: un MI repetido cuyo destino
+# cambia mas alla de esta tolerancia ya no es el mismo encargo (p. ej. el
+# operador armo otra mision mientras la OBU estaba desconectada y el MF
+# anterior se perdio) -- se cierra la mision vieja y se arma la nueva.
+# Dentro de la tolerancia sigue siendo MI_repetido. [REVISAR con asesor]
+TOLERANCIA_MISMO_DESTINO_M = 50.0
 
 ESTADO_PENDIENTE = "pendiente"
 ESTADO_SOLICITADA = "solicitada"
@@ -131,6 +139,8 @@ class Mision:
     distancia_recorrida_m: float = 0.0
     ultima_velocidad_kmh: float = VELOCIDAD_RESPALDO_KMH
     motivo_fin: Optional[str] = None  # "boton" | "destino" | "tiempo_maximo"; None mientras activa=True
+    ultimo_mp_seq: Optional[int] = None  # seq del ultimo MP aceptado; detecta reordenamientos/duplicados
+    version: int = 1  # version del MR vigente; sube en cada recalculo por desvio (docs/CONTRATO_OBU.md §MR)
 
     def siguiente_parada_pendiente(self) -> Optional[EstadoParada]:
         for iid in self.orden:
@@ -192,12 +202,32 @@ class GestorMision:
     ) -> Mision:
         existente = self.misiones.get(obu_id)
         if existente is not None and existente.activa:
-            # MI repetido para una misión que ya está armada (p. ej. la app
-            # reenvía el MI tras una reconexión MQTT, ver
-            # app_obu/obu/ObuSessionService.kt): se ignora sin recalcular la
-            # ruta ni perder el progreso ya hecho (docs/CONTRATO_OBU.md §2).
-            self._log(EVT_MI_REPETIDO, existente.mision_id, obu_id=obu_id)
-            return existente
+            x, y = proyeccion_local(destino[0], destino[1], *existente.destino)
+            if math.hypot(x, y) > TOLERANCIA_MISMO_DESTINO_M:
+                # Mismo obu_id, destino distinto mas alla de la tolerancia:
+                # no es el mismo encargo (p. ej. se perdio el MF anterior
+                # durante una caida y el operador armo otra mision). Cierra
+                # la mision vieja -- M3/cancelacion de TODO lo abierto en
+                # las RSU, vía desarmar_mision -- antes de armar la nueva.
+                self.desarmar_mision(obu_id, motivo="reemplazada")
+            else:
+                # MI repetido para una misión que ya está armada (p. ej. la
+                # app reenvía el MI tras una reconexión MQTT, ver
+                # app_obu/obu/ObuSessionService.kt): se ignora sin
+                # recalcular la ruta ni perder el progreso ya hecho
+                # (docs/CONTRATO_OBU.md §2).
+                self._log(EVT_MI_REPETIDO, existente.mision_id, obu_id=obu_id)
+                # La app puede haber reenviado el MI porque el proceso se
+                # reinicio (sin MR ni ultimo ME en memoria, ver
+                # ObuSessionService.kt): reenviar el MR vigente (mismo
+                # mision_id y version -- un reinicio no tiene version
+                # previa que comparar, y un simple reconexion ya tiene la
+                # misma aplicada, asi que no hay riesgo de "retroceder" la
+                # ruta) y el ultimo ME, para que no se quede sin ruta ni
+                # estado.
+                self.enviar_mr(obu_id, self._cuerpo_mr(existente))
+                self.enviar_me(obu_id, self._cuerpo_me(existente))
+                return existente
 
         ruta = rutas_mod.planificar_ruta(self.grafo, self.registro, origen, destino)
         registro_mision = [i for i in self.registro if i.interseccion_id in {p.interseccion_id for p in ruta.paradas}]
@@ -222,7 +252,7 @@ class GestorMision:
         return {
             "tipo": "MR",
             "mision_id": mision.mision_id,
-            "version": 1,
+            "version": mision.version,
             "longitud_total_m": round(mision.ruta.longitud_total_m, 1),
             "geometria": [[n.lat, n.lon] for n in mision.ruta.geometria],
             "paradas": [
@@ -241,11 +271,17 @@ class GestorMision:
         if mision is None or not mision.activa:
             return  # sin misión activa no hay procesamiento (ssec:minimizacion)
 
-        # seq: numero de secuencia que trae el propio MP (gateway/obu_emulada.py);
-        # se registra aqui SOLO para poder emparejar este MP_rx con el MP_tx
-        # de la OBU por seq en el analisis de campana (scripts/analisis/
-        # lazo_centralizado.py, metrica t_OBU->srv) -- no se usa para nada
-        # mas en este metodo.
+        # seq: contador creciente por OBU (docs/CONTRATO_OBU.md §MP). Un MP
+        # con seq <= el ultimo aceptado llega desordenado o duplicado (p.
+        # ej. reintentos a nivel de red) y se descarta antes de tocar el
+        # estado de la mision; seq=None (clientes que no lo envien) no se
+        # puede ordenar y se procesa igual, como hasta ahora.
+        if seq is not None and mision.ultimo_mp_seq is not None and seq <= mision.ultimo_mp_seq:
+            self._log(EVT_MP_DESCARTADO, mision.mision_id, seq=seq, ultimo_seq=mision.ultimo_mp_seq)
+            return
+        if seq is not None:
+            mision.ultimo_mp_seq = seq
+
         self._log(EVT_MP_RX, mision.mision_id, lat=lat, lon=lon,
                   velocidad_kmh=velocidad_kmh, rumbo_deg=rumbo_deg, seq=seq)
 
@@ -543,6 +579,7 @@ class GestorMision:
                 # compararía contra la distancia de la ruta anterior.
                 mision.paradas[p.interseccion_id].parada = p
 
+        mision.version += 1  # la app ignora un MR con version <= la ya aplicada (ObuSessionService.kt)
         self._log(EVT_RUTA_RECALCULADA, mision.mision_id, motivo="desvio",
                   n_paradas_antes=paradas_antes, n_paradas_despues=len(nueva_ruta.paradas))
         self.enviar_mr(mision.obu_id, self._cuerpo_mr(mision))

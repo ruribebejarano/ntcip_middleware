@@ -35,14 +35,16 @@ Referencia de diseño: sección 1.2 de
   — ver `app_obu/README.md`, sección "TLS 1.3 + mTLS (Etapa 3)" para cómo
   cargar los certificados en la tablet. **Sigue sin probarse contra un
   broker real ni en la tablet** (sin hardware en esta sesión) — ver
-  `docs/bitacora/2026-10-22_arquitectura-centralizada.md` — y queda
-  **[REVISAR con asesor]** un problema de diseño abierto: el CN del
-  certificado debe ser fijo, pero el `obu_id` de la app es aleatorio por
-  misión (detalle en la sección de arriba del README de `app_obu/`). La
-  app no debe construirse contra un broker sin TLS "temporalmente": si el
-  entorno de desarrollo de la app todavía no tiene el broker con TLS
-  listo, usar un broker de prueba separado, nunca el de producción sin
-  cifrar.
+  `docs/bitacora/2026-10-22_arquitectura-centralizada.md`.
+  **Resuelto 2026-11-02 (item 2b de `prompt_integracion_app_obu.md`)**: el
+  mismatch entre un `obu_id` aleatorio por misión y un CN fijo de
+  certificado se resolvió fijando la identidad **por dispositivo**, no por
+  misión — ver la sección 2 de abajo. `[REVISAR con asesor]`: sigue siendo
+  una decisión de diseño de seguridad (identidad de dispositivo, no de
+  sesión) que conviene confirmar con el asesor. La app no debe construirse
+  contra un broker sin TLS "temporalmente": si el entorno de desarrollo de
+  la app todavía no tiene el broker con TLS listo, usar un broker de
+  prueba separado, nunca el de producción sin cifrar.
 - **QoS:** todos los mensajes de este contrato van con **QoS 1** (al menos
   una entrega). La RSU y el servidor ya deduplican por `seq`
   (`agent/rsu_middleware.py::_es_duplicado`); la app debe ignorar un M2/MR/ME
@@ -53,7 +55,7 @@ Referencia de diseño: sección 1.2 de
 
 | Campo | Tipo | Notas |
 |---|---|---|
-| `obu_id` | string | Identifica la sesión/dispositivo. Pseudónimo, NO la placa del vehículo (ssec:minimizacion). Debe coincidir con el CN del certificado mTLS. |
+| `obu_id` | string | Identidad FIJA del dispositivo (item 2b de `prompt_integracion_app_obu.md`, 2026-11-02; antes era aleatorio por sesión/misión). Pseudónimo, NO la placa del vehículo (ssec:minimizacion). Con TLS activado, es el Common Name del certificado mTLS (`app_obu/seguridad/TlsConfig.kt::commonNameCliente`); sin TLS, el valor fijo que se configura una vez en Ajustes (`Prefs.obuId`). No cambia entre misiones del mismo dispositivo — la identidad **de la misión** es `mision_id`. |
 | `mision_id` | string | Lo asigna el SERVIDOR al recibir MI (`mis-<hex>`); la app lo recibe implícitamente en MR/ME pero no lo necesita para publicar MI/MP/MF (esos van por `obu_id`, no por `mision_id`). |
 | `id_solicitud` | string | Por RSU/parada (`{mision_id}-{interseccion_id}`), interno al servidor↔RSU. La app no lo usa directamente — ve el resumen por RSU en ME. |
 | `clase` | int | Clase NTCIP 1211 del vehículo (`clase_tipo`). **El banco de pruebas actual solo reconoce `1`** (`agent/ntcip1211.py::CLASES_EMERGENCIA_RECONOCIDAS = {1}`) — cualquier otro valor se rechaza en la RSU (RF-05), no en el servidor. [CITAR: verificar la tabla de clases contra el D.S. N.º 016-2009-MTC antes de ampliar esta lista]. |
@@ -68,7 +70,7 @@ emergencia" + destino en la app.
 ```json
 {
   "tipo": "MI",
-  "obu_id": "ses-abc123",
+  "obu_id": "obu-tab-01",
   "clase": 1,
   "origen": {"lat": -12.1100, "lon": -77.0320},
   "destino": {"lat": -12.1022, "lon": -77.0320},
@@ -87,22 +89,36 @@ emergencia" + destino en la app.
 - `destino`: lat/lon del punto de llegada. La app debe resolverlo desde un
   mapa o una dirección — no hay geocodificación en el servidor.
 
-**MI repetido (reconexión MQTT).** Si la conexión MQTT se cae y se
-reconecta mientras la misión sigue armada, la app **reenvía el MI**
-(`app_obu/obu/ObuSessionService.kt::reenviarMiTrasReconexion`, con
-`ts_ms` actualizado) en vez de reintentar solo al nivel de transporte —
-ver la bitácora `2026-10-29_app-obu-fix-serializacion-y-pucp.md` §2, que
+**MI repetido (reconexión MQTT o reinicio del proceso).** Si la conexión
+MQTT se cae y se reconecta mientras la misión sigue armada, la app
+**reenvía el MI** (`app_obu/obu/ObuSessionService.kt::reenviarMiTrasReconexion`,
+con `ts_ms` actualizado) en vez de reintentar solo al nivel de transporte
+— ver la bitácora `2026-10-29_app-obu-fix-serializacion-y-pucp.md` §2, que
 documentó esta reconexión como un hueco sin cubrir. El servidor trata un
-MI para un `obu_id` que **ya tiene una misión activa** como un no-op
-idempotente: no crea una misión nueva, no recalcula la ruta ni reinicia
-el progreso ya hecho (`servidor/gestor_mision.py::armar_mision`); solo
-registra el evento `MI_repetido` (`common/events.py`) y devuelve la
-misión existente. Esto es seguro porque `obu_id` es único por sesión de
-la app (se genera al azar en cada `iniciarMision()`), así que un MI
-repetido con el mismo `obu_id` siempre corresponde a la misma misión, no
-a una nueva. Los MP se reanudan solos: el ticker de publicación de la app
+MI para un `obu_id` que **ya tiene una misión activa, con el mismo
+destino** (dentro de `TOLERANCIA_MISMO_DESTINO_M` = 50 m
+`[REVISAR con asesor]`) como un no-op idempotente: no crea una misión
+nueva, no recalcula la ruta ni reinicia el progreso ya hecho
+(`servidor/gestor_mision.py::armar_mision`); registra el evento
+`MI_repetido` (`common/events.py`) y **reenvía el MR vigente (mismo
+`mision_id`/`version`) y el último ME** — necesario para el caso en que el
+proceso de la app se reinició (sin MR ni ME en memoria) y no solo se
+reconectó. Esto es seguro porque, desde el item 2b, `obu_id` es la
+identidad **fija del dispositivo** (no de la sesión): un MI repetido con
+el mismo `obu_id` y el mismo destino siempre corresponde a la misma
+misión. Los MP se reanudan solos: el ticker de publicación de la app
 nunca se detiene durante una caída de conexión, y vuelve a entregar en
 cuanto el cliente MQTT reconecta.
+
+**MI con destino distinto (mismo `obu_id`).** Si el destino del MI difiere
+del de la misión activa en más de `TOLERANCIA_MISMO_DESTINO_M`, el
+servidor entiende que es un encargo distinto (p. ej. se perdió el MF
+anterior durante una caída y el operador armó otra misión desde la
+tablet): **cierra la misión anterior** con `motivo_fin="reemplazada"`
+(`desarmar_mision`, que cancela — M3 o directo — TODO lo que estuviera
+abierto en las RSU) y arma una misión nueva, con su propio `mision_id` y
+MR. Dentro de la tolerancia, sigue siendo un MI repetido (párrafo
+anterior).
 
 ### MP — Posición
 
@@ -113,7 +129,7 @@ debe publicar nada aquí).
 ```json
 {
   "tipo": "MP",
-  "obu_id": "ses-abc123",
+  "obu_id": "obu-tab-01",
   "lat": -12.10874,
   "lon": -77.03201,
   "velocidad_kmh": 36.0,
@@ -129,8 +145,16 @@ debe publicar nada aquí).
   `VELOCIDAD_RESPALDO_KMH` de `servidor/gestor_mision.py` si
   `velocidad_kmh` es inválida o ≈0). [REVISAR con asesor] si conviene que
   el servidor penalice la confianza del ETA según la fuente.
-- `seq`: contador creciente por OBU (no por solicitud). Se usa para
-  detectar reordenamientos/duplicados a nivel de aplicación.
+- `seq`: contador creciente por OBU (no por solicitud). El servidor
+  descarta un MP con `seq` menor o igual al último aceptado para esa
+  misión (`servidor/gestor_mision.py::procesar_mp`, evento
+  `MP_descartado`; item 2a.2 de `prompt_integracion_app_obu.md`,
+  2026-11-02) — reordenamiento o duplicado a nivel de red, no a nivel de
+  la librería MQTT: verificado que HiveMQ MQTT Client 1.4.1 NO encola los
+  `publish` hechos estando desconectado (lanza `MqttClientStateException`
+  de inmediato), así que la app no reenvía MP viejos en ráfaga al
+  reconectar; este descarte por `seq` es una defensa adicional, no una
+  corrección de un problema observado del lado de la app.
 - **Si la app pierde señal GNSS:** debe dejar de publicar MP (no inventar
   una posición) y la misión queda "congelada" en el servidor hasta la
   siguiente muestra válida — no hay un mensaje explícito de "posición
@@ -146,7 +170,7 @@ coincidir (ver §5); esos dos motivos los decide el servidor y la app los
 recibe reflejados en el último ME, no en un MF propio.
 
 ```json
-{"tipo": "MF", "obu_id": "ses-abc123", "motivo": "boton", "ts_ms": 1761144090000}
+{"tipo": "MF", "obu_id": "obu-tab-01", "motivo": "boton", "ts_ms": 1761144090000}
 ```
 
 `motivo`: `"boton"` (la app lo envía) — los motivos `"destino"` y

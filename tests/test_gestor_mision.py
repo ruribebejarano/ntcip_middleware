@@ -80,9 +80,12 @@ def test_armar_mision_calcula_ruta_y_publica_mr():
 
 
 def test_mi_repetido_no_duplica_la_mision():
-    """B2: la app reenvia el MI tras una reconexion MQTT (ver
+    """B2 + item 2a.3 de prompt_integracion_app_obu.md: la app reenvia el
+    MI tras una reconexion MQTT o un reinicio de proceso (ver
     app_obu/obu/ObuSessionService.kt); el servidor debe tratarlo como un
-    no-op, sin recalcular la ruta ni perder el progreso ya hecho."""
+    no-op (sin recalcular la ruta ni perder el progreso ya hecho) pero
+    reenviar el MR vigente y el ultimo ME, para el caso en que la app
+    perdio ambos por un reinicio."""
     gestor, reg = _gestor()
     mision = gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
     mision_id_original = mision.mision_id
@@ -97,7 +100,105 @@ def test_mi_repetido_no_duplica_la_mision():
     assert repetida is mision
     assert repetida.mision_id == mision_id_original
     assert repetida.distancia_recorrida_m == progreso_antes
-    assert len(reg.mr) == 1  # no se volvio a publicar una MR (version 1 de nuevo)
+    # El MR original (al armar) + el reenviado por el MI_repetido.
+    assert len(reg.mr) == 2
+    assert reg.mr[1][0] == "obu-1"
+    assert reg.mr[1][1]["mision_id"] == mision_id_original
+    assert reg.mr[1][1]["version"] == reg.mr[0][1]["version"]  # misma version, nada cambio
+    # Tambien se reenvia el ultimo ME, para que la app recupere el estado.
+    assert len(reg.me) >= 1
+    assert reg.me[-1][1]["mision_id"] == mision_id_original
+
+
+def test_mp_fuera_de_orden_se_descarta():
+    """item 2a.2 de prompt_integracion_app_obu.md: un MP con seq <= el
+    ultimo aceptado (reordenamiento o duplicado) no debe mover el progreso
+    de la mision ni publicar un ME nuevo."""
+    gestor, reg = _gestor()
+    mision = gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+
+    lat, lon = desplazar(*NODOS_RUTA["A"], 0.0, 100.0)
+    gestor.procesar_mp("obu-1", lat, lon, VELOCIDAD_KMH, rumbo_deg=0.0, seq=5)
+    progreso_tras_seq5 = mision.distancia_recorrida_m
+    me_tras_seq5 = len(reg.me)
+    assert mision.ultimo_mp_seq == 5
+
+    # Un MP "viejo" (seq menor) que llega despues, mas adelante en la ruta:
+    # si no se descartara, haria retroceder/avanzar el progreso igual.
+    lat_adelante, lon_adelante = desplazar(*NODOS_RUTA["A"], 0.0, 500.0)
+    gestor.procesar_mp("obu-1", lat_adelante, lon_adelante, VELOCIDAD_KMH, rumbo_deg=0.0, seq=3)
+    assert mision.distancia_recorrida_m == progreso_tras_seq5
+    assert mision.ultimo_mp_seq == 5
+    assert len(reg.me) == me_tras_seq5  # no se publico ME para el MP descartado
+
+    # Un seq repetido (duplicado exacto) tambien se descarta.
+    gestor.procesar_mp("obu-1", lat_adelante, lon_adelante, VELOCIDAD_KMH, rumbo_deg=0.0, seq=5)
+    assert mision.distancia_recorrida_m == progreso_tras_seq5
+    assert len(reg.me) == me_tras_seq5
+
+    # Un seq mayor si avanza el progreso normalmente.
+    gestor.procesar_mp("obu-1", lat_adelante, lon_adelante, VELOCIDAD_KMH, rumbo_deg=0.0, seq=6)
+    assert mision.distancia_recorrida_m > progreso_tras_seq5
+    assert mision.ultimo_mp_seq == 6
+    assert len(reg.me) == me_tras_seq5 + 1
+
+
+def test_desvio_recalcula_y_sube_la_version_del_mr():
+    """Hallazgo al implementar el item 2a.3: _cuerpo_mr() mandaba
+    "version": 1 siempre, incluso tras recalcular por desvio -- la app
+    (ObuSessionService.kt/VistaMision.kt) ignora un MR con version <= la
+    ya aplicada, asi que nunca habria aplicado la ruta recalculada."""
+    gestor, reg = _gestor()
+    gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    mision = gestor.misiones["obu-1"]
+    assert mision.version == 1
+    assert reg.mr[-1][1]["version"] == 1
+
+    # Posicion lejos de la ruta (linea recta por longitud ~ -77.0320): se
+    # desplaza 100 m al este desde un punto de la ruta, mas alla de
+    # UMBRAL_DESVIO_M (60 m), para disparar _recalcular_por_desvio.
+    lat_c, lon_c = NODOS_RUTA["C"]
+    lat_desvio, lon_desvio = desplazar(lat_c, lon_c, 90.0, 100.0)
+    gestor.procesar_mp("obu-1", lat_desvio, lon_desvio, VELOCIDAD_KMH, rumbo_deg=0.0)
+
+    assert mision.version == 2
+    assert reg.mr[-1][1]["mision_id"] == mision.mision_id
+    assert reg.mr[-1][1]["version"] == 2
+
+
+def test_mi_con_destino_distinto_cierra_la_mision_anterior():
+    """item 2a.4 de prompt_integracion_app_obu.md: un MI del mismo obu_id
+    con un destino mas alla de TOLERANCIA_MISMO_DESTINO_M no es un
+    MI_repetido -- cierra la mision anterior (M3/cancelacion de TODO lo
+    abierto en las RSU) y arma una mision nueva."""
+    gestor, reg = _gestor()
+    mision_vieja = gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    mision_id_vieja = mision_vieja.mision_id
+
+    # Avanza hasta que al menos una parada tenga una solicitud abierta
+    # (M1 por anticipacion de ETA), para poder verificar que se cierra.
+    lat_a, lon_a = NODOS_RUTA["A"]
+    for paso_m in range(0, 300, 20):
+        lat, lon = desplazar(lat_a, lon_a, 0.0, float(paso_m))
+        gestor.procesar_mp("obu-1", lat, lon, VELOCIDAD_KMH, rumbo_deg=0.0)
+    assert len(reg.m1) >= 1
+    parada_abierta = next(iid for iid in mision_vieja.orden if mision_vieja.paradas[iid].estado not in (ESTADO_PENDIENTE, ESTADO_CANCELADA))
+
+    # Destino nuevo, varios cientos de metros mas alla de la tolerancia (50 m).
+    mision_nueva = gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["D"])
+
+    assert mision_nueva is not mision_vieja
+    assert mision_nueva.mision_id != mision_id_vieja
+    assert mision_vieja.activa is False
+    assert mision_vieja.motivo_fin == "reemplazada"
+    assert mision_vieja.paradas[parada_abierta].estado == ESTADO_CANCELADA
+    assert any(
+        c["motivo"] == "reemplazada" and c["id_solicitud"] == mision_vieja.paradas[parada_abierta].id_solicitud
+        for _, c in reg.m3
+    )
+    # La mision nueva queda activa, con su propio MR.
+    assert mision_nueva.activa is True
+    assert reg.mr[-1][1]["mision_id"] == mision_nueva.mision_id
 
 
 def test_ciclo_completo_recorrido_recto_dos_rsu():

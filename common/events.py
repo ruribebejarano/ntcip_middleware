@@ -94,6 +94,7 @@ EVT_MP_TX = "MP_tx"                             # OBU publica una posicion (reem
 EVT_MR_RX = "MR_rx"                             # OBU recibe la ruta calculada por el servidor; extra: n_paradas, longitud_m
 EVT_ME_RX = "ME_rx"                             # OBU recibe un cambio de estado de la mision; extra: proximo, conflicto
 EVT_MI_REPETIDO = "MI_repetido"                 # servidor recibe un MI para un obu_id con mision ya armada (p. ej. reenvio tras una reconexion MQTT, ver app_obu/obu/ObuSessionService.kt): se ignora, no duplica la mision ni recalcula la ruta
+EVT_MP_DESCARTADO = "MP_descartado"             # servidor descarta un MP con seq <= el ultimo procesado (reordenamiento/duplicado, docs/CONTRATO_OBU.md); extra: seq, ultimo_seq
 
 EVT_BROKER_RX = "broker_rx"      # scripts/testigo_broker.py: un suscriptor mas
                                   # corriendo en la MISMA maquina que el broker,

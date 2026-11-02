@@ -36,6 +36,13 @@ class MqttObuClient(
     @Volatile private var construido: Mqtt5BlockingClient? = null
 
     suspend fun conectar() = withContext(Dispatchers.IO) {
+        // automaticReconnectWithDefaultConfig(): NO hace falta volver a
+        // suscribir a mano en el callback de reconexion. Verificado contra
+        // un mosquitto real (prompt_integracion_app_obu.md, item 2a.1): el
+        // MqttClientReconnector interno de HiveMQ trae
+        // DEFAULT_RESUBSCRIBE_IF_SESSION_EXPIRED = true, y con
+        // sessionExpiryInterval = 0 (por defecto) cada reconexion cuenta
+        // como sesion expirada -- la libreria reenvia el SUBSCRIBE sola.
         var builder = Mqtt5Client.builder()
             .identifier("obu-$obuId")
             .serverHost(host)
