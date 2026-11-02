@@ -269,10 +269,18 @@ def test_me_mision_activa_true_mientras_no_se_desarma():
 
 def test_desarme_por_llegada_a_destino():
     """B3: el servidor detecta la llegada sin que la app envie un MF
-    propio (app_obu/PROPUESTA_FIN_MISION.md)."""
+    propio (app_obu/PROPUESTA_FIN_MISION.md). Item 3 de
+    prompt_integracion_app_obu.md: el cierre por destino debe cerrar
+    TODO lo abierto en las RSU (M3), no solo marcar la mision."""
     gestor, reg = _gestor()
     gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
     mision = gestor.misiones["obu-1"]
+
+    # Entra a R_g de SINT-C (deja una solicitud ABIERTA) antes de llegar al
+    # destino, para comprobar que el cierre por destino la cancela.
+    gestor.procesar_mp("obu-1", *NODOS_RUTA["B"], VELOCIDAD_KMH, 0.0)
+    id_solicitud_c = mision.paradas["SINT-C"].id_solicitud
+    assert mision.paradas["SINT-C"].estado == ESTADO_SOLICITADA
 
     lat_g, lon_g = NODOS_RUTA["G"]
     lat_cerca, lon_cerca = desplazar(lat_g, lon_g, 0.0, 5.0)  # a 5 m del destino
@@ -282,19 +290,33 @@ def test_desarme_por_llegada_a_destino():
     assert mision.motivo_fin == "destino"
     assert reg.me[-1][1]["mision_activa"] is False
     assert reg.me[-1][1]["motivo_fin"] == "destino"
+    # La solicitud que habia quedado abierta en SINT-C se cerro con M3,
+    # no solo se marco la mision como inactiva.
+    assert mision.paradas["SINT-C"].estado == ESTADO_CANCELADA
+    assert mision.paradas["SINT-F"].estado == ESTADO_CANCELADA
+    assert any(c["motivo"] == "destino" and c["id_solicitud"] == id_solicitud_c for _, c in reg.m3)
 
 
 def test_desarme_por_tiempo_maximo():
+    """Item 3 de prompt_integracion_app_obu.md: igual que el destino, el
+    cierre por tiempo maximo debe cerrar las solicitudes abiertas en las
+    RSU con M3, no solo marcar la mision."""
     gestor, reg = _gestor(tiempo_maximo_s=0.0)
     gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
     mision = gestor.misiones["obu-1"]
 
+    # Esta misma llamada entra a R_g de SINT-C (abre una solicitud, M1) y,
+    # al final de procesar_mp, _revisar_tiempo_maximo cierra la mision
+    # por tiempo_maximo_s=0.0: ambos pasos ocurren en el mismo MP.
     gestor.procesar_mp("obu-1", *NODOS_RUTA["B"], VELOCIDAD_KMH, 0.0)
+    id_solicitud_c = mision.paradas["SINT-C"].id_solicitud
 
     assert mision.activa is False
     assert mision.motivo_fin == "tiempo_maximo"
     assert reg.me[-1][1]["mision_activa"] is False
     assert reg.me[-1][1]["motivo_fin"] == "tiempo_maximo"
+    assert mision.paradas["SINT-C"].estado == ESTADO_CANCELADA
+    assert any(c["motivo"] == "tiempo_maximo" and c["id_solicitud"] == id_solicitud_c for _, c in reg.m3)
 
 
 def test_m2_actualiza_estado_y_reenvia_me():

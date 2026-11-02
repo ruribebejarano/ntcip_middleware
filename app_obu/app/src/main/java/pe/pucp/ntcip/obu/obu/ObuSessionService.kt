@@ -329,11 +329,11 @@ class ObuSessionService : LifecycleService() {
         ultimoTsMeAplicado = me.ts_ms
         ObuSessionRepository.actualizar { it.copy(ultimoEstado = me) }
 
-        // mision_activa/motivo_fin: campos propuestos, no implementados
-        // todavía por servidor/gestor_mision.py -- ver
-        // app_obu/PROPUESTA_FIN_MISION.md. Mientras lleguen null (servidor
-        // actual), la app NUNCA termina la misión por su cuenta leyendo el
-        // ME: solo el botón la termina.
+        // mision_activa/motivo_fin: implementados en servidor/gestor_mision.py
+        // desde B3 (app_obu/PROPUESTA_FIN_MISION.md) -- cierre por destino o
+        // tiempo máximo, reflejado aquí. terminarPorServidor() ya es
+        // idempotente (guard `terminando`): si el usuario pulsa "Terminar"
+        // justo después de un cierre automático, no envía un MF de más.
         if (me.mision_activa == false) {
             terminarPorServidor(me.motivo_fin ?: "desconocido")
         }
