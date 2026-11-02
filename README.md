@@ -1,95 +1,42 @@
-[Cronograma de trabajo](docs/CRONOGRAMA.md) — entrega 20 de noviembre de 2026
-[Guía de comandos](docs/GUIA_COMANDOS.md) — cómo correr todo esto paso a paso
+# NTCIP Middleware — Priorización semafórica V2I centralizada
 
-# RSU — Middleware SNMP
+Middleware NTCIP e infraestructura V2I para priorización semafórica de
+vehículos de emergencia: un servidor central decide, a partir de la ruta
+y la posición de cada vehículo, cuándo y a qué intersección pedir
+prioridad; una RSU (*Roadside Unit*) traduce esa solicitud al protocolo
+NTCIP del controlador de tránsito.
 
-Prototipo de tesis de bachillerato en Ingeniería Electrónica: middleware
-entre una RSU (*Roadside Unit*) y un controlador de tránsito, y el enlace
-V2I hacia vehículos, sobre Raspberry Pi.
+[Guía de comandos](docs/GUIA_COMANDOS.md) — cómo levantar el sistema completo paso a paso.
 
-## Alcance de esta versión
-
-Este repo se está construyendo en capas, sobre el banco de pruebas físico
-del proyecto: Raspberry Pi como RSU con módem SIM7670G (4G) hacia el
-servidor central, y OBU como app Android con GNSS, cliente delgado. **Esta versión
-cubre los objetos reales de la MIB NTCIP (1202 y 1211) y el enlace V2I**
-— los tres enlaces de la arquitectura (centro de control ↔ RSU, RSU →
-controlador, OBU → RSU) — y deliberadamente **todavía no** toca:
-
-- El modelo de seguridad definitivo (TLSTM). Se usa SNMPv3/USM tal como
-  está, sin evaluar todavía su robustez — ver "Fuera de alcance por ahora".
-- El enlace I2I entre RSU vecinas: cuando se implemente, será sobre el mismo
-  broker MQTT por el módem 4G de cada RSU, sin una malla dedicada. Ver la
-  nota de desalineación con la tesis en `CLAUDE.md`.
-
-Alineado con el alcance vigente de la tesis (`main.tex`, secciones
-`ssec:alcance` y `ssec:rf`):
-
-- **Sin cálculo de ETA cinemático**: la OBU emite la solicitud con un
-  criterio provisional de geocerca de radio fijo alrededor de la línea de
-  detención, no con un tiempo estimado de llegada.
-- **Sin NTCIP 1209** (datos de detección): no hay sensor físico ni dato de
-  tránsito general que exponer en el banco de pruebas.
-- **Direccionamiento por servidor central (arquitectura vigente desde
-  2026-10-22):** el servidor calcula la ruta (`servidor/rutas.py`) al armar
-  la misión y decide qué RSU y cuándo, cruzando esa ruta con
-  `config/registro_rsu.json` (que vive **solo** en el servidor). La OBU no
-  descarga ninguna copia del registro ni decide la RSU/el acceso por su
-  cuenta: es un cliente delgado (`gateway/obu_emulada.py`) que arma/desarma
-  la misión y publica su posición. La geocerca de
-  `gateway/geometria.py` (clase `SeguidorAcceso`) se reutiliza tal cual,
-  pero ahora corre en el servidor como **verificación final**, no como
-  criterio de decisión. Ver `docs/CONTRATO_OBU.md` (especificación de
-  mensajes) y `docs/bitacora/2026-10-22_arquitectura-centralizada.md`
-  (justificación y evolución del diseño).
-  - **Etapa previa del desarrollo (válida como antecedente, no vigente):**
-    el prototipo inicial usaba el esquema E2+E4 (la OBU decidía
-    localmente, con una copia local estática del registro). Esa etapa
-    quedó documentada y su evidencia se conserva en `evidencia/` y
-    `resultados/` — ver `docs/bitacora/2026-10-19_lazo-obu-emulada.md` y
-    `docs/bitacora/2026-10-22_modo-semiautomatico-y-ruta.md` (ambas con
-    una nota al final señalando que fueron superadas por la arquitectura
-    centralizada).
-- **Cálculo de ruta sobre grafo vial real (`servidor/rutas.py`):** el
-  servidor carga con `networkx.read_graphml` (sin depender de `osmnx` en
-  tiempo de ejecución) un grafo de OpenStreetMap cacheado en
-  `data/grafo_san_miguel_real.graphml`, que cubre tanto las intersecciones
-  de `config/registro_rsu.json` como el escenario de referencia de la
-  tesis (Cía. de Bomberos San Miguel N.º 83 → Hospital Centro Médico
-  Naval). `cargar_grafo()` colapsa el `MultiDiGraph` que exporta OSMnx a un
-  `DiGraph` simple (quedándose con la arista más corta entre cada par de
-  nodos) para que `calcular_ruta()` pueda acumular distancias sin ambigüedad.
-  Ver `data/LEEME.md` y `docs/bitacora/2026-10-23_grafo_escenario_referencia.md`.
-
-## Arquitectura de esta versión
+## Arquitectura
 
 ```
 ┌──────────── OBU (cliente delgado: arma/desarma la misión [MI/MF],  ──────┐
 │   publica posición a 1 Hz [MP], recibe ruta [MR] y estado [ME])          │
-│   app_obu/ — app Android de referencia (GNSS real, para la tablet)       │
-│   gateway/obu_emulada.py — OBU emulada para campañas reproducibles       │
+│   app_obu/ — app Android (GNSS real, para un dispositivo del operador)   │
+│   gateway/obu_emulada.py — OBU emulada, para pruebas y campañas          │
 └──────────────────────────────┬───────────────────────────────────────────┘
-                                │ MQTT (broker central)
+                                │ MQTT 5 sobre TLS 1.3 + mTLS (broker central)
                                 ▼
 ┌──────────────────── SERVIDOR CENTRAL (único decisor) ─────────────────────┐
 │   servidor/main.py (proceso MQTT 5)                                       │
 │     servidor/rutas.py       — ruta óptima + lista ordenada de RSU/accesos │
 │                                (cruzada con config/registro_rsu.json)     │
-│     servidor/gestor_mision.py — ciclo de vida de la misión, ETA (RF8),    │
-│                                geocerca (gateway/geometria.py, reusada)   │
+│     servidor/gestor_mision.py — ciclo de vida de la misión, ETA,          │
+│                                geocerca (gateway/geometria.py)            │
 │     servidor/conflictos.py  — arbitraje entre misiones                   │
 └──────────────────────────────┬───────────────────────────────────────────┘
                                 │ M1 (solicitud, con anticipación) / M3
                                 │ (cancelación) hacia la RSU; M2 de vuelta
                                 ▼
-┌─────────────── Raspberry Pi (RSU, módem SIM7670G 4G) ─────────────────────┐
+┌─────────────── RSU (Raspberry Pi, módem 4G o Ethernet) ───────────────────┐
 │    agent/rsu_middleware.py    ◄────   mosquitto (broker MQTT, central)    │
 │    - Agente SNMPv3 (pysnmp)                                               │
-│    - Acepta M1/M3 SOLO del servidor (ACL del broker, scripts/seguridad/)  │
+│    - Acepta M1/M3 solo del servidor (ACL + mTLS del broker)               │
 │            │ TCP local (protocolo propietario emulado)                   │
 │            ▼                                                              │
 │    controller/controller_emulator.py                                     │
-│    (rol: controlador de tránsito — EMULADO, sin hardware real)            │
+│    (rol: controlador de tránsito — emulado, sin hardware real)            │
 └────────────────────────────────────────────────────────────────────────────┘
 
 centro_control/software_gestion.py (SNMPv3 GET/SET directo a la RSU) sigue
@@ -97,28 +44,34 @@ existiendo en paralelo, sin relación con el servidor central: es la consola
 de gestión NTCIP clásica (ver "Los enlaces" más abajo).
 ```
 
+El servidor es la única identidad autorizada a pedir prioridad a una RSU
+(la RSU no acepta solicitudes de ninguna otra identidad); la OBU no
+descarga ni decide contra el registro de RSU, que vive únicamente en el
+servidor. La ruta se calcula sobre un grafo vial real
+(`servidor/rutas.py`, `networkx.read_graphml` sobre un `.graphml`
+cacheado en `data/`), no sobre una lista estática.
+
 ### Los enlaces
 
-1. **OBU ↔ Servidor central** — MQTT 5, con TLS 1.3 + mTLS en el diseño
-   objetivo (ver `scripts/seguridad/`). La OBU arma la misión (MI), publica
-   la posición a 1 Hz (MP) y recibe la ruta (MR) y el estado (ME) que
-   calcula `servidor/gestor_mision.py`, implementado por dos clientes del
-   mismo contrato: `app_obu/` (app Android de referencia, con GNSS propio
-   para posición, rumbo y velocidad — la que instala el operador en la
-   tablet/teléfono) y `gateway/obu_emulada.py` (OBU emulada en Python, sin
-   hardware ni operador, para campañas de medición reproducibles de OE5).
-   Ver `docs/CONTRATO_OBU.md` para el esquema completo de mensajes.
+1. **OBU ↔ Servidor central** — MQTT 5 sobre TLS 1.3 + mTLS
+   (`scripts/seguridad/`). La OBU arma la misión (MI), publica la
+   posición a 1 Hz (MP) y recibe la ruta (MR) y el estado (ME) que
+   calcula `servidor/gestor_mision.py`, implementado por dos clientes
+   del mismo contrato: `app_obu/` (app Android, con GNSS propio para
+   posición, rumbo y velocidad) y `gateway/obu_emulada.py` (OBU emulada
+   en Python, sin hardware ni operador, para pruebas y campañas de
+   medición reproducibles). Ver `docs/CONTRATO_OBU.md` para el esquema
+   completo de mensajes.
 2. **Servidor central → RSU** — MQTT, mismo broker. El servidor envía M1
    (solicitud, con anticipación por ETA) y M3 (cancelación) a
-   `rsu/{rsu_id}/solicitudes`; la RSU responde M2 por el Response Topic de
-   MQTT 5. Implementado en `servidor/main.py` (lado servidor) y
-   `agent/rsu_middleware.py` (lado RSU, sin cambios de comportamiento más
-   allá de aceptar estos campos).
-3. **RSU → Controlador** — protocolo propio simulado (JSON Lines sobre TCP
-   local). Cuando llega un M1 o un `SET` SNMP de prioridad, el middleware
-   le pide al controlador que fuerce/libere la fase verde.
-   `controller/controller_emulator.py` hace de controlador real mientras no
-   haya acceso al hardware (ver `CLAUDE.md`, riesgo R5).
+   `rsu/{rsu_id}/solicitudes`; la RSU responde M2 por el *Response
+   Topic* de MQTT 5. Implementado en `servidor/main.py` (lado servidor)
+   y `agent/rsu_middleware.py` (lado RSU).
+3. **RSU → Controlador** — protocolo propio simulado (JSON Lines sobre
+   TCP local). Cuando llega un M1 o un `SET` SNMP de prioridad, el
+   middleware le pide al controlador que fuerce/libere la fase verde.
+   `controller/controller_emulator.py` hace de controlador mientras no
+   haya acceso a hardware real.
 4. **Centro de control ↔ RSU** — SNMPv3 (USM: auth SHA-1 / privacidad
    AES-128), sin relación con el servidor central: es una consola de
    gestión clásica que hace `GET`/`SET` directo sobre la RSU
@@ -131,151 +84,130 @@ Los OID expuestos cuelgan del número de empresa de NEMA
 `prgPriorityRequestAbsolute`, codificado OER). Ver el docstring de
 `agent/rsu_middleware.py` y `agent/ntcip1211.py`.
 
-## Cómo correr todo (arquitectura centralizada)
+## Seguridad del canal
 
-Ver **[docs/GUIA_COMANDOS.md](docs/GUIA_COMANDOS.md)** para los comandos
-exactos, en orden, y
-**[evidencia/2026-10-22_arquitectura-centralizada/](evidencia/2026-10-22_arquitectura-centralizada/)**
-para tres escenarios ya corridos de punta a punta (lazo completo,
-conflicto, desvío) con sus scripts de orquestación
-(`correr_e2e*.sh`) como referencia directa de los comandos.
+TLS 1.3 + mTLS en todos los tramos MQTT (OBU↔broker, servidor↔broker,
+broker↔RSU), con una CA propia (`scripts/seguridad/generar_ca.py`:
+emisión, revocación con CRL, SAN del certificado del broker) y control
+de acceso por tema (`scripts/seguridad/mosquitto_acl.conf`): cada OBU
+solo puede publicar/suscribirse en sus propios temas; cada RSU solo
+puede suscribirse a los suyos; solo el servidor puede publicar en el
+tema de solicitudes de una RSU.
 
-Resumen (5 procesos; el servidor y el broker pueden vivir en la misma
-máquina, o en la laptop mientras no haya un servidor dedicado):
+Un banco de pruebas reproducible (`scripts/seguridad/banco_local.py`)
+genera una PKI de prueba con casos negativos (certificado vencido,
+revocado, de una CA no confiable) y levanta un broker temporal para la
+matriz automatizada de `tests/test_seguridad_broker.py` (handshake
+TLS/mTLS, control de acceso, SNMPv3). Correr la matriz completa y
+generar la evidencia:
 
-| Proceso | Dónde | Rol |
-|---|---|---|
-| `mosquitto` | Servidor/laptop | Broker MQTT central (TLS 1.3 + mTLS en el diseño objetivo, ver `scripts/seguridad/`) |
-| `servidor/main.py` | Servidor/laptop | Único decisor: ruta, ETA, geocerca, conflictos |
-| `controller/controller_emulator.py` | Raspberry Pi | Controlador de tránsito (emulado) |
-| `agent/rsu_middleware.py` | Raspberry Pi (módem SIM7670G) | RSU: agente SNMP (NTCIP 1202/1211) + adaptador + M1/M3 del servidor |
-| `app_obu/` (o `gateway/obu_emulada.py`) | Tablet/teléfono Android (o laptop, emulada) | OBU: cliente delgado de la misión (MI/MP/MF, recibe MR/ME) |
+```bash
+python scripts/seguridad/correr_matriz.py
+```
 
-`centro_control/software_gestion.py` (SNMPv3 GET/SET directo a la RSU) y
-`gateway/obu_simulator.py` (M1 directo a la RSU, esquema legado P0-P3)
-siguen funcionando para las pruebas que ya dependían de ellos, pero no son
-parte del flujo de la arquitectura centralizada — ver sus docstrings.
-
-### Compilar e instalar la app Android de la OBU (`app_obu/`)
+## Compilar e instalar la app Android de la OBU (`app_obu/`)
 
 ```bash
 cd app_obu
 ./gradlew assembleDebug          # genera app/build/outputs/apk/debug/app-debug.apk
-adb devices                      # confirmar que la tablet/teléfono aparece
+adb devices                      # confirmar que el dispositivo aparece
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Requiere un JDK con `JAVA_HOME` configurado (p. ej. el JBR de Android
-Studio) y, para instalar, depuración USB habilitada en el dispositivo. Ver
-`app_obu/README.md` para los escenarios de prueba, Ajustes (certificado
-mTLS, broker) y la puesta en marcha completa contra servidor y RSU.
+Requiere un JDK con `JAVA_HOME` configurado y, para instalar, depuración
+USB habilitada en el dispositivo. Ver `app_obu/README.md` para los
+escenarios de prueba, Ajustes (certificado mTLS, broker) y la puesta en
+marcha contra servidor y RSU.
 
-## Lo construido hasta ahora
+## Cómo correr todo
 
-- **Entorno de desarrollo** en Raspberry Pi (Python venv, `pysnmp`,
-  `paho-mqtt`, `net-snmp`, `mosquitto`, `git`).
-- **Agente SNMPv3 mínimo de referencia** (`agent/rsu_snmpv3_agent.py`), un
-  solo OID ficticio en memoria, sin controlador ni V2I — ver `docs/agent.md`.
-- **Software de gestión central** (`centro_control/software_gestion.py`,
-  ver `docs/SOFTWARE_GESTION.md`): monitoreo continuo con logs + comandos
-  interactivos, probado desde una segunda máquina física.
-- **Emulador de controlador de tránsito**
-  (`controller/controller_emulator.py`): fases cíclicas + prioridad
-  forzada, protocolo JSON Lines sobre TCP.
-- **Middleware integrado** (`agent/rsu_middleware.py`): agente SNMPv3 +
-  adaptador hacia el controlador + suscriptor MQTT para V2I, probado
-  de punta a punta (SNMP GET/SET/monitoreo ↔ controlador emulado).
-- **Objetos reales de la MIB NTCIP** integrados en el middleware: NTCIP
-  1202 (estado de fase y tiempos, `phaseStatusGroupTable`/`phaseTable`) y
-  NTCIP 1211 (`priorityRequestTable` y `prgPriorityRequestAbsolute`,
-  codificado OER, `agent/ntcip1211.py`), bajo el número de empresa de NEMA
-  — probados con `snmpget`/`snmpset`/`snmpwalk` reales, ver
-  `evidencia/2026-10-11_agente_snmpwalk-ntcip1202.png` y
-  `evidencia/2026-10-11_agente_snmpset-ntcip1211-rf06.png`.
-- **Banco de pruebas físico:** Raspberry Pi como RSU, con módem SIM7670G
-  para el enlace 4G hacia el servidor central, y la OBU como app Android
-  con GNSS propio (posición, rumbo y velocidad) — ver
-  `docs/CONEXION_RASPBERRY.md` y `docs/CONTRATO_OBU.md`.
-- **App Android de la OBU** (`app_obu/`, integrada a `master` el
-  2026-11-02): cliente del contrato OBU↔servidor con GNSS real o rutas
-  emuladas (escenarios de prueba PUCP y Hospital del Niño), cliente MQTT 5
-  con TLS 1.3 + mTLS (`app_obu/app/.../seguridad/TlsConfig.kt`) y manejo de
-  fin de misión por destino/tiempo máximo. Ver `app_obu/README.md`.
-- **Simulador de OBU legado** (`gateway/obu_simulator.py`): publica
-  solicitudes de prioridad V2I por MQTT directamente a la RSU (esquema
-  P0-P3, se mantiene funcionando como referencia).
-- **Arquitectura centralizada (desde 2026-10-22):** `servidor/` (ruta,
-  ETA, geocerca, conflictos) + `gateway/obu_emulada.py` como cliente
-  delgado + `agent/rsu_middleware.py` aceptando M1/M3 del servidor.
-  Probada de punta a punta en local con 3 escenarios reales sobre MQTT
-  (lazo completo, conflicto, desvío) — ver
-  `evidencia/2026-10-22_arquitectura-centralizada/`.
-- **CA propia y configuración TLS/mTLS de Mosquitto** (`scripts/seguridad/`):
-  generación, emisión y revocación de certificados con `openssl`, y la
-  configuración de ACL (solo el servidor publica en `rsu/+/solicitudes`)
-  para cuando se active el broker con TLS 1.3 + mTLS.
-- **Grafo vial real ampliado al escenario de referencia (2026-10-23):**
-  `data/grafo_san_miguel_real.graphml` ya cubre, además de las dos
-  intersecciones del registro de RSU, la ruta Cía. de Bomberos San Miguel
-  N.º 83 → Hospital Centro Médico Naval (coordenadas geocodificadas con
-  Nominatim), y `servidor/rutas.py::cargar_grafo` colapsa correctamente las
-  aristas paralelas que trae OSMnx en avenidas con separador físico. Ver
-  `docs/bitacora/2026-10-23_grafo_escenario_referencia.md`.
+Ver **[docs/GUIA_COMANDOS.md](docs/GUIA_COMANDOS.md)** para los comandos
+exactos, en orden.
 
-## Fuera de alcance por ahora
+Resumen (5 procesos; el servidor y el broker pueden vivir en la misma
+máquina, o en una laptop mientras no haya un servidor dedicado):
 
-Explícitamente pospuesto hasta que se retome el trabajo sobre seguridad y
-confiabilidad:
+| Proceso | Dónde | Rol |
+|---|---|---|
+| `mosquitto` | Servidor | Broker MQTT central (TLS 1.3 + mTLS, `scripts/seguridad/`) |
+| `servidor/main.py` | Servidor | Único decisor: ruta, ETA, geocerca, conflictos |
+| `controller/controller_emulator.py` | RSU | Controlador de tránsito (emulado) |
+| `agent/rsu_middleware.py` | RSU (módem 4G o Ethernet) | Agente SNMP (NTCIP 1202/1211) + adaptador + M1/M3 del servidor |
+| `app_obu/` (o `gateway/obu_emulada.py`) | Dispositivo Android (o emulada) | OBU: cliente delgado de la misión (MI/MP/MF, recibe MR/ME) |
 
-- **Seguridad**: las credenciales USM (`labAuthPass123`/`labPrivPass123`)
-  son de laboratorio, en claro en el código, sin rotación ni gestión de
-  claves. TLSTM (RFC 6353) no está evaluado. El banco de pruebas corre hoy
-  con `allow_anonymous true` en `mosquitto` (sin autenticar ni cifrar);
-  `scripts/seguridad/` tiene la CA propia (probada: generación, emisión y
-  revocación de certificados con `openssl`) y la configuración de
-  Mosquitto con TLS 1.3 + mTLS + ACL, lista para activarse sobre un broker
-  en ejecución — ver `docs/bitacora/2026-10-22_arquitectura-centralizada.md`
-  para los comandos exactos.
-- **Confiabilidad**: no hay reintentos, colas ni manejo de pérdida de
-  conexión entre el middleware y el controlador o el broker MQTT más allá
-  de lo que dan por defecto `socket`/`paho-mqtt`. Si el controlador emulado
-  se cae, `faseActualTest` devuelve `0` (valor sin semántica) en vez de
-  fallar con un error SNMP explícito — simplificación deliberada para esta
-  etapa.
-- **I2I** entre RSU vecinas: se implementará sobre el broker MQTT
-  (4G), no sobre una malla dedicada.
-- **Controlador de tránsito físico**: la RSU se adapta hoy contra
-  `controller/controller_emulator.py`.
+`centro_control/software_gestion.py` (SNMPv3 GET/SET directo a la RSU) y
+`gateway/obu_simulator.py` (M1 directo a la RSU, esquema legado) siguen
+funcionando para las pruebas que ya dependían de ellos, pero no son
+parte del flujo de la arquitectura centralizada — ver sus docstrings.
+
+## Caracterización del canal y campañas de medición
+
+`scripts/campanas/lazo_centralizado.py` corre el lazo completo
+(OBU→servidor→RSU→controlador) con cuotas adaptativas por condición de
+llegada del semáforo (verde / ámbar-todo rojo / rojo), en local, contra
+una RSU por LAN, o contra una RSU por 4G; `--tls <carpeta_pki>` lo corre
+con TLS/mTLS activo. `scripts/analisis/lazo_centralizado.py` calcula la
+latencia del lazo y la anticipación real a partir de las corridas; los
+resultados curados están en `resultados/campana/` y `evidencia/`.
 
 ## Estructura del proyecto
 
 ```
-servidor/        Servidor central (único decisor, 2026-10-22): rutas.py
-                 (ruta + lista de RSU/accesos), gestor_mision.py (ciclo de
+servidor/        Servidor central (único decisor): rutas.py (ruta +
+                 lista de RSU/accesos), gestor_mision.py (ciclo de
                  vida, ETA, geocerca), conflictos.py (arbitraje), main.py
 agent/           Agente SNMPv3 (rsu_snmpv3_agent.py, mínimo) y middleware
                  integrado (rsu_middleware.py: SNMP + M1/M3 del servidor + adaptador)
 controller/      Emulador del controlador de tránsito (protocolo propio simulado)
-app_obu/         App Android de la OBU (referencia, GNSS real) — proyecto
-                 Gradle/Kotlin independiente, ver app_obu/README.md
+app_obu/         App Android de la OBU — proyecto Gradle/Kotlin
+                 independiente, ver app_obu/README.md
 gateway/         OBU emulada (obu_emulada.py, cliente delgado para
-                 campañas reproducibles de OE5) y geometría de accesos
+                 pruebas y campañas) y geometría de accesos
                  (geometria.py, reusada por el servidor)
 centro_control/  Software de gestión central (software_gestion.py):
                  monitoreo continuo + comandos, con logs (independiente del servidor)
 consola/         Consola web de monitoreo (FastAPI) del banco de pruebas y
-                 las campañas de medición (OE5), ver docs/CONSOLA.md
-scripts/seguridad/  CA propia, ACL y configuración TLS/mTLS de Mosquitto (P4)
+                 las campañas de medición, ver docs/CONSOLA.md
+scripts/seguridad/  CA propia, ACL, TLS/mTLS de Mosquitto y la matriz
+                 de pruebas de seguridad (banco_local.py, correr_matriz.py)
+scripts/campanas/   Campañas de medición del lazo (lazo_centralizado.py)
+scripts/analisis/   Análisis y figuras a partir de las campañas
 scripts/datos/   Regeneración del grafo vial cacheado (data/*.graphml)
 data/            Grafo vial cacheado para servidor/rutas.py (ver data/LEEME.md)
-docs/            Documentación técnica y de tesis
-tests/           Pruebas automatizadas (agente, middleware, servidor)
+docs/            Documentación técnica
+tests/           Pruebas automatizadas (agente, middleware, servidor, seguridad)
+evidencia/       Evidencia curada de corridas y verificaciones
+resultados/      Resultados de campañas de medición
 ```
+
+## Limitaciones conocidas
+
+- **SNMPv3/USM, no TLSTM**: el agente SNMPv3 usa USM (SHA-1 + AES-128,
+  credenciales de laboratorio en claro en el código, sin rotación de
+  claves). TLSTM (RFC 6353) no está implementado — la biblioteca SNMP
+  usada no tiene un modelo de transporte seguro para SNMPv3.
+- **Límite de la ACL del broker**: una regla de la ACL
+  (`servidor/central/respuestas`) no restringe por identidad individual
+  (limitación de Mosquitto con ACL por archivo, sin roles de cliente);
+  el impacto es bajo porque el servidor ignora cualquier mensaje que no
+  corresponda a una solicitud que esté siguiendo — ver
+  `tests/test_seguridad_broker.py` (T10).
+- **Enlace I2I entre RSU vecinas**: no implementado. Si se agrega, sería
+  sobre el mismo broker MQTT, sin una malla dedicada.
+- **Controlador de tránsito físico**: la RSU se adapta hoy contra
+  `controller/controller_emulator.py`, no contra hardware real.
+- **Confiabilidad**: no hay colas ni reintentos entre el middleware y el
+  controlador o el broker más allá de lo que dan por defecto
+  `socket`/`paho-mqtt`. Si el controlador emulado se cae, el agente
+  devuelve un valor sin semántica en vez de un error SNMP explícito.
+- **Cálculo de ETA**: provisional, basado en velocidad reportada y una
+  geocerca de radio fijo, no en un modelo cinemático.
 
 ## Advertencia de seguridad
 
-Este repositorio es un prototipo académico. La comunidad SNMP configurada en
-`snmpd`, el esquema USM del agente propio y la configuración de `mosquitto`
-son **exclusivamente para el banco de pruebas de laboratorio** y no deben
-usarse en un despliegue real. El esquema de seguridad objetivo para
-producción es SNMPv3 con TLSTM (RFC 6353) — ver "Fuera de alcance por ahora".
+Este repositorio es un banco de pruebas de laboratorio. La comunidad
+SNMP configurada en `snmpd`, el esquema USM del agente propio y la
+configuración por defecto de `mosquitto` (sin TLS, sin ACL) son
+**exclusivamente para desarrollo local** y no deben usarse en un
+despliegue real sin aplicar la configuración de `scripts/seguridad/`
+(TLS 1.3 + mTLS + ACL) descrita arriba.

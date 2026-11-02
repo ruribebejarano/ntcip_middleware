@@ -454,9 +454,8 @@ tenga activado "Fecha y hora automáticas" (Ajustes > Fecha y hora), que en
 esta tablet (sin datos propios, solo Wi-Fi/hotspot) sincroniza por SNTP de
 forma oportunista cuando hay red, sin una cadencia garantizada. A
 diferencia de la laptop/Pi, donde `chronyc tracking` da una cota medida
-del error del reloj (ver `docs/ARRANQUE_BROKER_LAPTOP.md` y la campaña
-pi-lan en `docs/bitacora/`), en la tablet no hay una herramienta
-equivalente.
+del error del reloj (ver `docs/ARRANQUE_BROKER_LAPTOP.md`), en la
+tablet no hay una herramienta equivalente.
 
 Para acotar esto de todas formas, la app hace su propia consulta SNTP
 (UDP, puerto 123, sin tocar el reloj del sistema -- ver
