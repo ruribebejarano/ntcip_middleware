@@ -40,3 +40,22 @@ DIR_LAZO_EMULADO = RAIZ / "resultados" / "lazo_emulado"
 DIR_CONSOLA = RAIZ / "resultados" / "consola"
 REGISTRO_COMANDOS_PATH = DIR_CONSOLA / "registro_comandos.jsonl"
 DIR_TRAYECTORIAS = RAIZ / "resultados" / "trayectorias"
+
+# Demo con varias RSU (docs/CONSOLA.md, "Demo con varias RSU"). Si se da
+# cualquiera de los dos, la consola entra en modo multi-RSU: sondea por
+# SNMPv3 cada RSU del registro (consola/backend/snmp_multi.py) en vez de
+# la unica RSU de SNMP_HOST/SNMP_PORT.
+#  - CONSOLA_ESTADO_DEMO: estado.json que escribe scripts/demo/lanzar_rsus.ps1
+#    (puertos SNMP de cada RSU y ruta del registro usado).
+#  - CONSOLA_REGISTRO_RSU: registro de RSU (mismo formato que
+#    config/registro_rsu.json). Si falta, se toma el del estado de la demo.
+CONSOLA_ESTADO_DEMO = os.environ.get("CONSOLA_ESTADO_DEMO", "").strip()
+CONSOLA_REGISTRO_RSU = os.environ.get("CONSOLA_REGISTRO_RSU", "").strip()
+MODO_MULTI_RSU = bool(CONSOLA_ESTADO_DEMO or CONSOLA_REGISTRO_RSU)
+SNMP_MULTI_PERIODO_S = float(os.environ.get("SNMP_MULTI_PERIODO_S", "1.0"))
+SNMP_MULTI_TIMEOUT_S = float(os.environ.get("SNMP_MULTI_TIMEOUT_S", "0.8"))
+
+# Calles de fondo del mapa: el mismo grafo vial de OpenStreetMap que usa el
+# servidor central (servidor/rutas.py), leido localmente -- sin teselas ni
+# servicios externos.
+GRAFO_OSM = Path(os.environ.get("GRAFO_PATH", str(RAIZ / "data" / "grafo_san_miguel_real.graphml")))

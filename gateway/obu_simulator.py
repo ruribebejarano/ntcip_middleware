@@ -12,10 +12,11 @@ las pruebas que ya dependían de este camino directo (demo_asesor.sh).
 
 *** SIMULADOR, NO ES LA OBU REAL ***
 Publica por MQTT una solicitud de prioridad semaforica hacia la RSU, tal
-como haria mas adelante la aplicacion del operador (OE4, ver CLAUDE.md) una
-vez que el lector OBD-II calcule el ETA real a partir de velocidad y
-posicion. Por ahora el vehiculo y el ETA se pasan a mano por argumento -- no
-hay lectura OBD-II ni calculo cinematico en este script.
+como hacia la aplicacion del operador antes de la arquitectura centralizada
+(OE4, ver CLAUDE.md); hoy el ETA a cada RSU lo calcula el servidor central
+a partir de la velocidad y la posicion GNSS que publica la OBU
+(servidor/gestor_mision.py). Por ahora el vehiculo y el ETA se pasan a mano
+por argumento -- no hay calculo cinematico en este script.
 
 Requiere que la RSU (Raspberry Pi) tenga agent/rsu_middleware.py corriendo
 y un broker mosquitto accesible en la red (puerto 1883). Ver

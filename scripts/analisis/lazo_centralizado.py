@@ -166,6 +166,64 @@ def cota_reloj_pi_ms(texto_reloj: str | None) -> float | None:
     return float(m.group(1)) * factor_a_ms
 
 
+def reloj_pi_sincronizado(texto_reloj: str | None) -> bool:
+    """True si el texto de 'chronyc tracking' (scripts/pi.sh clock) NO
+    muestra evidencia explícita de pérdida de sincronización NTP --
+    'Leap status : Not synchronised' o 'Stratum : 0' (el centinela de
+    chrony cuando no tiene ninguna fuente confiable). Por defecto True
+    (conservador: si no hay texto o no es el formato de 'tracking', no se
+    asume que esté desincronizado solo por no poder confirmarlo -- eso lo
+    cubre la cota de reloj/NOTA_RELOJ por separado).
+
+    Encontrado el 2026-10-29 en la corrida desvio_pi-lan del 2026-10-29:
+    chronyd perdió sincronización ('Can't synchronise: no majority',
+    journalctl en la Pi) en un punto de esa corrida, dejando 'reloj_pi_fin'
+    con Stratum 0 / Root delay y Root dispersion en 1.0 s (el centinela,
+    no una medición real) -- eso inflaba la cota de error a 1500 ms e
+    invalidaba cualquier verdict de RNF-01 bajo esa cota, aunque la
+    latencia medida en sí seguía siendo de decenas de ms. Causa raíz:
+    chrony configurado con solo 2 fuentes NTP
+    (/etc/chrony/conf.d/rsu-lab.conf en la Pi) -- con solo 2, el algoritmo
+    de "mayoría" de chrony no tiene con qué desempatar si discrepan, y
+    journalctl muestra el patrón "no majority"/"Selected source"
+    repitiéndose cada ~15-45 min TODA la tarde, sin relación con
+    desconexiones de red (NetworkManager/wpa_supplicant no registraron
+    ningún evento en esas ventanas) -- ver
+    docs/bitacora/2026-10-29_fase-controlador-emulado.md."""
+    if not texto_reloj:
+        return True
+    if re.search(r"Leap status\s*:\s*Not synchronised", texto_reloj):
+        return False
+    if re.search(r"Stratum\s*:\s*0\b", texto_reloj):
+        return False
+    return True
+
+
+def reloj_pi_sincronizado_de_dirs(dirs: list[Path]) -> bool:
+    """False si ALGÚN config.json no-local de estos directorios muestra
+    'reloj_pi_inicio'/'reloj_pi_fin' desincronizado (ver
+    reloj_pi_sincronizado), O si 'chrony_sincronizado_por_repeticion'
+    (campañas corridas desde 2026-10-29 en adelante, con el muestreo por
+    repetición -- ver scripts/campanas/lazo_centralizado.py) marca alguna
+    repetición como False -- conservador: basta un punto desincronizado
+    en toda la corrida para marcarla entera. Las corridas anteriores a
+    esa fecha no tienen ese campo; se evalúa solo con inicio/fin."""
+    for d in dirs:
+        cfg_path = d / "config.json"
+        if not cfg_path.exists():
+            continue
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+        if cfg.get("config") == "local":
+            continue
+        for campo in ("reloj_pi_inicio", "reloj_pi_fin"):
+            if not reloj_pi_sincronizado(cfg.get(campo)):
+                return False
+        por_rep = cfg.get("chrony_sincronizado_por_repeticion") or {}
+        if not all(por_rep.values()):
+            return False
+    return True
+
+
 def cota_reloj_pi_ms_de_dirs(dirs: list[Path]) -> float | None:
     """Cota de error de reloj del lado de la Pi para TODA la corrida
     (o corridas, si --dir se repite): 0.0 si todas son config=local
@@ -193,7 +251,8 @@ def cota_reloj_pi_ms_de_dirs(dirs: list[Path]) -> float | None:
     return max(cotas) if cotas else None
 
 
-def analizar(eventos: list[dict], cota_reloj_ms: float | None = None) -> tuple[list[dict], list[dict], dict]:
+def analizar(eventos: list[dict], cota_reloj_ms: float | None = None,
+            reloj_sincronizado: bool = True) -> tuple[list[dict], list[dict], dict]:
     # --- Nivel misión: obu_id y ts de armado, para emparejar MP_tx/MP_rx ---
     armadas: dict[str, dict] = {}  # mision_id -> {obu_id, ts_ns}
     for e in eventos:
@@ -401,17 +460,35 @@ def analizar(eventos: list[dict], cota_reloj_ms: float | None = None) -> tuple[l
     }
     l_p95 = global_["L_ms"].get("p95")
     global_["rnf01_cumple_p95"] = (l_p95 is not None and l_p95 <= UMBRAL_L_MS)
+    global_["reloj_pi_sincronizado"] = reloj_sincronizado
     # Formulación de peor caso (RNF-01, pedida el 2026-10-28): L sigue
     # siendo el valor medido, pero la conclusión de cumplimiento se da
     # sumando la cota de error de reloj declarada (lado Pi) al p95 medido
     # -- "L < X ms incluso en el peor caso de error de reloj", no un
     # valor puntual exacto que ignore la incertidumbre de sincronización.
-    if l_p95 is not None and cota_reloj_ms is not None:
+    #
+    # Si la Pi perdió sincronización NTP en algún punto de la corrida (ver
+    # reloj_pi_sincronizado), la "cota" que se leyó ahí no es una medición
+    # real de incertidumbre -- es el centinela de chrony (Stratum 0,
+    # Root delay/dispersion = 1.0 s). Sumarla al p95 y declarar "NO
+    # CUMPLE" confundiría un problema de infraestructura (NTP de la Pi)
+    # con un hallazgo sobre el canal V2I; la latencia en sí (L, t_RSU,
+    # RTT_srv) sigue siendo una medición válida de un solo reloj donde
+    # corresponda -- solo el VEREDICTO de RNF-01 (que necesita la cota de
+    # dos relojes) queda "no evaluable" en vez de forzar CUMPLE/NO CUMPLE
+    # con un número que no es real (ver docs/bitacora/2026-10-29_fase-controlador-emulado.md).
+    if not reloj_sincronizado:
+        global_["l_p95_peor_caso_ms"] = None
+        global_["rnf01_cumple_p95_peor_caso"] = None
+        global_["rnf01_veredicto_peor_caso"] = "no evaluable (reloj sin sincronizar)"
+    elif l_p95 is not None and cota_reloj_ms is not None:
         global_["l_p95_peor_caso_ms"] = l_p95 + cota_reloj_ms
         global_["rnf01_cumple_p95_peor_caso"] = global_["l_p95_peor_caso_ms"] <= UMBRAL_L_MS
+        global_["rnf01_veredicto_peor_caso"] = "CUMPLE" if global_["rnf01_cumple_p95_peor_caso"] else "NO CUMPLE"
     else:
         global_["l_p95_peor_caso_ms"] = None
         global_["rnf01_cumple_p95_peor_caso"] = None
+        global_["rnf01_veredicto_peor_caso"] = "sin cota de reloj"
     return filas_mision, filas_parada, global_
 
 
@@ -542,8 +619,14 @@ def main() -> None:
 
     dirs = [Path(d) for d in args.dir]
     cota_reloj_ms = cota_reloj_pi_ms_de_dirs(dirs)
+    reloj_sincronizado = reloj_pi_sincronizado_de_dirs(dirs)
     eventos = cargar(dirs)
-    filas_mision, filas_parada, g = analizar(eventos, cota_reloj_ms)
+    filas_mision, filas_parada, g = analizar(eventos, cota_reloj_ms, reloj_sincronizado)
+    if not reloj_sincronizado:
+        print("*** AVISO: la Pi perdió sincronización NTP (chronyc tracking: Stratum 0 / "
+              "Not synchronised) en algún punto de esta corrida -- RNF-01 (peor caso) se "
+              "reporta 'no evaluable', no NO CUMPLE. Ver "
+              "docs/bitacora/2026-10-29_fase-controlador-emulado.md.\n")
     if not filas_parada:
         print("No hay paradas (M1_tx del servidor con seq) en esas carpetas.", file=sys.stderr)
         raise SystemExit(1)
@@ -607,10 +690,14 @@ def main() -> None:
     print(f"t_RSU (ms, un reloj):       {_fmt(g['t_RSU_ms'])}")
     l = g["L_ms"]
     if l.get("n"):
-        if g["l_p95_peor_caso_ms"] is not None:
-            veredicto = "CUMPLE" if g["rnf01_cumple_p95_peor_caso"] else "NO CUMPLE"
+        if not g["reloj_pi_sincronizado"]:
             print(f"L -- RNF-01 (ms):           {_fmt(l)}  "
-                  f"[peor caso p95+cota={g['l_p95_peor_caso_ms']:.2f} ms vs {UMBRAL_L_MS:.0f} ms -> {veredicto}]")
+                  f"[peor caso -> {g['rnf01_veredicto_peor_caso']} -- la medición de L sigue siendo "
+                  f"válida, lo que no se puede evaluar es la cota de reloj]")
+        elif g["l_p95_peor_caso_ms"] is not None:
+            print(f"L -- RNF-01 (ms):           {_fmt(l)}  "
+                  f"[peor caso p95+cota={g['l_p95_peor_caso_ms']:.2f} ms vs {UMBRAL_L_MS:.0f} ms -> "
+                  f"{g['rnf01_veredicto_peor_caso']}]")
         else:
             veredicto = "CUMPLE" if g["rnf01_cumple_p95"] else "NO CUMPLE"
             print(f"L -- RNF-01 (ms):           {_fmt(l)}  "

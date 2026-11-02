@@ -230,22 +230,168 @@ de transición, se usa el instante de la propia decisión como referencia
 de "verde" (t_verde = 0 por construcción, coherente con que ya estaba en
 verde).
 
+## Seguimiento (mismo día, el autor fuera de casa — laptop y Pi solo conectadas por Tailscale, NO en la misma LAN)
+
+Tres pedidos de cierre antes de dar la campaña por buena. **Solo
+diagnóstico de solo lectura en la Pi** (journalctl, chrony, `ip route`,
+`scripts/pi.sh red estado`) — ninguna campaña `pi-*` se volvió a correr, y
+no se tocó configuración de red ni se reinició ningún servicio en la Pi
+(el autor no tiene forma de recuperarla hasta volver a la misma red).
+
+### 1. Causa de la pérdida de NTP en `desvio_pi-lan`
+
+**No fue una caída de Wi-Fi.** Evidencia (ventana de la corrida,
+02:34:38–03:10:21):
+
+- `journalctl -u NetworkManager.service` en esa ventana: **0 eventos**
+  (solo renovaciones de lease DHCP normales cada 30 min, mismo IP).
+- `journalctl -u wpa_supplicant.service`: solo el "WPA: Group rekeying"
+  normal de cada 1 h (protocolo estándar, no una reconexión).
+- `journalctl -k` (kernel) filtrado por `wlan0|usb0|link`: **0 líneas**.
+- `ip route` al inicio y al fin de la corrida: `wlan0` siempre con
+  métrica 600 (ruta por defecto preferida) y `usb0` siempre con métrica
+  900 (respaldo, no usado). Contadores de `usb0` subieron solo ~11.4 KB
+  RX / ~3.2 KB TX en 36 min — consistente con tráfico de fondo del módem
+  (keepalive, etc.), no con el volumen real de una campaña (cientos de
+  mensajes MQTT/SNMP). **El enlace fue Wi-Fi todo el tiempo.**
+
+**Causa real: `journalctl -u chrony.service`** muestra "Can't synchronise:
+no majority" a las 03:05:24 (dentro de la ventana) — pero visto en un
+rango más amplio (00:00–06:00), el mismo patrón "no majority" / "Selected
+source" se repite cada ~15–45 min **durante TODA la tarde**, sin relación
+con la campaña ni con ningún evento de red. `/etc/chrony/conf.d/rsu-lab.conf`
+en la Pi fija exactamente **2** fuentes NTP
+(`time.cloudflare.com`, `time.google.com`, elegidas a propósito para
+comparar contra la misma referencia que usa la laptop, ver el comentario
+en ese archivo) — con solo 2 fuentes, el algoritmo de "mayoría" de chrony
+no tiene con qué desempatar si discrepan transitoriamente, así que pierde
+sync con cualquier jitter normal de red pública. Esto es **recurrente, no
+un incidente aislado** de esta corrida.
+
+Según lo acordado: como el enlace fue Wi-Fi todo el tiempo, la corrida
+`desvio_pi-lan` del 2026-10-29 sigue siendo válida como "pi-lan", pero se
+repetirá de todas formas (con chrony sincronizado) cuando el autor esté
+de vuelta en la misma red — **queda pendiente, no se repitió hoy**.
+
+**Análisis corregido** (sin tocar la Pi): una corrida con pérdida de
+sincronización ya no se marca "NO CUMPLE" sino **"no evaluable (reloj sin
+sincronizar)"**, conservando sus métricas de un solo reloj (RTT_srv,
+t_RSU) y el valor medido de L (solo se suspende el *veredicto* de
+RNF-01, no la medición). `scripts/analisis/lazo_centralizado.py`:
+`reloj_pi_sincronizado()`/`reloj_pi_sincronizado_de_dirs()` (detectan
+`Leap status : Not synchronised` / `Stratum : 0`, el centinela de
+chrony) y `rnf01_veredicto_peor_caso` (nuevo campo:
+`"CUMPLE"`/`"NO CUMPLE"`/`"no evaluable (reloj sin sincronizar)"`/`"sin
+cota de reloj"`). `tabla_latencia.tex` ahora muestra "no sincronizado" en
+vez de "1500.0 ms" en la columna de cota. Regenerado
+`resultados/campana/_figuras_2026-10-29_local_vs_pi-lan/`.
+
+**Preparado para la próxima campaña `pi-*` (sin correrlo)**:
+`scripts/campanas/lazo_centralizado.py` ahora, para config=pi-lan/pi-4g:
+(a) pre-vuelo `_verificar_chrony_sincronizado()` — aborta ANTES de
+lanzar nada si la Pi ya está desincronizada en ese momento; (b) muestreo
+por repetición (`_reloj_pi` + `_chrony_sincronizado`, guardado en
+`rep_XX/chronyc_tracking.txt` y en
+`config.json::chrony_sincronizado_por_repeticion`) — **marca, no
+aborta** a mitad de campaña (perder 18 repeticiones por un hueco de NTP
+de minutos sería peor que marcarlo). `reloj_pi_sincronizado_de_dirs()`
+ya lee ese campo nuevo además de `reloj_pi_inicio`/`reloj_pi_fin`.
+
+### 2. Anticipación faltante en `desvio`: la cancelación por desvío pisa la detección de cruce
+
+Comprobado con las 36 repeticiones `desvio` ya corridas (18 `local` + 18
+`pi-lan`): **3/18 `local` y 0/18 `pi-lan`** terminan con
+`ultimo_m3_motivo="cruce"`; el resto, **15/18 y 18/18**, terminan en
+`"desvio"` — coincide exactamente con el conteo de anticipación real
+faltante (3 y 0 respectivamente).
+
+**Mecanismo, con datos reales** (`servidor/gestor_mision.py::procesar_mp`,
+línea ~232): por cada posición MP, el servidor primero calcula la
+distancia perpendicular a la ruta planeada; si supera `UMBRAL_DESVIO_M`
+(60 m), llama a `_recalcular_por_desvio` (que cancela con
+`motivo="desvio"` cualquier parada que ya no esté en la ruta nueva) **y
+hace `return` de inmediato** — la detección de cruce
+(`mision.seguidor.actualizar(...)`, que es la que puede emitir
+`motivo="cruce"`) NUNCA se evalúa para esa posición si el desvío ya
+disparó.
+
+El problema es que, en `scripts/campanas/fixtures/trayectoria_desvio_base.csv`,
+**el desvío empieza casi exactamente en la posición del RSU** ("C", lat
+-12.1074): el último punto sobre la ruta original está ~10–20 s antes del
+desvío, y a 36 km/h (10 m/s) con posiciones MP cada 2 s (20 m por
+muestra), no hay ninguna muestra intermedia cerca de la línea de parada.
+Con los eventos reales de la repetición `20261029-012758_desvio_local/rep_01`:
+
+| Muestra | lat, lon | Distancia a la línea de parada (centro RSU) |
+|---|---|---|
+| MP seq=15 (última antes del desvío) | -12.1074901, -77.0320657 | **12.3 m, al sur** (todavía aproximándose) |
+| MP seq=16 (primera con desvío detectado) | -12.1072886, -77.0310415 | **104.9 m, al norte** (ya pasado) |
+
+Y en una repetición donde SÍ se detectó el cruce primero
+(`.../rep_06`, `mis-8983cd50`): el MP que dispara "cruce" está a **1.0 m**
+de la línea de parada (prácticamente encima), y la SIGUIENTE muestra (2 s
+después, ya con el desvío activo) está a 99 m, al norte. Es decir: el
+margen entre "todavía antes" y "el desvío ya se disparó" es de UNA sola
+muestra MP (2 s / ~20 m) — el resultado (`cruce` vs `desvio`) depende de
+en qué lado de esa muestra caiga el ruido GNSS aplicado a cada
+repetición, no de un diseño de trayectoria que deje al vehículo
+claramente antes o después del RSU.
+
+**Conclusión: es el caso DESPUÉS, no ANTES.** El vehículo, en términos
+prácticos (posición muestreada), ya alcanzó/pasó la línea de parada en
+~85–100 % de las repeticiones cuando se detecta el desvío — la
+cancelación por desvío está pisando una detección de cruce que, de haber
+tenido una muestra más de margen, habría disparado primero. No es que la
+trayectoria se aparte mucho antes de llegar al RSU (eso sí sería
+"cancelar correctamente una solicitud de un cruce que el vehículo ya no
+va a atravesar").
+
+**No se tocó `servidor/gestor_mision.py`** (pedido explícito). Dos
+mecanismos posibles, a decidir:
+
+- **(a) Ajustar la trayectoria** (sin tocar servidor/): mover el punto de
+  desvío de `trayectoria_desvio_base.csv` BIEN DESPUÉS del RSU (p. ej.
+  desde t=50 s en vez de t=30 s, dejando ~15 s / ~150 m de margen tras
+  cruzar) para que el cruce se detecte y mida con normalidad, y el desvío
+  pase a probar el recálculo de ruta DESPUÉS de que la única RSU del
+  escenario ya fue atendida (coherente con el propósito declarado del
+  escenario en el docstring del runner: "dispara el recálculo de ruta",
+  no "cancela la parada pendiente"). Si en cambio lo que se quiere probar
+  es el caso ANTES (desvío antes de llegar, cancelación de una parada no
+  alcanzada), habría que mover el punto de desvío bien ANTES del RSU, con
+  margen similar. Son dos escenarios de prueba distintos y hoy la
+  trayectoria no deja claro cuál de los dos es.
+- **(b) Ajustar el orden de evaluación en el servidor** (no aplicado,
+  pedido explícito de no tocar `servidor/` sin consultar): evaluar la
+  geocerca (cruce) ANTES que el umbral de desvío en `procesar_mp`, o no
+  hacer `return` inmediato tras detectar desvío, para que un cruce real
+  en la misma muestra no quede nunca sin evaluar. Esto sería más robusto
+  frente a cualquier trayectoria futura con el mismo problema de margen,
+  no solo la de `desvio` actual.
+
 ## Pendiente
 
-- **[REVISAR con asesor]**: política de cota de reloj ante pérdida de
-  sync NTP de la Pi durante una corrida (ver "Evidencia", `desvio_pi-lan`,
-  RNF-01 NO CUMPLE por la cota, no por latencia real). Capturar
-  `chronyc tracking` más seguido antes de la campaña 4G.
+- **Repetir `desvio_pi-lan`** (y, si se quiere la misma confiabilidad,
+  también valdría la pena repetir `lazo_pi-lan` aunque esa no mostró
+  pérdida de sync) cuando el autor esté de vuelta en la misma red que la
+  Pi, con chrony sincronizado y el muestreo por repetición ya activo
+  (preparado, sección 1 arriba).
+- **[REVISAR con asesor]**: decidir si el escenario `desvio` debe probar
+  el caso "antes" o "después" del cruce (sección 2) y ajustar
+  `trayectoria_desvio_base.csv` en consecuencia — o decidir si además se
+  quiere el cambio de orden en el servidor (opción (b)) para que sea
+  robusto independientemente de la trayectoria.
+- **[REVISAR con asesor]**: si vale la pena agregar una tercera o cuarta
+  fuente NTP a `/etc/chrony/conf.d/rsu-lab.conf` en la Pi para que el
+  algoritmo de mayoría de chrony sea menos frágil — es un cambio de
+  configuración de la Pi, no se tocó hoy por la restricción de red.
 - `ambar_todo_rojo` no cubrió la meta de 4 en las dos corridas `local`
-  (3/4 y 2/4) — se aceptó por el tope de 18, pero si se quiere la cuota
-  completa en `local` también, repetir esas dos con más repeticiones o un
-  `--tope-repeticiones` mayor. **[REVISAR con asesor]** si vale la pena
-  dado que `local` sigue sin decidirse si entra a la tesis.
-- `desvio` sigue prácticamente sin anticipación real medible: `local`
-  3/18 paradas, `pi-lan` **0/18** — contraste muy marcado con `lazo`
-  (18/18 en ambos config). Mismo patrón ya documentado el 2026-10-22/
-  2026-10-28 ("desvio sin anticipación real medible"), ahora con cifras
-  más precisas gracias al desglose por condición, pero la causa sigue sin
-  investigarse a fondo.
+  (3/4 y 2/4) — **se reporta así, tal cual, con el tope de 18
+  repeticiones alcanzado** (decisión ya tomada, no es un defecto:
+  variación estadística esperable para una condición que es ~24 % del
+  ciclo). **[REVISAR con asesor]** si vale la pena repetir `local` con
+  más repeticiones, dado que `local` sigue sin decidirse si entra a la
+  tesis.
 - Repetir contra `config=pi-4g` cuando corresponda, con el defecto del
-  controlador y el clasificador ya corregidos desde el inicio.
+  controlador, el clasificador y el chequeo de chrony ya corregidos/
+  preparados desde el inicio.

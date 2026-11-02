@@ -154,9 +154,9 @@ sigue ya tiene un primer avance en código (ver `servidor/`,
 adelantado en esta sesión de desarrollo respecto de la semana original.
 
 ### S6 · 19–25 octubre
-- OBU (cliente delgado): lector OBD-II, PIDs y conversión a magnitudes
-  físicas; aplicación del operador con adquisición de posición y
-  publicación MQTT de la misión (MI/MP/MF) **(OE4)**.
+- OBU (cliente delgado): aplicación del operador con adquisición de
+  posición, rumbo y velocidad por GNSS, y publicación MQTT de la misión
+  (MI/MP/MF) **(OE4)**.
 - Servidor central: cálculo de ruta (OSMnx/NetworkX), lista ordenada de
   RSU/accesos, gestión del ciclo de vida de la misión y arbitraje de
   conflictos **(OE4)** — avance adelantado en código el 2026-10-22, falta
@@ -237,10 +237,11 @@ las tres incertidumbres pueda consumir tiempo indefinido.
 | R3 | Dependencia de un commit no publicado de pysnmp | Medio — reproducibilidad | Fijar el commit exacto y registrarlo en el Capítulo 4 |
 | R4 | TLS/mTLS real y la Raspberry Pi física no están listos a tiempo | Medio — ya acotado | La CA y la ACL se probaron de forma aislada (`scripts/seguridad/`), sin broker real; alcance reducido por diseño si no alcanza, salida en G3. Reemplaza al riesgo original de la malla Wi-SUN (R4), descartada como mecanismo de coordinación — ver nota de alcance al inicio del documento. |
 | R5 | Sin acceso a un controlador semafórico físico | Medio | El emulador de S4 elimina la dependencia |
-| R6 | El lector OBD-II no responde con el vehículo disponible | Medio — bloquea OE4 | Validar manualmente con Torque o Car Scanner **antes de S6**, no durante |
+| R6 | El lector OBD-II no responde con el vehículo disponible | Cerrado | **Cerrado 2026-11-01:** OBD-II retirado del alcance; lectura manual validada en R10 como evidencia preliminar |
 
-**R6 es la tarea más barata de adelantar y la más cara de descubrir tarde.**
-Probar el lector esta semana no cuesta nada y evita perder la S6 completa.
+**R6 queda cerrado:** el lector OBD-II se retiró del alcance de la OBU (ver
+trabajo futuro); la lectura manual con Car Scanner de R10 queda como
+evidencia preliminar.
 
 ---
 

@@ -22,7 +22,7 @@ M1_rx, snmp_set_tx, ctrl_fase_cambio) solo se puede aproximar:
   - L_aprox = t_V2I_aprox + t_RSU_aprox + t_NTCIP_aprox
             = ts(ctrl_fase_cambio) - ts(M1_tx)
 
-NO se mide t_adq (adquisicion OBD-II/GNSS: el simulador toma el ETA por
+NO se mide t_adq (adquisicion GNSS: el simulador toma el ETA por
 argumento, no lo adquiere) ni t_OBU por separado (evaluacion del criterio
 de activacion + serializacion + proteccion criptografica: el simulador no
 marca ese paso con su propio evento). L_aprox es, por lo tanto, una cota

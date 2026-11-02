@@ -55,8 +55,10 @@ window.Consola = window.Consola || {};
     });
   }
 
+  // Ficha "OBU emulada": sigue leyendo el archivo local del esquema anterior
+  // (consola/backend/obu_local.py, LEGADO); el mapa ya no depende de el --
+  // ahora se alimenta de MR/MP por MQTT (mapa.js, mision.js).
   function aplicarObu(obu) {
-    Consola.mapa.actualizarObu(obu);
     if (!obu) return;
     document.getElementById("obu-vel").textContent = U.fmt(obu.velocidad_kmh, 0, " km/h");
     const a = obu.asignacion;
@@ -159,7 +161,6 @@ window.Consola = window.Consola || {};
   }
 
   async function init() {
-    await Consola.mapa.cargar();
     configurarPausaRegistros();
     configurarBotonera();
 

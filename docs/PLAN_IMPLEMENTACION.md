@@ -23,14 +23,14 @@ Orden de prioridad, si algo se atrasa: **OE3 y OE6 (lazo OBU → RSU → control
 |---|---|---|
 | CA propia y mTLS en Mosquitto (TLS 1.3) | P4 | Configuración del broker; cliente **rechazado** sin certificado; Wireshark con el *handshake* TLS 1.3 y la carga cifrada |
 | Decisión TLSTM frente a USM (G1) | P4 | Entrada de bitácora con la desviación del diseño |
-| OBU simulada: M1–M3 a 1 Hz, geocerca, lista estática de RSU e identificación de acceso (RF-01 a RF-04, RF-14) | P5 | Consola de la OBU emitiendo, actualizando y cancelando; mapa o gráfico de la trayectoria con la geocerca |
+| OBU simulada: M1–M3 a 1 Hz, geocerca, lista estática de RSU e identificación de acceso (RF-01 retirado 2026-11-01, ver trabajo futuro; RF-02 a RF-04, RF-14) | P5 | Consola de la OBU emitiendo, actualizando y cancelando; mapa o gráfico de la trayectoria con la geocerca |
 
 ## Semana 3 · 26 oct.–1 nov. — Hardware real y campaña V2I
 
 | Hito | Prompt | Evidencia a capturar |
 |---|---|---|
 | RSU por 4G (SIM7670G) hacia el broker remoto — **operativo desde 2026-10-28**, ver `docs/MODEM_4G.md` y `docs/bitacora/2026-10-28_modem-4g.md` | P6 | Foto del montaje RPi + módulo 4G (pendiente); `ip addr`/`scripts/pi.sh red estado` mostrando la IP del operador (**privada `10.x`, no `100.64.x.x`** — ese rango es el de la red superpuesta Tailscale, no el de CGNAT del operador celular; corregido tras la puesta en marcha real); conexión TLS al broker por 4G (pendiente, ver gate G3 de `CRONOGRAMA.md`) |
-| Lectura OBD-II real de velocidad (PID 0x0D) | P7 | Foto del lector conectado al vehículo; log de velocidades |
+| ~~Lectura OBD-II real de velocidad (PID 0x0D)~~ — **descartado 2026-11-01:** la OBU retira el lector OBD-II del alcance; la velocidad la aporta el GNSS del propio dispositivo (ver trabajo futuro) | P7 | — |
 | **Campaña de latencia V2I** (sección 4.3) | P6 | Corridas en `resultados/v2i/`; figuras generadas |
 
 ## Semana 4 · 2–8 nov. — I2I y lazo completo (OE4, OE6)
@@ -100,9 +100,15 @@ Reescribe gateway/obu_simulator.py como la OBU del diseño: lee una trayectoria 
 Usando "F:\tesis2\Overleaf\Comandos módulo 4G SIM7670G y MQTT.pdf", documenta y automatiza en scripts/ la conexión de la RSU por el módulo SIM7670G (servicio systemd que levante la interfaz). Luego crea scripts/campanas/v2i.py, que ejecute N solicitudes con la OBU simulada contra la RSU por 4G y guarde cada corrida en resultados/v2i/<fecha>/ (datos.csv, config.json con el commit y notas.md). Y crea scripts/analisis/v2i.py, que genere en F:\tesis2\Overleaf\figuras\resultados\ la CDF de latencia extremo a extremo, un diagrama de cajas por tramo y una tabla LaTeX con media, mediana, percentil 95 e intervalo de confianza. Bitácora y commit.
 ```
 
-### P7 — Lectura OBD-II real
+### P7 — Lectura OBD-II real (descartado)
 ```
-Agrega gateway/obd_reader.py, que lea la velocidad (PID 0x0D) desde un lector ELM327 por Bluetooth o serie con la librería python-OBD, a 1 Hz, y la registre con el módulo de eventos. Debe poder alimentar a la OBU en lugar de la velocidad de la trayectoria. Incluye un modo de prueba sin vehículo (emulador de ELM327, si existe uno disponible). Bitácora con la lista de fotos y capturas, y commit.
+Descartado 2026-11-01: el lector OBD-II sale del alcance de la OBU (ver
+docs/bitacora de la decisión y el párrafo de trabajo futuro de la tesis).
+La velocidad la aporta el GNSS del propio dispositivo Android; el
+servidor (servidor/gestor_mision.py) ya usa VELOCIDAD_RESPALDO_KMH cuando
+no hay una velocidad válida. Integrar un lector OBD-II (ELM327, PID 0x0D)
+como fuente más precisa a baja velocidad o con mala cobertura GNSS queda
+como trabajo futuro.
 ```
 
 ### P8 — I2I y sincronización

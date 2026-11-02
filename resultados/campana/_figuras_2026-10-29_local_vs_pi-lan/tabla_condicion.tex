@@ -1,6 +1,6 @@
 \begin{table}[H]
 \centering
-\caption{Latencia del lazo por condición de llegada (fase de la RSU al decidir: verde / ámbar-todo\_rojo tratadas juntas por ser ambas FASES\_NO\_INTERRUMPIBLES / rojo general). Campaña 2026-10-29, lazo+desvío combinados por config, cuotas adaptativas por condición de llegada (meta=4 c/u, tope=18 rep.). pi-lan = RSU real por Wi-Fi vía Tailscale (wlan0, no Ethernet cableado). config=local es banco de desarrollo (los 4 procesos compiten por CPU en la misma laptop), no cota inferior -- ver docs/bitacora/2026-10-29_fase-controlador-emulado.md.}
+\caption{Latencia del lazo por condición de llegada (fase de la RSU al decidir: verde / ámbar-todo\_rojo tratadas juntas por ser ambas FASES\_NO\_INTERRUMPIBLES / rojo general). Campaña 2026-10-29, lazo+desvío combinados por config, cuotas adaptativas por condición de llegada (meta=4 c/u, tope=18 rep.). pi-lan = RSU real por Wi-Fi vía Tailscale (wlan0, no Ethernet cableado); desvio_pi-lan perdió sincronización NTP en un punto de la corrida (RNF-01 peor caso: no evaluable, ver bitácora). config=local es banco de desarrollo (los 4 procesos compiten por CPU en la misma laptop), no cota inferior -- ver docs/bitacora/2026-10-29_fase-controlador-emulado.md.}
 \label{tab:latencia_por_condicion}
 \small
 \begin{tabular}{lllrrrl}

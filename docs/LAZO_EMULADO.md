@@ -2,7 +2,7 @@
 
 Esta guía corre el lazo de priorización completo **OBU → broker MQTT → RSU →
 controlador → M2 de vuelta** con una OBU que reproduce **trayectorias
-sintéticas**. No hace falta vehículo, teléfono ni lector OBD-II.
+sintéticas**. No hace falta vehículo ni teléfono.
 
 ## Qué es real y qué es ficticio
 

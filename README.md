@@ -11,7 +11,7 @@ V2I hacia vehículos, sobre Raspberry Pi.
 
 Este repo se está construyendo en capas, sobre el banco de pruebas físico
 del proyecto: Raspberry Pi como RSU con módem SIM7670G (4G) hacia el
-servidor central, y OBU como app Android con lector OBD-II. **Esta versión
+servidor central, y OBU como app Android con GNSS, cliente delgado. **Esta versión
 cubre los objetos reales de la MIB NTCIP (1202 y 1211) y el enlace V2I**
 — los tres enlaces de la arquitectura (centro de control ↔ RSU, RSU →
 controlador, OBU → RSU) — y deliberadamente **todavía no** toca:
@@ -64,7 +64,7 @@ Alineado con el alcance vigente de la tesis (`main.tex`, secciones
 ## Arquitectura de esta versión
 
 ```
-┌──────────── OBU (app Android + lector OBD-II, cliente delgado) ──────────┐
+┌──────────── OBU (app Android con GNSS, cliente delgado) ──────────┐
 │   gateway/obu_emulada.py — arma/desarma la misión (MI/MF),               │
 │   publica posición a 1 Hz (MP); recibe ruta (MR) y estado (ME)           │
 └──────────────────────────────┬───────────────────────────────────────────┘
@@ -100,7 +100,7 @@ de gestión NTCIP clásica (ver "Los enlaces" más abajo).
 
 1. **OBU ↔ Servidor central** — MQTT 5, con TLS 1.3 + mTLS en el diseño
    objetivo (ver `scripts/seguridad/`). La app Android de la OBU (con
-   lector OBD-II para velocidad/aceleración) arma la misión (MI), publica
+   GNSS propio para posición, rumbo y velocidad) arma la misión (MI), publica
    la posición a 1 Hz (MP) y recibe la ruta (MR) y el estado (ME) que
    calcula `servidor/gestor_mision.py` — `gateway/obu_emulada.py` implementa
    este contrato. Ver `docs/CONTRATO_OBU.md` para el esquema completo de
@@ -146,7 +146,7 @@ máquina, o en la laptop mientras no haya un servidor dedicado):
 | `servidor/main.py` | Servidor/laptop | Único decisor: ruta, ETA, geocerca, conflictos |
 | `controller/controller_emulator.py` | Raspberry Pi | Controlador de tránsito (emulado) |
 | `agent/rsu_middleware.py` | Raspberry Pi (módem SIM7670G) | RSU: agente SNMP (NTCIP 1202/1211) + adaptador + M1/M3 del servidor |
-| `gateway/obu_emulada.py` | Teléfono Android | OBU (app Android + lector OBD-II: MI/MP/MF, recibe MR/ME) |
+| `gateway/obu_emulada.py` | Teléfono Android | OBU (app Android con GNSS, cliente delgado: MI/MP/MF, recibe MR/ME) |
 
 `centro_control/software_gestion.py` (SNMPv3 GET/SET directo a la RSU) y
 `gateway/obu_simulator.py` (M1 directo a la RSU, esquema legado P0-P3)
@@ -177,7 +177,7 @@ parte del flujo de la arquitectura centralizada — ver sus docstrings.
   `evidencia/2026-10-11_agente_snmpset-ntcip1211-rf06.png`.
 - **Banco de pruebas físico:** Raspberry Pi como RSU, con módem SIM7670G
   para el enlace 4G hacia el servidor central, y la OBU como app Android
-  con lector OBD-II (velocidad/aceleración) — ver
+  con GNSS propio (posición, rumbo y velocidad) — ver
   `docs/CONEXION_RASPBERRY.md` y `docs/CONTRATO_OBU.md`.
 - **Simulador de OBU legado** (`gateway/obu_simulator.py`): publica
   solicitudes de prioridad V2I por MQTT directamente a la RSU (esquema

@@ -23,7 +23,8 @@ window.Consola = window.Consola || {};
   function conectar() {
     const es = new EventSource("/sse");
     const tipos = ["mqtt", "mqtt_estado", "snmp_semaforo", "snmp_prs", "snmp_tiempos", "obu",
-                   "evento_lazo", "eventos_remotos_error", "banco", "comando", "proceso", "proceso_linea"];
+                   "evento_lazo", "eventos_remotos_error", "banco", "comando", "proceso", "proceso_linea",
+                   "rsu_fase", "rsu_prioridad", "mision", "mision_evento", "mision_pos"];
     tipos.forEach((tipo) => {
       es.addEventListener(tipo, (ev) => {
         if (!conectado) { conectado = true; emitir("_conexion", { conectado: true }); }

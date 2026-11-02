@@ -196,6 +196,8 @@
     }
   },
   "rnf01_cumple_p95": true,
-  "l_p95_peor_caso_ms": 1525.747908,
-  "rnf01_cumple_p95_peor_caso": false
+  "reloj_pi_sincronizado": false,
+  "l_p95_peor_caso_ms": null,
+  "rnf01_cumple_p95_peor_caso": null,
+  "rnf01_veredicto_peor_caso": "no evaluable (reloj sin sincronizar)"
 }

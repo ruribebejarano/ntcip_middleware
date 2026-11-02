@@ -91,14 +91,14 @@ debe publicar nada aquí).
   "lon": -77.03201,
   "velocidad_kmh": 36.0,
   "rumbo_deg": 0.0,
-  "fuente_velocidad": "obd2",
+  "fuente_velocidad": "gps",
   "ts_ms": 1761144002000,
   "seq": 2
 }
 ```
 
-- `fuente_velocidad`: `"obd2"` | `"gps"` | `"respaldo"` — informativo, el
-  servidor no distingue hoy entre fuentes al calcular el ETA (usa
+- `fuente_velocidad`: `"gps"` | `"respaldo"` | `"simulada"` — informativo, el
+  servidor acepta valores desconocidos y no distingue hoy entre fuentes al calcular el ETA (usa
   `VELOCIDAD_RESPALDO_KMH` de `servidor/gestor_mision.py` si
   `velocidad_kmh` es inválida o ≈0). [REVISAR con asesor] si conviene que
   el servidor penalice la confianza del ETA según la fuente.
@@ -222,8 +222,8 @@ publicar MP y volver a la pantalla de "Iniciar emergencia".
 
 ## 7. Ejemplo de referencia funcionando
 
-`gateway/obu_emulada.py` implementa este contrato completo (sin GNSS/OBD-II
-reales: lee una trayectoria de un CSV) y
+`gateway/obu_emulada.py` implementa este contrato completo (sin GNSS real:
+lee una trayectoria de un CSV) y
 `evidencia/2026-10-22_arquitectura-centralizada/` tiene tres corridas
 reales contra `servidor/main.py` y `agent/rsu_middleware.py` por MQTT —
 útil como referencia de implementación y de los mensajes reales que se
