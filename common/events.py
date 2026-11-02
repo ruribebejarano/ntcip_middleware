@@ -93,6 +93,7 @@ EVT_MF_TX = "MF_tx"                             # OBU publica el fin de mision; 
 EVT_MP_TX = "MP_tx"                             # OBU publica una posicion (reemplaza a M1_tx/M3_tx del lado OBU); extra: lat, lon, velocidad_kmh, rumbo_deg, seq
 EVT_MR_RX = "MR_rx"                             # OBU recibe la ruta calculada por el servidor; extra: n_paradas, longitud_m
 EVT_ME_RX = "ME_rx"                             # OBU recibe un cambio de estado de la mision; extra: proximo, conflicto
+EVT_MI_REPETIDO = "MI_repetido"                 # servidor recibe un MI para un obu_id con mision ya armada (p. ej. reenvio tras una reconexion MQTT, ver app_obu/obu/ObuSessionService.kt): se ignora, no duplica la mision ni recalcula la ruta
 
 EVT_BROKER_RX = "broker_rx"      # scripts/testigo_broker.py: un suscriptor mas
                                   # corriendo en la MISMA maquina que el broker,

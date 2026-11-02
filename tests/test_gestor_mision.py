@@ -79,6 +79,27 @@ def test_armar_mision_calcula_ruta_y_publica_mr():
     assert len(reg.mr[0][1]["paradas"]) == 2
 
 
+def test_mi_repetido_no_duplica_la_mision():
+    """B2: la app reenvia el MI tras una reconexion MQTT (ver
+    app_obu/obu/ObuSessionService.kt); el servidor debe tratarlo como un
+    no-op, sin recalcular la ruta ni perder el progreso ya hecho."""
+    gestor, reg = _gestor()
+    mision = gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    mision_id_original = mision.mision_id
+
+    # El vehiculo avanza un poco antes de que llegue el MI repetido.
+    lat, lon = desplazar(*NODOS_RUTA["A"], 0.0, 100.0)
+    gestor.procesar_mp("obu-1", lat, lon, VELOCIDAD_KMH, rumbo_deg=0.0)
+    progreso_antes = mision.distancia_recorrida_m
+
+    repetida = gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+
+    assert repetida is mision
+    assert repetida.mision_id == mision_id_original
+    assert repetida.distancia_recorrida_m == progreso_antes
+    assert len(reg.mr) == 1  # no se volvio a publicar una MR (version 1 de nuevo)
+
+
 def test_ciclo_completo_recorrido_recto_dos_rsu():
     gestor, reg = _gestor()
     gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
