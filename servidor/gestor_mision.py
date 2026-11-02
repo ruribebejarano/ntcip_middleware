@@ -62,6 +62,7 @@ try:
         EVT_M1_TX,
         EVT_M2_RX,
         EVT_M3_TX,
+        EVT_MI_REPETIDO,
         EVT_MISION_ARMADA,
         EVT_MISION_DESARMADA,
         EVT_MP_RX,
@@ -181,6 +182,15 @@ class GestorMision:
     def armar_mision(
         self, obu_id: str, clase: int, origen: tuple[float, float], destino: tuple[float, float],
     ) -> Mision:
+        existente = self.misiones.get(obu_id)
+        if existente is not None and existente.activa:
+            # MI repetido para una misión que ya está armada (p. ej. la app
+            # reenvía el MI tras una reconexión MQTT, ver
+            # app_obu/obu/ObuSessionService.kt): se ignora sin recalcular la
+            # ruta ni perder el progreso ya hecho (docs/CONTRATO_OBU.md §2).
+            self._log(EVT_MI_REPETIDO, existente.mision_id, obu_id=obu_id)
+            return existente
+
         ruta = rutas_mod.planificar_ruta(self.grafo, self.registro, origen, destino)
         registro_mision = [i for i in self.registro if i.interseccion_id in {p.interseccion_id for p in ruta.paradas}]
         seguidor = SeguidorAcceso(registro_mision, self.parametros_geocerca)

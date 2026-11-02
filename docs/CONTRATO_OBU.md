@@ -77,6 +77,23 @@ emergencia" + destino en la app.
 - `destino`: lat/lon del punto de llegada. La app debe resolverlo desde un
   mapa o una dirección — no hay geocodificación en el servidor.
 
+**MI repetido (reconexión MQTT).** Si la conexión MQTT se cae y se
+reconecta mientras la misión sigue armada, la app **reenvía el MI**
+(`app_obu/obu/ObuSessionService.kt::reenviarMiTrasReconexion`, con
+`ts_ms` actualizado) en vez de reintentar solo al nivel de transporte —
+ver la bitácora `2026-10-29_app-obu-fix-serializacion-y-pucp.md` §2, que
+documentó esta reconexión como un hueco sin cubrir. El servidor trata un
+MI para un `obu_id` que **ya tiene una misión activa** como un no-op
+idempotente: no crea una misión nueva, no recalcula la ruta ni reinicia
+el progreso ya hecho (`servidor/gestor_mision.py::armar_mision`); solo
+registra el evento `MI_repetido` (`common/events.py`) y devuelve la
+misión existente. Esto es seguro porque `obu_id` es único por sesión de
+la app (se genera al azar en cada `iniciarMision()`), así que un MI
+repetido con el mismo `obu_id` siempre corresponde a la misma misión, no
+a una nueva. Los MP se reanudan solos: el ticker de publicación de la app
+nunca se detiene durante una caída de conexión, y vuelve a entregar en
+cuanto el cliente MQTT reconecta.
+
 ### MP — Posición
 
 **Tópico:** `obu/{obu_id}/posicion` · **Cuándo:** a 1 Hz, **solo** mientras
