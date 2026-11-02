@@ -64,9 +64,10 @@ Alineado con el alcance vigente de la tesis (`main.tex`, secciones
 ## Arquitectura de esta versión
 
 ```
-┌──────────── OBU (app Android con GNSS, cliente delgado) ──────────┐
-│   gateway/obu_emulada.py — arma/desarma la misión (MI/MF),               │
-│   publica posición a 1 Hz (MP); recibe ruta (MR) y estado (ME)           │
+┌──────────── OBU (cliente delgado: arma/desarma la misión [MI/MF],  ──────┐
+│   publica posición a 1 Hz [MP], recibe ruta [MR] y estado [ME])          │
+│   app_obu/ — app Android de referencia (GNSS real, para la tablet)       │
+│   gateway/obu_emulada.py — OBU emulada para campañas reproducibles       │
 └──────────────────────────────┬───────────────────────────────────────────┘
                                 │ MQTT (broker central)
                                 ▼
@@ -99,12 +100,14 @@ de gestión NTCIP clásica (ver "Los enlaces" más abajo).
 ### Los enlaces
 
 1. **OBU ↔ Servidor central** — MQTT 5, con TLS 1.3 + mTLS en el diseño
-   objetivo (ver `scripts/seguridad/`). La app Android de la OBU (con
-   GNSS propio para posición, rumbo y velocidad) arma la misión (MI), publica
+   objetivo (ver `scripts/seguridad/`). La OBU arma la misión (MI), publica
    la posición a 1 Hz (MP) y recibe la ruta (MR) y el estado (ME) que
-   calcula `servidor/gestor_mision.py` — `gateway/obu_emulada.py` implementa
-   este contrato. Ver `docs/CONTRATO_OBU.md` para el esquema completo de
-   mensajes.
+   calcula `servidor/gestor_mision.py`, implementado por dos clientes del
+   mismo contrato: `app_obu/` (app Android de referencia, con GNSS propio
+   para posición, rumbo y velocidad — la que instala el operador en la
+   tablet/teléfono) y `gateway/obu_emulada.py` (OBU emulada en Python, sin
+   hardware ni operador, para campañas de medición reproducibles de OE5).
+   Ver `docs/CONTRATO_OBU.md` para el esquema completo de mensajes.
 2. **Servidor central → RSU** — MQTT, mismo broker. El servidor envía M1
    (solicitud, con anticipación por ETA) y M3 (cancelación) a
    `rsu/{rsu_id}/solicitudes`; la RSU responde M2 por el Response Topic de
@@ -146,12 +149,26 @@ máquina, o en la laptop mientras no haya un servidor dedicado):
 | `servidor/main.py` | Servidor/laptop | Único decisor: ruta, ETA, geocerca, conflictos |
 | `controller/controller_emulator.py` | Raspberry Pi | Controlador de tránsito (emulado) |
 | `agent/rsu_middleware.py` | Raspberry Pi (módem SIM7670G) | RSU: agente SNMP (NTCIP 1202/1211) + adaptador + M1/M3 del servidor |
-| `gateway/obu_emulada.py` | Teléfono Android | OBU (app Android con GNSS, cliente delgado: MI/MP/MF, recibe MR/ME) |
+| `app_obu/` (o `gateway/obu_emulada.py`) | Tablet/teléfono Android (o laptop, emulada) | OBU: cliente delgado de la misión (MI/MP/MF, recibe MR/ME) |
 
 `centro_control/software_gestion.py` (SNMPv3 GET/SET directo a la RSU) y
 `gateway/obu_simulator.py` (M1 directo a la RSU, esquema legado P0-P3)
 siguen funcionando para las pruebas que ya dependían de ellos, pero no son
 parte del flujo de la arquitectura centralizada — ver sus docstrings.
+
+### Compilar e instalar la app Android de la OBU (`app_obu/`)
+
+```bash
+cd app_obu
+./gradlew assembleDebug          # genera app/build/outputs/apk/debug/app-debug.apk
+adb devices                      # confirmar que la tablet/teléfono aparece
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+Requiere un JDK con `JAVA_HOME` configurado (p. ej. el JBR de Android
+Studio) y, para instalar, depuración USB habilitada en el dispositivo. Ver
+`app_obu/README.md` para los escenarios de prueba, Ajustes (certificado
+mTLS, broker) y la puesta en marcha completa contra servidor y RSU.
 
 ## Lo construido hasta ahora
 
@@ -179,6 +196,11 @@ parte del flujo de la arquitectura centralizada — ver sus docstrings.
   para el enlace 4G hacia el servidor central, y la OBU como app Android
   con GNSS propio (posición, rumbo y velocidad) — ver
   `docs/CONEXION_RASPBERRY.md` y `docs/CONTRATO_OBU.md`.
+- **App Android de la OBU** (`app_obu/`, integrada a `master` el
+  2026-11-02): cliente del contrato OBU↔servidor con GNSS real o rutas
+  emuladas (escenarios de prueba PUCP y Hospital del Niño), cliente MQTT 5
+  con TLS 1.3 + mTLS (`app_obu/app/.../seguridad/TlsConfig.kt`) y manejo de
+  fin de misión por destino/tiempo máximo. Ver `app_obu/README.md`.
 - **Simulador de OBU legado** (`gateway/obu_simulator.py`): publica
   solicitudes de prioridad V2I por MQTT directamente a la RSU (esquema
   P0-P3, se mantiene funcionando como referencia).
@@ -234,8 +256,11 @@ servidor/        Servidor central (único decisor, 2026-10-22): rutas.py
 agent/           Agente SNMPv3 (rsu_snmpv3_agent.py, mínimo) y middleware
                  integrado (rsu_middleware.py: SNMP + M1/M3 del servidor + adaptador)
 controller/      Emulador del controlador de tránsito (protocolo propio simulado)
-gateway/         OBU emulada (obu_emulada.py, cliente delgado) y geometría
-                 de accesos (geometria.py, reusada por el servidor)
+app_obu/         App Android de la OBU (referencia, GNSS real) — proyecto
+                 Gradle/Kotlin independiente, ver app_obu/README.md
+gateway/         OBU emulada (obu_emulada.py, cliente delgado para
+                 campañas reproducibles de OE5) y geometría de accesos
+                 (geometria.py, reusada por el servidor)
 centro_control/  Software de gestión central (software_gestion.py):
                  monitoreo continuo + comandos, con logs (independiente del servidor)
 consola/         Consola web de monitoreo (FastAPI) del banco de pruebas y
