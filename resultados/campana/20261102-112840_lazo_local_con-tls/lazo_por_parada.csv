@@ -1,0 +1,17 @@
+id_solicitud,mision_id,rsu_id,resultado,etapa_alcanzada,cola_despeje,t_srv_ms,t_srv_RSU_ms,t_RSU_ms,RTT_srv_ms,L_ms,t_verde_ms,T_desp_ms,anticipacion_real_s,obtuvo_verde,ultimo_m3_motivo,fase_decision,condicion_llegada
+mis-c690d849-C,mis-c690d849,1,concedida,,True,0.4948,0.6969,2.1636,4.8398,2.8605,1673.8362,1669.7959,14.3264334,True,cruce,todo_rojo,ambar_todo_rojo
+mis-2611c5a2-C,mis-2611c5a2,1,concedida,,False,0.479,0.8493,23.8585,73.2586,24.7078,24.7078,,15.9754054,True,cruce,verde,verde
+mis-6f1cec18-C,mis-6f1cec18,1,concedida,,False,0.5317,0.917,12.0802,18.2479,12.9972,14.1409,,15.9857434,True,cruce,rojo_general,rojo_general
+mis-e818dd31-C,mis-e818dd31,1,concedida,,False,0.396,0.653,23.6657,59.0094,24.3187,24.3187,,13.976093,True,cruce,verde,verde
+mis-f96a4152-C,mis-f96a4152,1,concedida,,True,0.4239,0.8971,25.9087,43.6732,26.8058,3822.0951,3779.8767,10.1778196,True,cruce,amarillo,ambar_todo_rojo
+mis-02c27570-C,mis-02c27570,1,concedida,,False,0.4003,0.7565,2.9337,23.8128,3.6902,3.6902,,15.9967027,True,cruce,verde,verde
+mis-e6c1fa2c-C,mis-e6c1fa2c,1,concedida,,False,0.5389,0.9061,18.8853,24.3494,19.7914,19.7914,,15.9809713,True,cruce,verde,verde
+mis-4c22da8a-C,mis-4c22da8a,1,concedida,,True,0.5494,0.838,2.6634,6.0638,3.5014,3794.6539,3775.5219,12.2061782,True,cruce,amarillo,ambar_todo_rojo
+mis-4a0411bf-C,mis-4a0411bf,1,concedida,,False,0.4693,0.7553,1.9708,43.2104,2.7261,9.8613,,13.9897792,True,cruce,rojo_general,rojo_general
+mis-8c29714a-C,mis-8c29714a,1,concedida,,False,0.4462,0.773,3.0696,38.2688,3.8426,3.8426,,15.9958257,True,cruce,verde,verde
+mis-02bf7410-C,mis-02bf7410,1,concedida,,True,0.4179,0.6706,3.2805,20.5622,3.9511,360.3574,338.1858,15.6395552,True,cruce,todo_rojo,ambar_todo_rojo
+mis-31b98b20-C,mis-31b98b20,1,concedida,,True,0.7803,1.0496,3.5723,6.9507,4.6219,583.1835,577.27,13.4167479,True,cruce,todo_rojo,ambar_todo_rojo
+mis-075d6c23-C,mis-075d6c23,1,concedida,,False,0.43,0.6763,1.9801,27.0169,2.6564,9.9145,,11.9904916,True,cruce,rojo_general,rojo_general
+mis-e0560a0b-C,mis-e0560a0b,1,concedida,,False,0.4078,0.6968,19.0764,68.5404,19.7732,19.7732,,15.9804413,True,cruce,verde,verde
+mis-f79fa343-C,mis-f79fa343,1,concedida,,True,0.5507,0.8793,19.0434,35.9983,19.9227,322.4596,287.4484,15.6773575,True,cruce,todo_rojo,ambar_todo_rojo
+mis-2ed43155-C,mis-2ed43155,1,concedida,,False,0.4073,0.6922,13.3736,32.0906,14.0658,15.7791,,15.9850877,True,cruce,rojo_general,rojo_general
