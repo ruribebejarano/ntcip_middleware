@@ -61,3 +61,8 @@ cache/
 # credenciales (la CA incluye la clave privada). Cada despliegue genera
 # los suyos; nunca se commitea deploy/pki/.
 deploy/pki/
+# PKI de prueba del banco de seguridad local (scripts/seguridad/banco_local.py,
+# prompt_seguridad.md S2): incluye claves privadas (incluso de casos
+# negativos, como el certificado vencido/revocado) -- se regenera con
+# "banco_local.py preparar", nunca se commitea.
+deploy/pki_banco/
