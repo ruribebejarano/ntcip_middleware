@@ -55,11 +55,9 @@ import kotlinx.coroutines.launch
  * NO pasan el criterio (precisión insuficiente) y la ausencia de lecturas
  * (buscando señal). Solo se actualiza mientras alguien colecta [muestras].
  *
- * Etapa 2 (lector OBD-II ELM327 por Bluetooth, velocidad PID 0x0D a 1 Hz
- * con GPS de respaldo): reemplazaría solo `velocidadKmh` de cada muestra
- * aquí (manteniendo lat/lon/rumbo de este GNSS), cayendo a esta misma
- * velocidad si el ELM327 no responde -- no haría falta otra
- * implementación de FuentePosicion completa.
+ * El GNSS del dispositivo es, por ahora, la única fuente de velocidad de
+ * la OBU. Una fuente más precisa a baja velocidad o con mala cobertura
+ * GNSS queda como trabajo futuro.
  */
 class FuenteGnss(
     context: Context,

@@ -53,7 +53,7 @@ class JsonObuTest {
             lon = -77.0320,
             velocidad_kmh = 36.0,
             rumbo_deg = 0.0,
-            fuente_velocidad = "obd2",
+            fuente_velocidad = "gps",
             ts_ms = 1_761_144_002_000L,
             seq = 2,
         )
@@ -70,7 +70,7 @@ class JsonObuTest {
         // de la clase" de "valor que casualmente puesto por el llamador").
         assertEquals("0.0", obj["rumbo_deg"]?.jsonPrimitive?.content)
         assertEquals("36.0", obj["velocidad_kmh"]?.jsonPrimitive?.content)
-        assertEquals("obd2", obj["fuente_velocidad"]?.jsonPrimitive?.content)
+        assertEquals("gps", obj["fuente_velocidad"]?.jsonPrimitive?.content)
         assertEquals("1761144002000", obj["ts_ms"]?.jsonPrimitive?.content)
         assertEquals("2", obj["seq"]?.jsonPrimitive?.content)
     }

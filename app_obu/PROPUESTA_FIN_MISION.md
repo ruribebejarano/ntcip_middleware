@@ -87,18 +87,17 @@ Agregar dos campos al JSON de ME:
    desarme (`"boton"`, `"destino"`, `"tiempo_maximo"`) que verifique que
    el ME final trae `mision_activa=false` y el `motivo_fin` correcto.
 
-## 4. Nota secundaria: `fuente_velocidad="simulada"`
+## 4. Nota secundaria: `fuente_velocidad="simulada"` (aplicado 2026-11-01)
 
-Por instrucción de esta sesión, el modo de trayectoria simulada de
-`app_obu/` (ver `app_obu/README.md`, sección "Modo simulado") publica MP
-con `"fuente_velocidad": "simulada"`. Ese valor **no está** en el enum de
-`docs/CONTRATO_OBU.md` §3 (`"obd2" | "gps" | "respaldo"`). Es un campo
-informativo que `servidor/gestor_mision.py` no valida ni distingue hoy, así
-que no rompe nada funcionalmente -- pero el contrato debería documentar el
-cuarto valor para que quede exacto. Cambio sugerido, una línea en §3 (MP):
+El modo de trayectoria simulada de `app_obu/` (ver `app_obu/README.md`,
+sección "Modo simulado") publica MP con `"fuente_velocidad": "simulada"`.
+Ese valor ya está en el enum vigente de `docs/CONTRATO_OBU.md` §3
+(`"gps" | "respaldo" | "simulada"`, tras retirar el lector OBD-II del
+alcance -- ver trabajo futuro). Es un campo informativo que
+`servidor/gestor_mision.py` no valida ni distingue hoy:
 
 ```
-`fuente_velocidad`: `"obd2" | "gps" | "respaldo" | "simulada"` -- "simulada"
+`fuente_velocidad`: `"gps" | "respaldo" | "simulada"` -- "simulada"
 solo lo usa app_obu/ en su modo de trayectoria pregrabada para pruebas en
 mesa sin GNSS (ver app_obu/README.md), nunca en una misión real.
 ```

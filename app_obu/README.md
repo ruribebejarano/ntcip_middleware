@@ -11,8 +11,8 @@ service, registro de eventos compatible con `scripts/analisis/`, ajustes
 sin nada hardcodeado.
 
 **No implementado todavía** (estructura dejada lista, ver abajo):
-Etapa 2 (lector OBD-II ELM327 por Bluetooth, velocidad PID 0x0D con GPS de
-respaldo) y Etapa 3 (TLS 1.3 + mTLS).
+Etapa 3 (TLS 1.3 + mTLS). Una fuente de velocidad más precisa (por
+ejemplo, un lector OBD-II del vehículo) queda como trabajo futuro.
 
 ## Requisitos
 
@@ -406,11 +406,9 @@ que siempre es de tipo `location` aunque la posición sea simulada --
 exigencia de Android al declarar ese tipo, no de esta app.)
 
 Mientras está activo: el indicador "EMULADA" durante la misión (ver "Pantalla principal"),
-y los MP van con `"fuente_velocidad": "simulada"` -- un
-valor que **no** está en el enum de `docs/CONTRATO_OBU.md` §3
-(`"obd2"|"gps"|"respaldo"`); ver `app_obu/PROPUESTA_FIN_MISION.md`, §4,
-para la extensión de contrato sugerida (no aplicada, es solo una
-propuesta).
+y los MP van con `"fuente_velocidad": "simulada"` -- valor documentado en
+el enum de `docs/CONTRATO_OBU.md` §3 (`"gps"|"respaldo"|"simulada"`); ver
+`app_obu/PROPUESTA_FIN_MISION.md`, §4.
 
 La reproducción siempre es a factor 1 (tiempo real), a diferencia de
 `--factor` en `gateway/obu_emulada.py`.
@@ -898,13 +896,11 @@ servidor, sin calibrar):
   puede cancelar la solicitud por `rumbo_divergente`. Caminar recto por la
   vereda del lado de la ruta.
 
-## Estructura (etapas 2 y 3, dejadas listas pero sin implementar)
+## Estructura (etapa 3, dejada lista pero sin implementar)
 
 - `obu/velocidad/FuentePosicion.kt`: interfaz de posición+velocidad+rumbo
-  con dos implementaciones hoy (`FuenteGnss`, `FuenteSimulada`). La Etapa
-  2 (lector OBD-II ELM327 por Bluetooth clásico, PID 0x0D a 1 Hz, GPS de
-  respaldo) reemplazaría solo `velocidadKmh` dentro de `FuenteGnss`, no
-  necesitaría una tercera implementación completa.
+  con dos implementaciones hoy (`FuenteGnss`, `FuenteSimulada`), dejada
+  como punto de extensión para otras fuentes de velocidad.
 - `obu/seguridad/TlsConfig.kt`: parámetro opcional de
   `obu/MqttObuClient.kt`, siempre `null` hoy. La Etapa 3 (TLS 1.3 + mTLS,
   certificados de `scripts/seguridad/generar_ca.py`) completaría ese data

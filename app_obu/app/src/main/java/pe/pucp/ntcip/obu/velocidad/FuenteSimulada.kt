@@ -25,10 +25,10 @@ import java.io.InputStreamReader
  * El flujo TERMINA al llegar a la última fila: ObuSessionService lo usa
  * para cerrar la misión sola (MF motivo="destino", como obu_emulada.py).
  *
- * `fuente_velocidad` va como "simulada" en el MP -- valor NO contemplado
- * en el enum de docs/CONTRATO_OBU.md ("obd2"|"gps"|"respaldo"); es un
- * campo informativo que el servidor no valida, pero el contrato debería
- * documentarlo (ver app_obu/README.md, sección "Modo simulado").
+ * `fuente_velocidad` va como "simulada" en el MP -- valor documentado en
+ * el enum de docs/CONTRATO_OBU.md ("gps"|"respaldo"|"simulada"); es un
+ * campo informativo que el servidor no valida (ver app_obu/README.md,
+ * sección "Modo simulado").
  */
 class FuenteSimulada(
     private val context: Context,

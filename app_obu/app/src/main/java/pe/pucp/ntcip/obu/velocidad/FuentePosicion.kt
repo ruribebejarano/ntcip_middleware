@@ -20,10 +20,8 @@ data class MuestraPosicion(
  * Fuente de posición+velocidad+rumbo para el MP (docs/CONTRATO_OBU.md).
  * Dos implementaciones hoy: [pe.pucp.ntcip.obu.velocidad.FuenteGnss] (GNSS
  * real) y [pe.pucp.ntcip.obu.velocidad.FuenteSimulada] (trayectoria CSV,
- * para pruebas en mesa sin GNSS). La Etapa 2 (lector OBD-II ELM327, PID
- * 0x0D) no necesitaría una tercera implementación completa: reemplazaría
- * solo `velocidadKmh` dentro de FuenteGnss, con el GPS como respaldo si el
- * ELM327 no responde -- ver el comentario en FuenteGnss.
+ * para pruebas en mesa sin GNSS). Esta interfaz queda como punto de
+ * extensión para otras fuentes de velocidad.
  */
 interface FuentePosicion {
     val muestras: Flow<MuestraPosicion>
