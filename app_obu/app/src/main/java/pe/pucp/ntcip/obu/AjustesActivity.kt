@@ -30,6 +30,29 @@ class AjustesActivity : AppCompatActivity() {
         }
     }
 
+    // Etapa 3 (TLS 1.3 + mTLS): los tres PEM de scripts/seguridad/generar_ca.py.
+    private val elegirTlsCa = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            prefs.tlsCaUri = uri.toString()
+            actualizarEstadoTls()
+        }
+    }
+    private val elegirTlsCert = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            prefs.tlsCertUri = uri.toString()
+            actualizarEstadoTls()
+        }
+    }
+    private val elegirTlsKey = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            prefs.tlsKeyUri = uri.toString()
+            actualizarEstadoTls()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAjustesBinding.inflate(layoutInflater)
@@ -68,6 +91,12 @@ class AjustesActivity : AppCompatActivity() {
             binding.textoTrayectoriaElegida.text = getString(R.string.ajustes_sin_archivo)
         }
 
+        binding.interruptorTls.isChecked = prefs.tlsActivado
+        actualizarEstadoTls()
+        binding.botonElegirTlsCa.setOnClickListener { elegirTlsCa.launch(arrayOf("*/*")) }
+        binding.botonElegirTlsCert.setOnClickListener { elegirTlsCert.launch(arrayOf("*/*")) }
+        binding.botonElegirTlsKey.setOnClickListener { elegirTlsKey.launch(arrayOf("*/*")) }
+
         binding.botonGuardar.setOnClickListener { guardar() }
         binding.botonExportarEventos.setOnClickListener { exportarEventos() }
         binding.botonRevisarBateria.setOnClickListener {
@@ -89,8 +118,22 @@ class AjustesActivity : AppCompatActivity() {
         prefs.clase = clase
         prefs.modoSimulado = binding.interruptorModoSimulado.isChecked
         prefs.vibrarAlVerde = binding.interruptorVibrar.isChecked
+        prefs.tlsActivado = binding.interruptorTls.isChecked
         Toast.makeText(this, "Guardado", Toast.LENGTH_SHORT).show()
         finish()
+    }
+
+    private fun actualizarEstadoTls() {
+        val nombres = listOfNotNull(
+            prefs.tlsCaUri?.let { "CA: " + FuenteSimulada.nombreVisible(this, Uri.parse(it)) },
+            prefs.tlsCertUri?.let { "certificado: " + FuenteSimulada.nombreVisible(this, Uri.parse(it)) },
+            prefs.tlsKeyUri?.let { "llave: " + FuenteSimulada.nombreVisible(this, Uri.parse(it)) },
+        )
+        binding.textoTlsEstado.text = if (nombres.isEmpty()) {
+            getString(R.string.ajustes_tls_sin_archivos)
+        } else {
+            nombres.joinToString(" · ")
+        }
     }
 
     private fun exportarEventos() {

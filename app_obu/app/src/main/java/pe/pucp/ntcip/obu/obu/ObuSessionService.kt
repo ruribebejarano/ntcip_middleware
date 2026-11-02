@@ -3,6 +3,7 @@ package pe.pucp.ntcip.obu.obu
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.Intent
+import android.net.Uri
 import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
@@ -18,6 +19,7 @@ import kotlinx.coroutines.launch
 import pe.pucp.ntcip.obu.MainActivity
 import pe.pucp.ntcip.obu.ObuApp
 import pe.pucp.ntcip.obu.R
+import pe.pucp.ntcip.obu.seguridad.TlsConfig
 import pe.pucp.ntcip.obu.velocidad.EstadoGnss
 import pe.pucp.ntcip.obu.velocidad.FuenteGnss
 import pe.pucp.ntcip.obu.velocidad.FuenteRutaServidor
@@ -91,6 +93,16 @@ class ObuSessionService : LifecycleService() {
         val eventoLogger = EventoLogger(this, nuevoObuId)
         eventos = eventoLogger
 
+        // Etapa 3 (TLS 1.3 + mTLS, docs/CONTRATO_OBU.md §1): si está
+        // activado en Ajustes pero algún PEM no se pudo cargar, no se
+        // arranca la misión sin cifrar por un error de configuración.
+        val tls = cargarTlsConfig(prefs)
+        if (prefs.tlsActivado && tls == null) {
+            eventoLogger.log(EventosObu.CONEXION_MQTT, "-", mapOf("estado" to "error_tls_config"))
+            stopSelf()
+            return
+        }
+
         iniciarNotificacionPrimerPlano()
 
         ObuSessionRepository.reiniciar()
@@ -100,6 +112,7 @@ class ObuSessionService : LifecycleService() {
             host = prefs.brokerHost,
             port = prefs.brokerPuerto,
             obuId = nuevoObuId,
+            tls = tls,
             // onRuta/onEstado llegan en un hilo interno de HiveMQ: se
             // despachan a lifecycleScope para que las mutaciones de
             // ultimaVersionMrAplicada/ultimoTsMeAplicado/ultimoMeEnMs (sin
@@ -166,6 +179,25 @@ class ObuSessionService : LifecycleService() {
             iniciarTickerPublicacion()
         }
     }
+
+    /** Lee los tres PEM elegidos en Ajustes (SAF). null si TLS está
+     * apagado, o si falta alguno de los tres o no se pudo leer. */
+    private fun cargarTlsConfig(prefs: Prefs): TlsConfig? {
+        if (!prefs.tlsActivado) return null
+        val caUri = prefs.tlsCaUri ?: return null
+        val certUri = prefs.tlsCertUri ?: return null
+        val keyUri = prefs.tlsKeyUri ?: return null
+        return runCatching {
+            TlsConfig(
+                caCertPem = leerUri(caUri),
+                clientCertPem = leerUri(certUri),
+                clientKeyPem = leerUri(keyUri),
+            )
+        }.getOrNull()
+    }
+
+    private fun leerUri(uri: String): ByteArray =
+        contentResolver.openInputStream(Uri.parse(uri))!!.use { it.readBytes() }
 
     private fun iniciarFuentePosicion(prefs: Prefs) {
         val fuente: FuentePosicion = if (prefs.modoSimulado) {

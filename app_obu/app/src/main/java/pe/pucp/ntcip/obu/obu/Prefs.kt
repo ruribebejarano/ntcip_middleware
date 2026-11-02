@@ -46,6 +46,27 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(CLAVE_VIBRAR, true)
         set(v) = sp.edit().putBoolean(CLAVE_VIBRAR, v).apply()
 
+    /** Etapa 3 (TLS 1.3 + mTLS, docs/CONTRATO_OBU.md §1). Por defecto
+     * apagado: broker de desarrollo plano, como hasta ahora. */
+    var tlsActivado: Boolean
+        get() = sp.getBoolean(CLAVE_TLS_ACTIVADO, false)
+        set(v) = sp.edit().putBoolean(CLAVE_TLS_ACTIVADO, v).apply()
+
+    /** URI (SAF) de cada PEM emitido por scripts/seguridad/generar_ca.py
+     * (CA, certificado del cliente OBU, llave privada PKCS#8). Solo se
+     * usan si [tlsActivado] es true. */
+    var tlsCaUri: String?
+        get() = sp.getString(CLAVE_TLS_CA_URI, null)
+        set(v) = sp.edit().putString(CLAVE_TLS_CA_URI, v).apply()
+
+    var tlsCertUri: String?
+        get() = sp.getString(CLAVE_TLS_CERT_URI, null)
+        set(v) = sp.edit().putString(CLAVE_TLS_CERT_URI, v).apply()
+
+    var tlsKeyUri: String?
+        get() = sp.getString(CLAVE_TLS_KEY_URI, null)
+        set(v) = sp.edit().putString(CLAVE_TLS_KEY_URI, v).apply()
+
     companion object {
         // Hosts predefinidos de Ajustes. Tailscale: IP de la laptop en el
         // tailnet (la tablet ya está en él, ver app_obu/README.md "Probar en
@@ -62,5 +83,9 @@ class Prefs(context: Context) {
         private const val CLAVE_FACTOR_DEMO = "factor_demo"
         private const val CLAVE_VIBRAR = "vibrar_al_verde"
         private const val CLAVE_ORIGEN_LIBRE = "origen_libre"
+        private const val CLAVE_TLS_ACTIVADO = "tls_activado"
+        private const val CLAVE_TLS_CA_URI = "tls_ca_uri"
+        private const val CLAVE_TLS_CERT_URI = "tls_cert_uri"
+        private const val CLAVE_TLS_KEY_URI = "tls_key_uri"
     }
 }

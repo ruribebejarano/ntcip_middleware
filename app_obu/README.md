@@ -10,9 +10,14 @@ próximo semáforo, publicación de posición a 1 Hz desde un foreground
 service, registro de eventos compatible con `scripts/analisis/`, ajustes
 sin nada hardcodeado.
 
-**No implementado todavía** (estructura dejada lista, ver abajo):
-Etapa 3 (TLS 1.3 + mTLS). Una fuente de velocidad más precisa (por
-ejemplo, un lector OBD-II del vehículo) queda como trabajo futuro.
+**Etapa 3 (TLS 1.3 + mTLS, B4, 2026-11-01):** implementada y conectada al
+cliente MQTT (ver la sección "TLS 1.3 + mTLS (Etapa 3)" más abajo), pero
+**sin probar contra un broker real ni en la tablet** (no hay hardware
+disponible en esta sesión) y con un problema de diseño abierto sin
+resolver (el CN del certificado debe ser fijo, pero el `obu_id` de la app
+es aleatorio por misión) -- ver esa sección para el detalle y
+`[REVISAR con asesor]`. Una fuente de velocidad más precisa (por ejemplo,
+un lector OBD-II del vehículo) queda como trabajo futuro.
 
 ## Requisitos
 
@@ -896,15 +901,80 @@ servidor, sin calibrar):
   puede cancelar la solicitud por `rumbo_divergente`. Caminar recto por la
   vereda del lado de la ruta.
 
-## Estructura (etapa 3, dejada lista pero sin implementar)
+## Estructura
 
 - `obu/velocidad/FuentePosicion.kt`: interfaz de posición+velocidad+rumbo
   con dos implementaciones hoy (`FuenteGnss`, `FuenteSimulada`), dejada
   como punto de extensión para otras fuentes de velocidad.
-- `obu/seguridad/TlsConfig.kt`: parámetro opcional de
-  `obu/MqttObuClient.kt`, siempre `null` hoy. La Etapa 3 (TLS 1.3 + mTLS,
-  certificados de `scripts/seguridad/generar_ca.py`) completaría ese data
-  class y lo conectaría al builder de HiveMQ MQTT Client.
+
+## TLS 1.3 + mTLS (Etapa 3)
+
+`obu/seguridad/TlsConfig.kt` parsea los tres PEM (CA, certificado del
+cliente, llave) y construye un `KeyManagerFactory`/`TrustManagerFactory`
+puros de `javax.net.ssl` (sin BouncyCastle); `obu/MqttObuClient.kt` los
+conecta al builder de HiveMQ MQTT Client con `.sslConfig(...)` cuando
+`tls != null`. Cubierto por `TlsConfigTest.kt` (parseo, sin broker real).
+
+### Emitir los certificados
+
+```
+python scripts/seguridad/generar_ca.py init                        # una sola vez
+python scripts/seguridad/generar_ca.py emitir --tipo obu --id <obu_id>
+```
+
+Esto genera `deploy/pki/ca/ca.crt`, `deploy/pki/obu/<obu_id>/obu-<obu_id>.crt`
+y `.../obu-<obu_id>.key` (PKCS#8, `openssl genpkey`, no `genrsa` -- la app
+no entiende PKCS#1). `deploy/pki/` está en `.gitignore`: **nunca
+commitear estos archivos**, cada despliegue genera los suyos.
+
+### Cargar el certificado de cliente en la tablet
+
+No hay una forma de "instalar" el certificado en el almacén de Android:
+la app lee los tres archivos directamente, vía selector del sistema
+(SAF), igual que el CSV de una trayectoria propia (ver "Modo simulado").
+
+1. Copiar `ca.crt`, `obu-<obu_id>.crt` y `obu-<obu_id>.key` a la tablet
+   (por USB, o subirlos a una carpeta de Drive/almacenamiento propio del
+   dispositivo -- **nunca** a un servicio en la nube fuera del control del
+   proyecto, son credenciales).
+2. En Ajustes de la app, sección "Etapa 3: TLS 1.3 + mTLS": botones "CA",
+   "Certificado" y "Llave" abren el selector de archivos del sistema, uno
+   por archivo.
+3. Activar el interruptor "Usar TLS/mTLS con el broker" y Guardar.
+4. Cambiar el puerto a **8883** (Ajustes, campo "Puerto"): el puerto 1883
+   es el broker de desarrollo sin TLS, no acepta mTLS.
+
+### Cambiar entre TLS y modo sin TLS
+
+El interruptor de Ajustes es el único control: apagado (por defecto) usa
+el broker de desarrollo plano en el puerto configurado (1883 hoy), sin
+tocar ningún certificado. Si el interruptor está encendido pero falta
+alguno de los tres archivos, o no se puede leer, la app **no arranca la
+misión sin cifrar** (se detiene con el evento `error_tls_config` en el
+registro) -- nunca cae de vuelta a texto plano en silencio.
+
+### [REVISAR con asesor] -- CN del certificado vs. `obu_id` aleatorio
+
+`docs/CONTRATO_OBU.md` §1 exige que el Common Name del certificado sea
+**exactamente** el `obu_id`, porque la ACL del broker
+(`scripts/seguridad/mosquitto_acl.conf`) lo usa como `%u`. Pero
+`ObuSessionService.iniciarMision()` genera un `obu_id` **al azar en cada
+misión** (`"ses-" + Random.nextBytes(3)...`), y un certificado de cliente
+es, por diseño, de larga duración con un CN fijo. Esto no se resolvió en
+esta sesión (es una decisión de diseño, no "conectar el gancho"):
+
+- **Para probar el handshake TLS/mTLS en banco:** emitir un certificado
+  con un `obu_id` de prueba fijo (p. ej. `ses-test01`) y, solo para esa
+  prueba, usar ese mismo valor en vez de dejar que la app lo genere al
+  azar -- no hay todavía un ajuste en la UI para fijarlo; requeriría un
+  cambio pequeño y deliberado en `ObuSessionService` si se necesita antes
+  de la asesoría.
+- **Para una campaña o un despliegue real:** decidir si el `obu_id` pasa a
+  ser estable por dispositivo (un certificado por tablet, emitido una
+  vez) en lugar de por misión. Esto afectaría cómo se organizan los
+  archivos de `resultados/campana/` por repetición, que hoy asumen un
+  `obu_id` distinto por corrida -- por eso se deja como decisión del
+  asesor, no se cambia aquí.
 
 ## Capturas/fotos para la tesis (una vez que la prueba en mesa funcione)
 

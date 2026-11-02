@@ -1,5 +1,6 @@
 package pe.pucp.ntcip.obu.obu
 
+import com.hivemq.client.mqtt.MqttClientSslConfig
 import com.hivemq.client.mqtt.MqttGlobalPublishFilter
 import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient
@@ -19,7 +20,7 @@ class MqttObuClient(
     private val host: String,
     private val port: Int,
     private val obuId: String,
-    @Suppress("UNUSED_PARAMETER") private val tls: TlsConfig? = null, // Etapa 3 (docs/CONTRATO_OBU.md §1), hoy siempre null
+    private val tls: TlsConfig? = null, // Etapa 3 (docs/CONTRATO_OBU.md §1); null = sin TLS (broker de desarrollo)
     private val onRuta: (MensajeMR) -> Unit,
     private val onEstado: (MensajeME) -> Unit,
     private val onConexion: (conectado: Boolean) -> Unit,
@@ -35,16 +36,27 @@ class MqttObuClient(
     @Volatile private var construido: Mqtt5BlockingClient? = null
 
     suspend fun conectar() = withContext(Dispatchers.IO) {
-        val c = Mqtt5Client.builder()
+        var builder = Mqtt5Client.builder()
             .identifier("obu-$obuId")
             .serverHost(host)
             .serverPort(port)
             .automaticReconnectWithDefaultConfig()
             .addConnectedListener { onConexion(true) }
             .addDisconnectedListener { onConexion(false) }
-            // Sin TLS: broker de desarrollo plano, permitido por §1 del
-            // contrato para esta etapa (ver seguridad/TlsConfig.kt).
-            .buildBlocking()
+        // tls == null: sin TLS, broker de desarrollo plano, permitido por
+        // §1 del contrato para esta etapa (ver seguridad/TlsConfig.kt).
+        // Reasignar `builder`, no descartar el valor de retorno: los
+        // builders de HiveMQ no garantizan mutar la misma instancia.
+        val tlsActual = tls
+        if (tlsActual != null) {
+            builder = builder.sslConfig(
+                MqttClientSslConfig.builder()
+                    .keyManagerFactory(tlsActual.keyManagerFactory())
+                    .trustManagerFactory(tlsActual.trustManagerFactory())
+                    .build(),
+            )
+        }
+        val c = builder.buildBlocking()
         construido = c
 
         c.connect()

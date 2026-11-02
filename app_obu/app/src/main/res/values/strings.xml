@@ -96,4 +96,11 @@
     <string name="ajustes_bateria_titulo">Optimización de batería</string>
     <string name="ajustes_bateria_resumen">Esta app puede detenerse en segundo plano si Android restringe su batería</string>
     <string name="ajustes_bateria_boton">Revisar</string>
+    <string name="ajustes_tls_titulo">Etapa 3: TLS 1.3 + mTLS</string>
+    <string name="ajustes_tls_resumen">Certificados emitidos por scripts/seguridad/generar_ca.py (ver app_obu/README.md). Apagado: broker de desarrollo sin cifrar, como hasta ahora.</string>
+    <string name="ajustes_tls_activar">Usar TLS/mTLS con el broker</string>
+    <string name="ajustes_tls_sin_archivos">Ningún certificado elegido todavía</string>
+    <string name="ajustes_tls_elegir_ca">CA</string>
+    <string name="ajustes_tls_elegir_cert">Certificado</string>
+    <string name="ajustes_tls_elegir_key">Llave</string>
 </resources>
