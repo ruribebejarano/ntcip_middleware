@@ -127,12 +127,14 @@ siendo la dirección de la LAPTOP (p. ej. `127.0.0.1` si corre en la
 misma laptop), no la de la Pi -- ver la nota de más arriba.
 
 Uso:
-    # Prueba corta en esta máquina:
-    python scripts/campanas/lazo_centralizado.py --escenario lazo --repeticiones 2 --config local
+    # Prueba corta en esta máquina (cuotas adaptativas, ver arriba; --tope-repeticiones
+    # bajo para no esperar las 3 condiciones de llegada en una prueba corta):
+    python scripts/campanas/lazo_centralizado.py --escenario lazo --tope-repeticiones 2 --config local \\
+        --broker-host 127.0.0.1
 
     # Campaña real, RSU por Wi-Fi/LAN (escenarios de la campaña oficial: lazo, desvio).
     # --broker-host es la direccion de la LAPTOP (ver nota de mas arriba), no la de la Pi:
-    python scripts/campanas/lazo_centralizado.py --escenario desvio --repeticiones 10 \\
+    python scripts/campanas/lazo_centralizado.py --escenario desvio \\
         --config pi-lan --broker-host 127.0.0.1 --host-rsu rsu --factor 1
 
 Análisis, al terminar:
