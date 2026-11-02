@@ -1,34 +1,34 @@
-1793634698: mosquitto version 2.1.2 starting
-1793634698: Config loaded from E:\Tesis\ntcip_middleware\deploy\pki_banco\mosquitto_banco.conf.
-1793634698: Bridge support available.
-1793634698: Persistence support available.
-1793634698: TLS support available.
-1793634698: TLS-PSK support available.
-1793634698: Websockets support available.
-1793634698: Warning: ACL pattern 'servidor/central/respuestas' does not contain '%c' or '%u'.
-1793634698: Plugin builtin-security has registered to receive 'acl-check' events.
-1793634698: Opening ipv4 listen socket on port 55531.
-1793634698: mosquitto version 2.1.2 running
-1793634698: New connection from 127.0.0.1:55534 on port 55531.
-1793634698: OpenSSL Error while trying to get the error[0]: error:0A000126:SSL routines::unexpected eof while reading
-1793634698: Client 127.0.0.1 [127.0.0.1:55534] disconnected: protocol error.
-1793634700: New connection from 127.0.0.1:55536 on port 55531.
-1793634700: New client connected from 127.0.0.1:55536 as t06-rsu-1 (p5, c1, k10, u'1').
-1793634700: No will message specified.
-1793634700: Client t06-rsu-1 negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
-1793634700: Sending CONNACK to t06-rsu-1 (0, 0)
-1793634700: Received SUBSCRIBE from t06-rsu-1
-1793634700: 	rsu/1/solicitudes (QoS 1)
-1793634700: t06-rsu-1 1 rsu/1/solicitudes
-1793634700: Sending SUBACK to t06-rsu-1
-1793634703: New connection from 127.0.0.1:65347 on port 55531.
-1793634703: New client connected from 127.0.0.1:65347 as t06-obu-emu-01 (p5, c1, k10, u'obu-emu-01').
-1793634703: No will message specified.
-1793634703: Client t06-obu-emu-01 negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
-1793634703: Sending CONNACK to t06-obu-emu-01 (0, 0)
-1793634703: Denied PUBLISH from t06-obu-emu-01 (d0, q1, r0, m1, 'rsu/1/solicitudes', ... (19 bytes))
-1793634703: Sending PUBACK to t06-obu-emu-01 (m1, rc135)
-1793634704: Received DISCONNECT from t06-obu-emu-01
-1793634704: Client t06-obu-emu-01 [127.0.0.1:65347] disconnected.
-1793634705: Received DISCONNECT from t06-rsu-1
-1793634705: Client t06-rsu-1 [127.0.0.1:55536] disconnected.
+1793653989: mosquitto version 2.1.2 starting
+1793653989: Config loaded from E:\Tesis\ntcip_middleware\deploy\pki_banco\mosquitto_banco.conf.
+1793653989: Bridge support available.
+1793653989: Persistence support available.
+1793653989: TLS support available.
+1793653989: TLS-PSK support available.
+1793653989: Websockets support available.
+1793653989: Warning: ACL pattern 'servidor/central/respuestas' does not contain '%c' or '%u'.
+1793653989: Plugin builtin-security has registered to receive 'acl-check' events.
+1793653989: Opening ipv4 listen socket on port 52138.
+1793653989: mosquitto version 2.1.2 running
+1793653989: New connection from 127.0.0.1:52140 on port 52138.
+1793653989: OpenSSL Error while trying to get the error[0]: error:0A000126:SSL routines::unexpected eof while reading
+1793653989: Client 127.0.0.1 [127.0.0.1:52140] disconnected: protocol error.
+1793653991: New connection from 127.0.0.1:52142 on port 52138.
+1793653991: New client connected from 127.0.0.1:52142 as t06-rsu-1 (p5, c1, k10, u'1').
+1793653991: No will message specified.
+1793653991: Client t06-rsu-1 negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
+1793653991: Sending CONNACK to t06-rsu-1 (0, 0)
+1793653991: Received SUBSCRIBE from t06-rsu-1
+1793653991: 	rsu/1/solicitudes (QoS 1)
+1793653991: t06-rsu-1 1 rsu/1/solicitudes
+1793653991: Sending SUBACK to t06-rsu-1
+1793653994: New connection from 127.0.0.1:52148 on port 52138.
+1793653994: New client connected from 127.0.0.1:52148 as t06-obu-emu-01 (p5, c1, k10, u'obu-emu-01').
+1793653994: No will message specified.
+1793653994: Client t06-obu-emu-01 negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
+1793653994: Sending CONNACK to t06-obu-emu-01 (0, 0)
+1793653994: Denied PUBLISH from t06-obu-emu-01 (d0, q1, r0, m1, 'rsu/1/solicitudes', ... (19 bytes))
+1793653994: Sending PUBACK to t06-obu-emu-01 (m1, rc135)
+1793653995: Received DISCONNECT from t06-obu-emu-01
+1793653995: Client t06-obu-emu-01 [127.0.0.1:52148] disconnected.
+1793653996: Received DISCONNECT from t06-rsu-1
+1793653996: Client t06-rsu-1 [127.0.0.1:52142] disconnected.

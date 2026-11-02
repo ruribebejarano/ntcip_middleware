@@ -146,14 +146,14 @@ pausar
 encabezado "1" "Lectura de NTCIP 1202 (fase y tiempos reales)" "RF-08, RNF-05"
 observar "maxPhases=1, los tiempos de phaseTable (verde/ámbar/todo rojo) y el bit activo de phaseStatusGroupTable."
 archivo1="$EVID_DIR/01_snmpwalk-ntcip1202.txt"
-cmd_mostrar="snmpwalk -v3 -u $SNMP_USER -l authPriv -a SHA -A *** -x AES -X *** -n \"\" $SNMP_DEST $OID_ASC"
+cmd_mostrar="snmpwalk -v3 -u $SNMP_USER -l authPriv -a SHA-256 -A *** -x AES -X *** -n \"\" $SNMP_DEST $OID_ASC"
 comando "$cmd_mostrar"
 {
   echo "\$ $cmd_mostrar"
   echo "(ejecutado en $HOST, $(date '+%Y-%m-%d %H:%M:%S'))"
   echo
 } > "$archivo1"
-ssh "$HOST" "source ~/rsu-env/bin/activate && snmpwalk -v3 -u $SNMP_USER -l authPriv -a SHA -A $SNMP_AUTH -x AES -X $SNMP_PRIV -n '' $SNMP_DEST $OID_ASC" >> "$archivo1" 2>&1
+ssh "$HOST" "source ~/rsu-env/bin/activate && snmpwalk -v3 -u $SNMP_USER -l authPriv -a SHA-256 -A $SNMP_AUTH -x AES -X $SNMP_PRIV -n '' $SNMP_DEST $OID_ASC" >> "$archivo1" 2>&1
 r1=$?
 cat "$archivo1"
 if [ "$r1" = "0" ] && grep -q "$OID_ASC" "$archivo1"; then
@@ -323,7 +323,7 @@ archivo4="$EVID_DIR/04_cola-y-activacion-rf06.txt"
 > "$archivo4"
 
 restaurar_timings() {
-  ssh "$HOST" "source ~/rsu-env/bin/activate && snmpset -v3 -u $SNMP_USER -l authPriv -a SHA -A $SNMP_AUTH -x AES -X $SNMP_PRIV -n '' $SNMP_DEST $OID_PHASEYELLOW i 30 $OID_PHASEREDCLEAR i 20" >/dev/null 2>&1
+  ssh "$HOST" "source ~/rsu-env/bin/activate && snmpset -v3 -u $SNMP_USER -l authPriv -a SHA-256 -A $SNMP_AUTH -x AES -X $SNMP_PRIV -n '' $SNMP_DEST $OID_PHASEYELLOW i 30 $OID_PHASEREDCLEAR i 20" >/dev/null 2>&1
 }
 trap 'restaurar_timings; limpiar_tmp_remotos' EXIT
 
@@ -331,7 +331,7 @@ comando "snmpset phaseYellowChange=1.0s phaseRedClear=1.0s (temporal, para la de
 {
   echo "\$ snmpset phaseYellowChange=1.0s phaseRedClear=1.0s (temporal, para la demo)"
 } >> "$archivo4"
-ssh "$HOST" "source ~/rsu-env/bin/activate && snmpset -v3 -u $SNMP_USER -l authPriv -a SHA -A $SNMP_AUTH -x AES -X $SNMP_PRIV -n '' $SNMP_DEST $OID_PHASEYELLOW i 10 $OID_PHASEREDCLEAR i 10" >> "$archivo4" 2>&1
+ssh "$HOST" "source ~/rsu-env/bin/activate && snmpset -v3 -u $SNMP_USER -l authPriv -a SHA-256 -A $SNMP_AUTH -x AES -X $SNMP_PRIV -n '' $SNMP_DEST $OID_PHASEYELLOW i 10 $OID_PHASEREDCLEAR i 10" >> "$archivo4" 2>&1
 
 py4="$(mktemp /tmp/demo_paso4_XXXXXX.py 2>/dev/null || mktemp -t demo_paso4)"
 cat > "$py4" <<'PYEOF'

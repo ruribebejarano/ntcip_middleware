@@ -34,8 +34,8 @@ limitacion y de la codificacion.
 
 Cuatro enlaces que este proceso conecta:
 
-1. Centro de control <-> RSU: SNMPv3 (USM SHA-1 auth / AES-128 priv), igual
-   que agent/rsu_snmpv3_agent.py. Probar con
+1. Centro de control <-> RSU: SNMPv3 (USM SHA-256 auth / AES-128 priv,
+   RFC 7860), igual que agent/rsu_snmpv3_agent.py. Probar con
    centro_control/software_gestion.py o snmpget/snmpset reales (ver
    docs/GUIA_COMANDOS.md).
 2. RSU -> Controlador: un SNMP SET sobre prgPriorityRequestAbsolute, o un
@@ -883,7 +883,7 @@ def build_snmp_engine() -> engine.SnmpEngine:
     config.addV3User(
         snmp_engine,
         USER_NAME,
-        config.usmHMACSHAAuthProtocol,
+        config.usmHMAC192SHA256AuthProtocol,
         AUTH_KEY,
         config.usmAesCfb128Protocol,
         PRIV_KEY,
@@ -1072,7 +1072,7 @@ def main() -> None:
 
     prg_oid_str = ".".join(str(n) for n in PRGPRIORITYREQUESTABSOLUTE_OID) + ".0"
     print(f"SNMP escuchando en {SNMP_LISTEN_ADDRESS[0]}:{SNMP_LISTEN_ADDRESS[1]} "
-          f"(usuario USM: {USER_NAME}, auth SHA-1 / priv AES-128)")
+          f"(usuario USM: {USER_NAME}, auth SHA-256 / priv AES-128)")
     print("  NTCIP 1202 v03B real (fase unica, phaseNumber=1, grupo de estado 1 bit 0):")
     print(f"    {_oid_str(MAXPHASES_OID, (0,))} = maxPhases (RO)")
     print(f"    {_oid_str(PHASEMINGREEN_COL_OID)} = phaseMinimumGreen (RW, segundos)")

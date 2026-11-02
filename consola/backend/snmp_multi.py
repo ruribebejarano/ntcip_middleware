@@ -29,7 +29,7 @@ from pysnmp.hlapi.asyncio import (
     UsmUserData,
     getCmd,
     usmAesCfb128Protocol,
-    usmHMACSHAAuthProtocol,
+    usmHMAC192SHA256AuthProtocol,
 )
 
 from centro_control.panel.ntcip_objetos import PHASESTATUSGROUPGREENS, PHASESTATUSGROUPREDS, PHASESTATUSGROUPYELLOWS
@@ -43,7 +43,7 @@ OIDS_FASE = (PHASESTATUSGROUPREDS, PHASESTATUSGROUPYELLOWS, PHASESTATUSGROUPGREE
 
 def _usm() -> UsmUserData:
     return UsmUserData(config.SNMP_USER, authKey=config.SNMP_AUTH_KEY, privKey=config.SNMP_PRIV_KEY,
-                       authProtocol=usmHMACSHAAuthProtocol, privProtocol=usmAesCfb128Protocol)
+                       authProtocol=usmHMAC192SHA256AuthProtocol, privProtocol=usmAesCfb128Protocol)
 
 
 def _fase(red: bool, yellow: bool, green: bool) -> str:

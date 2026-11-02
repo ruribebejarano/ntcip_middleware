@@ -1,6 +1,6 @@
 """Matriz de pruebas de seguridad del broker (prompt_seguridad.md, S3):
 T01-T13 contra un Mosquitto real y temporal (scripts/seguridad/banco_local.py),
-T14-T16 contra un agente SNMPv3 real y temporal (sin la Raspberry Pi).
+T14-T17 contra un agente SNMPv3 real y temporal (sin la Raspberry Pi).
 
 Se salta TODO el módulo si no hay mosquitto instalado (ni en el PATH ni en
 la ruta del instalador de Windows) -- no debe romper `pytest` normal.
@@ -451,19 +451,14 @@ def test_T11_flujo_legitimo_de_punta_a_punta(banco, pki_dir, tmp_path):
 @pytest.fixture()
 def agente_snmp():
     """Motor SNMPv3 minimo, con las MISMAS credenciales reales de
-    agent/rsu_middleware.py (USER_NAME/AUTH_KEY/PRIV_KEY, auth SHA-1 +
-    priv AES-128 -- NO SHA-256: la "Estado de partida" de
-    prompt_seguridad.md decia "SNMPv3 con USM authPriv (SHA-256 +
-    AES-128); un gestor con SHA-1 es rechazado (R10)", pero
-    agent/rsu_middleware.py usa config.usmHMACSHAAuthProtocol = SHA-1, y
-    su propio mensaje de arranque dice "auth SHA-1 / priv AES-128"
-    [docs/bitacora/2026-10-19_decision-g1-usm-sha256.md, que habria
-    documentado la subida a SHA-256, NO EXISTE] -- la subida a SHA-256
-    que proponia docs/PLAN_10H_2026-10-19.md nunca se implemento. T15 usa
-    MD5 como protocolo "equivocado" en vez de SHA-1, porque SHA-1 es el
-    que de verdad esta configurado. Esto no se corrigio en S3 (es una
-    decision sobre el diseño de seguridad, no del banco de pruebas) --
-    ver la lista para el autor del informe final.
+    agent/rsu_middleware.py (USER_NAME/AUTH_KEY/PRIV_KEY, auth SHA-256
+    RFC 7860 + priv AES-128 -- corregido: hasta antes de esta prueba, el
+    codigo usaba SHA-1 (config.usmHMACSHAAuthProtocol) a pesar de que el
+    diseño de seguridad ya habia adoptado SHA-256; ver
+    redaccion/capitulo4_seguridad.tex para el detalle de la correccion).
+    T15 usa SHA-1 como protocolo "equivocado" -- es justo el que se
+    informo como rechazado y es el que de verdad queda obsoleto con este
+    cambio.
 
     Motor SIN la mision/MIB completa de rsu_middleware.py (no hace falta
     para probar el rechazo a nivel USM), en un hilo propio, puerto
@@ -483,7 +478,7 @@ def agente_snmp():
         snmp_engine, config.udp.domainName,
         config.udp.UdpAsyncioTransport().openServerMode(("127.0.0.1", puerto)),
     )
-    config.addV3User(snmp_engine, USER_NAME, config.usmHMACSHAAuthProtocol, AUTH_KEY,
+    config.addV3User(snmp_engine, USER_NAME, config.usmHMAC192SHA256AuthProtocol, AUTH_KEY,
                      config.usmAesCfb128Protocol, PRIV_KEY)
     config.addVacmUser(snmp_engine, 3, USER_NAME, "authPriv", readSubTree=NTCIP_ASC_OID)
     cmdrsp.GetCommandResponder(snmp_engine, SnmpContext(snmp_engine))
@@ -523,25 +518,42 @@ def test_T14_snmp_sin_autenticacion_se_rechaza(agente_snmp):
 
 
 def test_T15_snmp_protocolo_de_autenticacion_equivocado_se_rechaza(agente_snmp):
-    from pysnmp.hlapi import usmHMACMD5AuthProtocol, usmAesCfb128Protocol
+    from pysnmp.hlapi import usmHMACSHAAuthProtocol, usmAesCfb128Protocol
     from agent.rsu_middleware import AUTH_KEY, PRIV_KEY, USER_NAME
 
-    # El agente real usa SHA-1 (usmHMACSHAAuthProtocol, no SHA-256 -- ver
-    # la nota al inicio del modulo); MD5 es CUALQUIER protocolo distinto
-    # del configurado, el punto es que no coincide.
+    # SHA-1 (usmHMACSHAAuthProtocol): el protocolo anterior, ya no
+    # configurado -- este es justo el caso que se informo como
+    # rechazado (un gestor con SHA-1 no debe poder operar el agente).
     error_indication, error_status = _snmp_get(
         agente_snmp, usuario=USER_NAME, auth_key=AUTH_KEY, priv_key=PRIV_KEY,
-        auth_proto=usmHMACMD5AuthProtocol, priv_proto=usmAesCfb128Protocol,
+        auth_proto=usmHMACSHAAuthProtocol, priv_proto=usmAesCfb128Protocol,
     )
-    assert error_indication or error_status, "un protocolo de autenticacion que no es el configurado deberia rechazarse"
+    assert error_indication or error_status, "un gestor con SHA-1 (protocolo anterior) deberia rechazarse"
 
 
 def test_T16_snmp_clave_equivocada_se_rechaza(agente_snmp):
-    from pysnmp.hlapi import usmHMACSHAAuthProtocol, usmAesCfb128Protocol
+    from pysnmp.hlapi import usmHMAC192SHA256AuthProtocol, usmAesCfb128Protocol
     from agent.rsu_middleware import USER_NAME
 
     error_indication, error_status = _snmp_get(
         agente_snmp, usuario=USER_NAME, auth_key="claveEquivocada999", priv_key="claveEquivocada999",
-        auth_proto=usmHMACSHAAuthProtocol, priv_proto=usmAesCfb128Protocol,
+        auth_proto=usmHMAC192SHA256AuthProtocol, priv_proto=usmAesCfb128Protocol,
     )
     assert error_indication or error_status, "una clave de autenticacion equivocada deberia rechazarse"
+
+
+def test_T17_snmp_sha256_y_aes128_correctos_hacen_get(agente_snmp):
+    """Prueba positiva (P1 de prompt_cierre_repo_2026-11-02.md): con el
+    protocolo y las credenciales reales (SHA-256 + AES-128), el GET pasa
+    la capa de seguridad USM -- sin error_indication ni error_status, sin
+    importar si el OID en si tiene un objeto registrado (este motor no
+    registra la MIB completa, ver el docstring de agente_snmp)."""
+    from pysnmp.hlapi import usmHMAC192SHA256AuthProtocol, usmAesCfb128Protocol
+    from agent.rsu_middleware import AUTH_KEY, PRIV_KEY, USER_NAME
+
+    error_indication, error_status = _snmp_get(
+        agente_snmp, usuario=USER_NAME, auth_key=AUTH_KEY, priv_key=PRIV_KEY,
+        auth_proto=usmHMAC192SHA256AuthProtocol, priv_proto=usmAesCfb128Protocol,
+    )
+    assert not error_indication, f"se esperaba exito a nivel USM; llego {error_indication}"
+    assert not error_status, f"se esperaba exito a nivel USM; llego errorStatus={error_status}"

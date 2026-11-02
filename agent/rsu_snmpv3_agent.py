@@ -4,7 +4,7 @@
 *** OBJETO DE PRUEBA - GENERICO, SIN MIB ESTANDARIZADA TODAVIA ***
 El OID expuesto aqui (1.3.6.1.4.1.99999.1.1.0, bajo un numero de empresa NO
 registrado) es un entero FICTICIO que solo imita, para validar la pila SNMPv3
-(USM: autenticacion SHA-1 + privacidad AES-128), la idea de un objeto de
+(USM: autenticacion SHA-256 (RFC 7860) + privacidad AES-128), la idea de un objeto de
 estado agregado de fases de un controlador de senal de transito. No tiene la
 semantica real de un estandar de MIB de transito (bitmask de rojo/ambar/verde
 por grupo de fases) ni respeta el caracter de solo-lectura que tendria un
@@ -15,7 +15,7 @@ Cuando se agregue una MIB estandarizada real, este agente debe reemplazarse
 por objetos definidos a partir de las MIB correspondientes (ver CLAUDE.md
 para el detalle de cuales y donde se instalan).
 
-Seguridad: USM (SNMPv3) con SHA-1/AES-128 es un PUNTO DE PARTIDA de
+Seguridad: USM (SNMPv3) con SHA-256/AES-128 es un PUNTO DE PARTIDA de
 laboratorio. La migracion planeada para produccion es a TLSTM (Transport
 Security Model sobre TLS/DTLS, RFC 6353). Las claves de abajo son de
 laboratorio unicamente y no deben usarse fuera de el.
@@ -68,7 +68,7 @@ def build_agent() -> engine.SnmpEngine:
     config.addV3User(
         snmp_engine,
         USER_NAME,
-        config.usmHMACSHAAuthProtocol,
+        config.usmHMAC192SHA256AuthProtocol,
         AUTH_KEY,
         config.usmAesCfb128Protocol,
         PRIV_KEY,
@@ -115,7 +115,7 @@ def main() -> None:
     oid_str = ".".join(str(n) for n in TEST_SCALAR_OID) + ".0"
     print(f"Agente SNMPv3 de prueba (RSU) escuchando en "
           f"{LISTEN_ADDRESS[0]}:{LISTEN_ADDRESS[1]}")
-    print(f"Usuario USM: {USER_NAME} (auth SHA-1 / priv AES-128)")
+    print(f"Usuario USM: {USER_NAME} (auth SHA-256 / priv AES-128)")
     print(f"OID de prueba (ficticio, ver cabecera del modulo): {oid_str}")
 
     dispatcher = snmp_engine.transportDispatcher

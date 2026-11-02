@@ -13,5 +13,6 @@ T11,"Un cliente legítimo (servidor, RSU 1 y OBU)",Conecta y el flujo MI->MR y M
 T12,El cliente verifica el SAN del servidor contra un host que no coincide,Rechazado del lado del cliente,ok,✔,T12.txt
 T13,Repetición de un MP capturado (mismo seq),Descartado por el servidor (B2),ok,✔,
 T14,SNMPv3 sin autenticación (noAuthNoPriv),Rechazado,ok,✔,
-T15,SNMPv3 con protocolo de autenticación equivocado,Rechazado,ok,✔,
+T15,"SNMPv3 con SHA-1 (protocolo anterior, ya no configurado)",Rechazado,ok,✔,
 T16,SNMPv3 con clave de autenticación equivocada,Rechazado,ok,✔,
+T17,SNMPv3 con SHA-256 + AES-128 (credenciales reales),GET exitoso a nivel USM,ok,✔,

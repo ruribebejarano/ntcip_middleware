@@ -1,36 +1,36 @@
-1793634728: mosquitto version 2.1.2 starting
-1793634728: Config loaded from E:\Tesis\ntcip_middleware\deploy\pki_banco\mosquitto_banco.conf.
-1793634728: Bridge support available.
-1793634728: Persistence support available.
-1793634728: TLS support available.
-1793634728: TLS-PSK support available.
-1793634728: Websockets support available.
-1793634728: Warning: ACL pattern 'servidor/central/respuestas' does not contain '%c' or '%u'.
-1793634728: Plugin builtin-security has registered to receive 'acl-check' events.
-1793634728: Opening ipv4 listen socket on port 65402.
-1793634728: mosquitto version 2.1.2 running
-1793634729: New connection from 127.0.0.1:65404 on port 65402.
-1793634729: OpenSSL Error while trying to get the error[0]: error:0A000126:SSL routines::unexpected eof while reading
-1793634729: Client 127.0.0.1 [127.0.0.1:65404] disconnected: protocol error.
-1793634731: New connection from 127.0.0.1:65406 on port 65402.
-1793634731: New client connected from 127.0.0.1:65406 as t10-servidor-central (p5, c1, k10, u'servidor-central').
-1793634731: No will message specified.
-1793634731: Client t10-servidor-central negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
-1793634731: Sending CONNACK to t10-servidor-central (0, 0)
-1793634731: Received SUBSCRIBE from t10-servidor-central
-1793634731: 	servidor/central/respuestas (QoS 1)
-1793634731: t10-servidor-central 1 servidor/central/respuestas
-1793634731: Sending SUBACK to t10-servidor-central
-1793634733: New connection from 127.0.0.1:65414 on port 65402.
-1793634733: New client connected from 127.0.0.1:65414 as t10-obu-emu-01 (p5, c1, k10, u'obu-emu-01').
-1793634733: No will message specified.
-1793634733: Client t10-obu-emu-01 negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
-1793634733: Sending CONNACK to t10-obu-emu-01 (0, 0)
-1793634733: Received PUBLISH from t10-obu-emu-01 (d0, q1, r0, m1, 'servidor/central/respuestas', ... (34 bytes))
-1793634733: Sending PUBLISH to t10-servidor-central (d0, q1, r0, m1, 'servidor/central/respuestas', ... (34 bytes))
-1793634733: Sending PUBACK to t10-obu-emu-01 (m1, rc0)
-1793634733: Received PUBACK from t10-servidor-central (Mid: 1, RC:0)
-1793634734: Received DISCONNECT from t10-obu-emu-01
-1793634734: Client t10-obu-emu-01 [127.0.0.1:65414] disconnected.
-1793634735: Received DISCONNECT from t10-servidor-central
-1793634735: Client t10-servidor-central [127.0.0.1:65406] disconnected.
+1793654019: mosquitto version 2.1.2 starting
+1793654019: Config loaded from E:\Tesis\ntcip_middleware\deploy\pki_banco\mosquitto_banco.conf.
+1793654019: Bridge support available.
+1793654019: Persistence support available.
+1793654019: TLS support available.
+1793654019: TLS-PSK support available.
+1793654019: Websockets support available.
+1793654019: Warning: ACL pattern 'servidor/central/respuestas' does not contain '%c' or '%u'.
+1793654019: Plugin builtin-security has registered to receive 'acl-check' events.
+1793654019: Opening ipv4 listen socket on port 63845.
+1793654019: mosquitto version 2.1.2 running
+1793654020: New connection from 127.0.0.1:63847 on port 63845.
+1793654020: OpenSSL Error while trying to get the error[0]: error:0A000126:SSL routines::unexpected eof while reading
+1793654020: Client 127.0.0.1 [127.0.0.1:63847] disconnected: protocol error.
+1793654022: New connection from 127.0.0.1:63849 on port 63845.
+1793654022: New client connected from 127.0.0.1:63849 as t10-servidor-central (p5, c1, k10, u'servidor-central').
+1793654022: No will message specified.
+1793654022: Client t10-servidor-central negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
+1793654022: Sending CONNACK to t10-servidor-central (0, 0)
+1793654022: Received SUBSCRIBE from t10-servidor-central
+1793654022: 	servidor/central/respuestas (QoS 1)
+1793654022: t10-servidor-central 1 servidor/central/respuestas
+1793654022: Sending SUBACK to t10-servidor-central
+1793654024: New connection from 127.0.0.1:63854 on port 63845.
+1793654024: New client connected from 127.0.0.1:63854 as t10-obu-emu-01 (p5, c1, k10, u'obu-emu-01').
+1793654024: No will message specified.
+1793654024: Client t10-obu-emu-01 negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
+1793654024: Sending CONNACK to t10-obu-emu-01 (0, 0)
+1793654024: Received PUBLISH from t10-obu-emu-01 (d0, q1, r0, m1, 'servidor/central/respuestas', ... (34 bytes))
+1793654024: Sending PUBLISH to t10-servidor-central (d0, q1, r0, m1, 'servidor/central/respuestas', ... (34 bytes))
+1793654024: Sending PUBACK to t10-obu-emu-01 (m1, rc0)
+1793654024: Received PUBACK from t10-servidor-central (Mid: 1, RC:0)
+1793654025: Received DISCONNECT from t10-obu-emu-01
+1793654025: Client t10-obu-emu-01 [127.0.0.1:63854] disconnected.
+1793654026: Received DISCONNECT from t10-servidor-central
+1793654026: Client t10-servidor-central [127.0.0.1:63849] disconnected.

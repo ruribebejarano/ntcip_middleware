@@ -1,34 +1,34 @@
-1793634706: mosquitto version 2.1.2 starting
-1793634706: Config loaded from E:\Tesis\ntcip_middleware\deploy\pki_banco\mosquitto_banco.conf.
-1793634706: Bridge support available.
-1793634706: Persistence support available.
-1793634706: TLS support available.
-1793634706: TLS-PSK support available.
-1793634706: Websockets support available.
-1793634706: Warning: ACL pattern 'servidor/central/respuestas' does not contain '%c' or '%u'.
-1793634706: Plugin builtin-security has registered to receive 'acl-check' events.
-1793634706: Opening ipv4 listen socket on port 65353.
-1793634706: mosquitto version 2.1.2 running
-1793634706: New connection from 127.0.0.1:65355 on port 65353.
-1793634706: OpenSSL Error while trying to get the error[0]: error:0A000126:SSL routines::unexpected eof while reading
-1793634706: Client 127.0.0.1 [127.0.0.1:65355] disconnected: protocol error.
-1793634708: New connection from 127.0.0.1:65358 on port 65353.
-1793634708: New client connected from 127.0.0.1:65358 as t07-servidor-central (p5, c1, k10, u'servidor-central').
-1793634708: No will message specified.
-1793634708: Client t07-servidor-central negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
-1793634708: Sending CONNACK to t07-servidor-central (0, 0)
-1793634708: Received SUBSCRIBE from t07-servidor-central
-1793634708: 	obu/obu-emu-02/posicion (QoS 1)
-1793634708: t07-servidor-central 1 obu/obu-emu-02/posicion
-1793634708: Sending SUBACK to t07-servidor-central
-1793634710: New connection from 127.0.0.1:65362 on port 65353.
-1793634710: New client connected from 127.0.0.1:65362 as t07-obu-emu-01 (p5, c1, k10, u'obu-emu-01').
-1793634710: No will message specified.
-1793634710: Client t07-obu-emu-01 negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
-1793634710: Sending CONNACK to t07-obu-emu-01 (0, 0)
-1793634710: Denied PUBLISH from t07-obu-emu-01 (d0, q1, r0, m1, 'obu/obu-emu-02/posicion', ... (19 bytes))
-1793634710: Sending PUBACK to t07-obu-emu-01 (m1, rc135)
-1793634711: Received DISCONNECT from t07-obu-emu-01
-1793634711: Client t07-obu-emu-01 [127.0.0.1:65362] disconnected.
-1793634713: Received DISCONNECT from t07-servidor-central
-1793634713: Client t07-servidor-central [127.0.0.1:65358] disconnected.
+1793653997: mosquitto version 2.1.2 starting
+1793653997: Config loaded from E:\Tesis\ntcip_middleware\deploy\pki_banco\mosquitto_banco.conf.
+1793653997: Bridge support available.
+1793653997: Persistence support available.
+1793653997: TLS support available.
+1793653997: TLS-PSK support available.
+1793653997: Websockets support available.
+1793653997: Warning: ACL pattern 'servidor/central/respuestas' does not contain '%c' or '%u'.
+1793653997: Plugin builtin-security has registered to receive 'acl-check' events.
+1793653997: Opening ipv4 listen socket on port 52151.
+1793653997: mosquitto version 2.1.2 running
+1793653997: New connection from 127.0.0.1:52153 on port 52151.
+1793653997: OpenSSL Error while trying to get the error[0]: error:0A000126:SSL routines::unexpected eof while reading
+1793653997: Client 127.0.0.1 [127.0.0.1:52153] disconnected: protocol error.
+1793653999: New connection from 127.0.0.1:52162 on port 52151.
+1793653999: New client connected from 127.0.0.1:52162 as t07-servidor-central (p5, c1, k10, u'servidor-central').
+1793653999: No will message specified.
+1793653999: Client t07-servidor-central negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
+1793653999: Sending CONNACK to t07-servidor-central (0, 0)
+1793653999: Received SUBSCRIBE from t07-servidor-central
+1793653999: 	obu/obu-emu-02/posicion (QoS 1)
+1793653999: t07-servidor-central 1 obu/obu-emu-02/posicion
+1793653999: Sending SUBACK to t07-servidor-central
+1793654001: New connection from 127.0.0.1:52166 on port 52151.
+1793654001: New client connected from 127.0.0.1:52166 as t07-obu-emu-01 (p5, c1, k10, u'obu-emu-01').
+1793654001: No will message specified.
+1793654001: Client t07-obu-emu-01 negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
+1793654001: Sending CONNACK to t07-obu-emu-01 (0, 0)
+1793654001: Denied PUBLISH from t07-obu-emu-01 (d0, q1, r0, m1, 'obu/obu-emu-02/posicion', ... (19 bytes))
+1793654001: Sending PUBACK to t07-obu-emu-01 (m1, rc135)
+1793654002: Received DISCONNECT from t07-obu-emu-01
+1793654002: Client t07-obu-emu-01 [127.0.0.1:52166] disconnected.
+1793654004: Received DISCONNECT from t07-servidor-central
+1793654004: Client t07-servidor-central [127.0.0.1:52162] disconnected.

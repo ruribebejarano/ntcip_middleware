@@ -72,8 +72,8 @@ cacheado en `data/`), no sobre una lista estática.
    middleware le pide al controlador que fuerce/libere la fase verde.
    `controller/controller_emulator.py` hace de controlador mientras no
    haya acceso a hardware real.
-4. **Centro de control ↔ RSU** — SNMPv3 (USM: auth SHA-1 / privacidad
-   AES-128), sin relación con el servidor central: es una consola de
+4. **Centro de control ↔ RSU** — SNMPv3 (USM: auth SHA-256, RFC 7860,
+   / privacidad AES-128), sin relación con el servidor central: es una consola de
    gestión clásica que hace `GET`/`SET` directo sobre la RSU
    (`centro_control/software_gestion.py`, ver `docs/SOFTWARE_GESTION.md`).
 
@@ -182,9 +182,9 @@ resultados/      Resultados de campañas de medición
 
 ## Limitaciones conocidas
 
-- **SNMPv3/USM, no TLSTM**: el agente SNMPv3 usa USM (SHA-1 + AES-128,
-  credenciales de laboratorio en claro en el código, sin rotación de
-  claves). TLSTM (RFC 6353) no está implementado — la biblioteca SNMP
+- **SNMPv3/USM, no TLSTM**: el agente SNMPv3 usa USM (SHA-256, RFC 7860,
+  + AES-128, credenciales de laboratorio en claro en el código, sin
+  rotación de claves). TLSTM (RFC 6353) no está implementado — la biblioteca SNMP
   usada no tiene un modelo de transporte seguro para SNMPv3.
 - **Límite de la ACL del broker**: una regla de la ACL
   (`servidor/central/respuestas`) no restringe por identidad individual

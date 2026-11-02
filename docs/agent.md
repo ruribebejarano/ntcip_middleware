@@ -4,8 +4,8 @@
 
 Un agente SNMPv3 minimo hecho con `pysnmp` que expone un unico objeto entero
 ficticio (OID `1.3.6.1.4.1.99999.1.1.0`, bajo un numero de empresa privado
-NO registrado) para validar la pila USM (autenticacion SHA-1 + privacidad
-AES-128) con `snmpget`/`snmpset` reales. **No implementa ninguna MIB
+NO registrado) para validar la pila USM (autenticacion SHA-256, RFC 7860,
++ privacidad AES-128) con `snmpget`/`snmpset` reales. **No implementa ninguna MIB
 estandarizada real** — ver el comentario de cabecera del propio script.
 
 Para el lazo completo (agente + adaptador hacia un controlador + enlace V2I
@@ -59,7 +59,7 @@ python3 agent/rsu_snmpv3_agent.py
 ```
 
 Escucha en `0.0.0.0:1161` (puerto no privilegiado; el `snmpd` de referencia
-del sistema sigue en el 161). Usuario USM: `rsuLabUser`, auth SHA-1
+del sistema sigue en el 161). Usuario USM: `rsuLabUser`, auth SHA-256
 (`labAuthPass123`), priv AES-128 (`labPrivPass123`) — credenciales de
 laboratorio, no usar en produccion.
 
@@ -69,13 +69,16 @@ Desde la misma Raspberry Pi o desde otra maquina de la red (reemplazar
 `<IP_RSU>` por la IP de la Raspberry Pi, ej. `192.168.18.163`):
 
 ```bash
-snmpget -v3 -u rsuLabUser -l authPriv -a SHA -A labAuthPass123 \
+snmpget -v3 -u rsuLabUser -l authPriv -a SHA-256 -A labAuthPass123 \
         -x AES -X labPrivPass123 -n "" <IP_RSU>:1161 1.3.6.1.4.1.99999.1.1.0
 
-snmpset -v3 -u rsuLabUser -l authPriv -a SHA -A labAuthPass123 \
+snmpset -v3 -u rsuLabUser -l authPriv -a SHA-256 -A labAuthPass123 \
         -x AES -X labPrivPass123 -n "" <IP_RSU>:1161 \
         1.3.6.1.4.1.99999.1.1.0 i 42
 ```
+
+Un intento con `-a SHA` (SHA-1, el protocolo anterior) es rechazado — ver
+`tests/test_seguridad_broker.py` (T15).
 
 Verificado localmente (`snmpget`/`snmpset`/`snmpget`): devuelve `5` (valor
 inicial), confirma el `SET` a `42`, y el `GET` posterior ya devuelve `42`.

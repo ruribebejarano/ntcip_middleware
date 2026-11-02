@@ -1,34 +1,34 @@
-1793634721: mosquitto version 2.1.2 starting
-1793634721: Config loaded from E:\Tesis\ntcip_middleware\deploy\pki_banco\mosquitto_banco.conf.
-1793634721: Bridge support available.
-1793634721: Persistence support available.
-1793634721: TLS support available.
-1793634721: TLS-PSK support available.
-1793634721: Websockets support available.
-1793634721: Warning: ACL pattern 'servidor/central/respuestas' does not contain '%c' or '%u'.
-1793634721: Plugin builtin-security has registered to receive 'acl-check' events.
-1793634721: Opening ipv4 listen socket on port 65386.
-1793634721: mosquitto version 2.1.2 running
-1793634721: New connection from 127.0.0.1:65388 on port 65386.
-1793634721: OpenSSL Error while trying to get the error[0]: error:0A000126:SSL routines::unexpected eof while reading
-1793634721: Client 127.0.0.1 [127.0.0.1:65388] disconnected: protocol error.
-1793634723: New connection from 127.0.0.1:65391 on port 65386.
-1793634723: New client connected from 127.0.0.1:65391 as t09-rsu-1 (p5, c1, k10, u'1').
-1793634723: No will message specified.
-1793634723: Client t09-rsu-1 negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
-1793634723: Sending CONNACK to t09-rsu-1 (0, 0)
-1793634723: Received SUBSCRIBE from t09-rsu-1
-1793634723: 	rsu/2/solicitudes (QoS 1)
-1793634723: t09-rsu-1 1 rsu/2/solicitudes
-1793634723: Sending SUBACK to t09-rsu-1
-1793634725: New connection from 127.0.0.1:65398 on port 65386.
-1793634725: New client connected from 127.0.0.1:65398 as t09-servidor-central (p5, c1, k10, u'servidor-central').
-1793634725: No will message specified.
-1793634725: Client t09-servidor-central negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
-1793634725: Sending CONNACK to t09-servidor-central (0, 0)
-1793634726: Received PUBLISH from t09-servidor-central (d0, q1, r0, m1, 'rsu/2/solicitudes', ... (18 bytes))
-1793634726: Sending PUBACK to t09-servidor-central (m1, rc0)
-1793634727: Received DISCONNECT from t09-servidor-central
-1793634727: Client t09-servidor-central [127.0.0.1:65398] disconnected.
-1793634728: Received DISCONNECT from t09-rsu-1
-1793634728: Client t09-rsu-1 [127.0.0.1:65391] disconnected.
+1793654012: mosquitto version 2.1.2 starting
+1793654012: Config loaded from E:\Tesis\ntcip_middleware\deploy\pki_banco\mosquitto_banco.conf.
+1793654012: Bridge support available.
+1793654012: Persistence support available.
+1793654012: TLS support available.
+1793654012: TLS-PSK support available.
+1793654012: Websockets support available.
+1793654012: Warning: ACL pattern 'servidor/central/respuestas' does not contain '%c' or '%u'.
+1793654012: Plugin builtin-security has registered to receive 'acl-check' events.
+1793654012: Opening ipv4 listen socket on port 52190.
+1793654012: mosquitto version 2.1.2 running
+1793654012: New connection from 127.0.0.1:52192 on port 52190.
+1793654012: OpenSSL Error while trying to get the error[0]: error:0A000126:SSL routines::unexpected eof while reading
+1793654012: Client 127.0.0.1 [127.0.0.1:52192] disconnected: protocol error.
+1793654014: New connection from 127.0.0.1:52196 on port 52190.
+1793654014: New client connected from 127.0.0.1:52196 as t09-rsu-1 (p5, c1, k10, u'1').
+1793654014: No will message specified.
+1793654014: Client t09-rsu-1 negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
+1793654014: Sending CONNACK to t09-rsu-1 (0, 0)
+1793654014: Received SUBSCRIBE from t09-rsu-1
+1793654014: 	rsu/2/solicitudes (QoS 1)
+1793654014: t09-rsu-1 1 rsu/2/solicitudes
+1793654014: Sending SUBACK to t09-rsu-1
+1793654017: New connection from 127.0.0.1:63837 on port 52190.
+1793654017: New client connected from 127.0.0.1:63837 as t09-servidor-central (p5, c1, k10, u'servidor-central').
+1793654017: No will message specified.
+1793654017: Client t09-servidor-central negotiated TLSv1.3 cipher TLS_AES_256_GCM_SHA384
+1793654017: Sending CONNACK to t09-servidor-central (0, 0)
+1793654017: Received PUBLISH from t09-servidor-central (d0, q1, r0, m1, 'rsu/2/solicitudes', ... (18 bytes))
+1793654017: Sending PUBACK to t09-servidor-central (m1, rc0)
+1793654018: Received DISCONNECT from t09-servidor-central
+1793654018: Client t09-servidor-central [127.0.0.1:63837] disconnected.
+1793654019: Received DISCONNECT from t09-rsu-1
+1793654019: Client t09-rsu-1 [127.0.0.1:52196] disconnected.

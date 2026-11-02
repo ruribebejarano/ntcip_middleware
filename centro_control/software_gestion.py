@@ -51,7 +51,7 @@ from pysnmp.hlapi import (
     nextCmd,
     setCmd,
     usmAesCfb128Protocol,
-    usmHMACSHAAuthProtocol,
+    usmHMAC192SHA256AuthProtocol,
 )
 
 DEFAULT_PORT = 1161
@@ -80,7 +80,7 @@ class AuthConfig:
                 self.v3_user,
                 authKey=self.auth_key,
                 privKey=self.priv_key,
-                authProtocol=usmHMACSHAAuthProtocol,
+                authProtocol=usmHMAC192SHA256AuthProtocol,
                 privProtocol=usmAesCfb128Protocol,
             )
         raise ValueError("Hay que pasar --community (v2c) o --v3-user (v3)")
@@ -169,7 +169,7 @@ def _add_common_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--port", type=int, default=DEFAULT_PORT)
     p.add_argument("--community", help="Comunidad SNMPv2c")
     p.add_argument("--v3-user", help="Usuario USM SNMPv3 (ej. rsuLabUser)")
-    p.add_argument("--auth-key", help="Contrasena de autenticacion SHA-1 (v3)")
+    p.add_argument("--auth-key", help="Contrasena de autenticacion SHA-256 (v3)")
     p.add_argument("--priv-key", help="Contrasena de privacidad AES-128 (v3)")
 
 

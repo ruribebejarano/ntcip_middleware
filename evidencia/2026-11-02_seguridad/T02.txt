@@ -1,17 +1,17 @@
-1793634685: mosquitto version 2.1.2 starting
-1793634685: Config loaded from E:\Tesis\ntcip_middleware\deploy\pki_banco\mosquitto_banco.conf.
-1793634685: Bridge support available.
-1793634685: Persistence support available.
-1793634685: TLS support available.
-1793634685: TLS-PSK support available.
-1793634685: Websockets support available.
-1793634685: Warning: ACL pattern 'servidor/central/respuestas' does not contain '%c' or '%u'.
-1793634685: Plugin builtin-security has registered to receive 'acl-check' events.
-1793634685: Opening ipv4 listen socket on port 50454.
-1793634685: mosquitto version 2.1.2 running
-1793634685: New connection from 127.0.0.1:50457 on port 50454.
-1793634685: OpenSSL Error while trying to get the error[0]: error:0A000126:SSL routines::unexpected eof while reading
-1793634685: Client 127.0.0.1 [127.0.0.1:50457] disconnected: protocol error.
-1793634687: New connection from 127.0.0.1:59468 on port 50454.
-1793634687: OpenSSL Error while trying to get the error[0]: error:0A000086:SSL routines::certificate verify failed
-1793634687: Client 127.0.0.1 [127.0.0.1:59468] disconnected: protocol error.
+1793653975: mosquitto version 2.1.2 starting
+1793653975: Config loaded from E:\Tesis\ntcip_middleware\deploy\pki_banco\mosquitto_banco.conf.
+1793653975: Bridge support available.
+1793653975: Persistence support available.
+1793653975: TLS support available.
+1793653975: TLS-PSK support available.
+1793653975: Websockets support available.
+1793653975: Warning: ACL pattern 'servidor/central/respuestas' does not contain '%c' or '%u'.
+1793653975: Plugin builtin-security has registered to receive 'acl-check' events.
+1793653975: Opening ipv4 listen socket on port 52092.
+1793653975: mosquitto version 2.1.2 running
+1793653976: New connection from 127.0.0.1:52094 on port 52092.
+1793653976: OpenSSL Error while trying to get the error[0]: error:0A000126:SSL routines::unexpected eof while reading
+1793653976: Client 127.0.0.1 [127.0.0.1:52094] disconnected: protocol error.
+1793653978: New connection from 127.0.0.1:52098 on port 52092.
+1793653978: OpenSSL Error while trying to get the error[0]: error:0A000086:SSL routines::certificate verify failed
+1793653978: Client 127.0.0.1 [127.0.0.1:52098] disconnected: protocol error.
