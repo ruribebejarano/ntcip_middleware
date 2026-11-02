@@ -103,6 +103,11 @@ class TlsConfigTest {
     }
 
     @Test
+    fun `commonNameCliente extrae el CN del certificado (item 2b, obu_id fijo por dispositivo)`() {
+        assertEquals("ses-test01", tlsConfig().commonNameCliente())
+    }
+
+    @Test
     fun `el certificado de cliente tiene el CN esperado (obu_id de prueba)`() {
         // El CN debe ser EXACTAMENTE el obu_id (docs/CONTRATO_OBU.md §1,
         // ACL por use_identity_as_username) -- esta fixture se emitio con

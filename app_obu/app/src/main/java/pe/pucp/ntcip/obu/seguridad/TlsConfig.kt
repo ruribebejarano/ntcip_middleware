@@ -17,13 +17,13 @@ import javax.net.ssl.TrustManagerFactory
  * con `obu_id` (ACL del broker por `use_identity_as_username`, ver
  * `scripts/seguridad/mosquitto_acl.conf`).
  *
- * [REVISAR con asesor] -- mismatch sin resolver con el `obu_id` actual de
- * la app: `ObuSessionService.iniciarMision()` genera un `obu_id` AL AZAR
- * en cada misión, pero un certificado de cliente es de larga duración con
- * un CN fijo. Para probar mTLS de verdad hay que emitir el certificado con
- * un `obu_id` de prueba fijo y usarlo solo en banco (no en una campaña con
- * `obu_id` aleatorio); fijar el `obu_id` por dispositivo en vez de por
- * misión queda como decisión de diseño pendiente, fuera de este cambio.
+ * Resuelto (item 2b, prompt_integracion_app_obu.md): el mismatch entre un
+ * `obu_id` aleatorio por misión y un CN fijo de certificado se resuelve
+ * fijando la identidad por DISPOSITIVO. Con TLS activado,
+ * `ObuSessionService` usa [commonNameCliente] como `obu_id` -- el
+ * certificado es la única fuente de verdad, no `Prefs.obuId` (que solo
+ * aplica sin TLS, broker de desarrollo). Así el certificado nunca puede
+ * quedar desincronizado del `obu_id` que de verdad se usa.
  *
  * La llave privada DEBE estar en formato PKCS#8 (`-----BEGIN PRIVATE
  * KEY-----`), no PKCS#1 (`-----BEGIN RSA PRIVATE KEY-----`): este parser
@@ -36,6 +36,18 @@ data class TlsConfig(
     val clientCertPem: ByteArray,
     val clientKeyPem: ByteArray,
 ) {
+    /** Common Name (CN) del certificado de cliente: el `obu_id` fijo de
+     * este dispositivo mientras TLS esté activado (ver clase arriba). */
+    fun commonNameCliente(): String {
+        val principal = parseCert(clientCertPem).subjectX500Principal.name // RFC 2253: "CN=obu-tab-01,..."
+        return principal.split(",")
+            .firstOrNull { it.trim().startsWith("CN=", ignoreCase = true) }
+            ?.substringAfter("=")
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: error("El certificado de cliente no tiene Common Name (CN)")
+    }
+
     fun keyManagerFactory(): KeyManagerFactory {
         val cert = parseCert(clientCertPem)
         val key = parseKeyPkcs8(clientKeyPem)

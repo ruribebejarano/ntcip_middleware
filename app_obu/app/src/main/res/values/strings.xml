@@ -80,6 +80,8 @@
     <string name="ajustes_host">Host del broker MQTT</string>
     <string name="ajustes_puerto">Puerto</string>
     <string name="ajustes_clase">Clase NTCIP 1211</string>
+    <string name="ajustes_obu_id">Identidad del dispositivo (obu_id)</string>
+    <string name="ajustes_obu_id_ayuda">Fija, igual entre misiones. Con TLS activado se usa el Common Name (CN) del certificado de cliente en vez de este valor.</string>
     <string name="ajustes_modo_simulado">Ruta emulada (sin GNSS) — también en la pantalla principal</string>
     <string name="ajustes_trayectoria">Trayectoria CSV simulada</string>
     <string name="ajustes_elegir_trayectoria">Elegir archivo…</string>

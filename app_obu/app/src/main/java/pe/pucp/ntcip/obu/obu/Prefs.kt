@@ -18,6 +18,14 @@ class Prefs(context: Context) {
         get() = sp.getInt(CLAVE_CLASE, 1)
         set(v) = sp.edit().putInt(CLAVE_CLASE, v).apply()
 
+    /** Identidad fija del dispositivo (item 2b, prompt_integracion_app_obu.md):
+     * antes se generaba un obu_id al azar en cada misión, lo que chocaba con
+     * el CN fijo del certificado mTLS. Con TLS activado, ObuSessionService
+     * usa el CN del certificado en vez de este valor (ver TlsConfig.kt). */
+    var obuId: String
+        get() = sp.getString(CLAVE_OBU_ID, OBU_ID_POR_DEFECTO) ?: OBU_ID_POR_DEFECTO
+        set(v) = sp.edit().putString(CLAVE_OBU_ID, v).apply()
+
     var modoSimulado: Boolean
         get() = sp.getBoolean(CLAVE_MODO_SIMULADO, false)
         set(v) = sp.edit().putBoolean(CLAVE_MODO_SIMULADO, v).apply()
@@ -73,10 +81,12 @@ class Prefs(context: Context) {
         // la tablet real"); Emulador: la laptop vista desde el emulador de Android.
         const val HOST_TAILSCALE = "100.121.77.97"
         const val HOST_EMULADOR = "10.0.2.2"
+        const val OBU_ID_POR_DEFECTO = "obu-dev-01"
 
         private const val CLAVE_HOST = "broker_host"
         private const val CLAVE_PUERTO = "broker_puerto"
         private const val CLAVE_CLASE = "clase"
+        private const val CLAVE_OBU_ID = "obu_id"
         private const val CLAVE_MODO_SIMULADO = "modo_simulado"
         private const val CLAVE_TRAYECTORIA_URI = "trayectoria_uri"
         private const val CLAVE_ESCENARIO = "escenario_id"

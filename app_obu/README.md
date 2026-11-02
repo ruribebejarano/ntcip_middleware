@@ -13,11 +13,13 @@ sin nada hardcodeado.
 **Etapa 3 (TLS 1.3 + mTLS, B4, 2026-11-01):** implementada y conectada al
 cliente MQTT (ver la sección "TLS 1.3 + mTLS (Etapa 3)" más abajo), pero
 **sin probar contra un broker real ni en la tablet** (no hay hardware
-disponible en esta sesión) y con un problema de diseño abierto sin
-resolver (el CN del certificado debe ser fijo, pero el `obu_id` de la app
-es aleatorio por misión) -- ver esa sección para el detalle y
-`[REVISAR con asesor]`. Una fuente de velocidad más precisa (por ejemplo,
-un lector OBD-II del vehículo) queda como trabajo futuro.
+disponible en esta sesión). El mismatch entre un CN de certificado fijo y
+el `obu_id` que antes era aleatorio por misión se resolvió el 2026-11-02
+(item 2b de `prompt_integracion_app_obu.md`): `obu_id` pasa a ser la
+identidad fija del dispositivo -- ver esa sección para el detalle y
+`[REVISAR con asesor]` (sigue siendo una decisión de diseño de seguridad
+a confirmar con el asesor). Una fuente de velocidad más precisa (por
+ejemplo, un lector OBD-II del vehículo) queda como trabajo futuro.
 
 ## Requisitos
 
@@ -918,14 +920,17 @@ conecta al builder de HiveMQ MQTT Client con `.sslConfig(...)` cuando
 ### Emitir los certificados
 
 ```
-python scripts/seguridad/generar_ca.py init                        # una sola vez
-python scripts/seguridad/generar_ca.py emitir --tipo obu --id <obu_id>
+python scripts/seguridad/generar_ca.py init                          # una sola vez
+python scripts/seguridad/generar_ca.py emitir --tipo obu --id obu-tab-01
 ```
 
-Esto genera `deploy/pki/ca/ca.crt`, `deploy/pki/obu/<obu_id>/obu-<obu_id>.crt`
-y `.../obu-<obu_id>.key` (PKCS#8, `openssl genpkey`, no `genrsa` -- la app
-no entiende PKCS#1). `deploy/pki/` está en `.gitignore`: **nunca
-commitear estos archivos**, cada despliegue genera los suyos.
+`<obu_id>` (`obu-tab-01` arriba) es la identidad **fija de ese
+dispositivo** (item 2b, 2026-11-02) -- no un id de sesión ni de misión; un
+certificado por tablet, emitido una vez. Esto genera `deploy/pki/ca/ca.crt`,
+`deploy/pki/obu/<obu_id>/obu-<obu_id>.crt` y `.../obu-<obu_id>.key`
+(PKCS#8, `openssl genpkey`, no `genrsa` -- la app no entiende PKCS#1).
+`deploy/pki/` está en `.gitignore`: **nunca commitear estos archivos**,
+cada despliegue genera los suyos.
 
 ### Cargar el certificado de cliente en la tablet
 
@@ -940,7 +945,11 @@ la app lee los tres archivos directamente, vía selector del sistema
 2. En Ajustes de la app, sección "Etapa 3: TLS 1.3 + mTLS": botones "CA",
    "Certificado" y "Llave" abren el selector de archivos del sistema, uno
    por archivo.
-3. Activar el interruptor "Usar TLS/mTLS con el broker" y Guardar.
+3. Activar el interruptor "Usar TLS/mTLS con el broker" y Guardar. El
+   campo "Identidad del dispositivo (obu_id)" de Ajustes **se ignora**
+   mientras TLS esté activado: la app usa el Common Name del certificado
+   de cliente que acabas de cargar (ver la sección siguiente) -- no hace
+   falta que coincida con lo que esté escrito ahí.
 4. Cambiar el puerto a **8883** (Ajustes, campo "Puerto"): el puerto 1883
    es el broker de desarrollo sin TLS, no acepta mTLS.
 
@@ -953,32 +962,46 @@ alguno de los tres archivos, o no se puede leer, la app **no arranca la
 misión sin cifrar** (se detiene con el evento `error_tls_config` en el
 registro) -- nunca cae de vuelta a texto plano en silencio.
 
-### [REVISAR con asesor] -- CN del certificado vs. `obu_id` aleatorio
+### Resuelto -- CN del certificado vs. `obu_id` (identidad fija por dispositivo)
 
 `docs/CONTRATO_OBU.md` §1 exige que el Common Name del certificado sea
 **exactamente** el `obu_id`, porque la ACL del broker
-(`scripts/seguridad/mosquitto_acl.conf`) lo usa como `%u`. Pero
-`ObuSessionService.iniciarMision()` genera un `obu_id` **al azar en cada
-misión** (`"ses-" + Random.nextBytes(3)...`), y un certificado de cliente
-es, por diseño, de larga duración con un CN fijo. Esto no se resolvió en
-esta sesión (es una decisión de diseño, no "conectar el gancho"):
+(`scripts/seguridad/mosquitto_acl.conf`) lo usa como `%u`. Hasta el
+2026-11-01, `ObuSessionService.iniciarMision()` generaba un `obu_id` **al
+azar en cada misión** (`"ses-" + Random.nextBytes(3)...`), lo que chocaba
+con un certificado de cliente, de larga duración y CN fijo por diseño.
 
-- **Para probar el handshake TLS/mTLS en banco:** emitir un certificado
-  con un `obu_id` de prueba fijo (p. ej. `ses-test01`) y, solo para esa
-  prueba, usar ese mismo valor en vez de dejar que la app lo genere al
-  azar -- no hay todavía un ajuste en la UI para fijarlo; requeriría un
-  cambio pequeño y deliberado en `ObuSessionService` si se necesita antes
-  de la asesoría.
-- **Para una campaña o un despliegue real:** decidir si el `obu_id` pasa a
-  ser estable por dispositivo (un certificado por tablet, emitido una
-  vez) en lugar de por misión. Esto afectaría cómo se organizan los
-  archivos de `resultados/campana/` por repetición, que hoy asumen un
-  `obu_id` distinto por corrida -- por eso se deja como decisión del
-  asesor, no se cambia aquí.
+**Solución (item 2b de `prompt_integracion_app_obu.md`, 2026-11-02):**
+`obu_id` pasa a ser la identidad **fija del dispositivo**, no de la
+sesión/misión -- la identidad *de la misión* sigue siendo `mision_id`,
+que asigna el servidor.
+
+- **Con TLS activado:** `obu_id` = `TlsConfig.commonNameCliente()`, el CN
+  leído directamente del certificado de cliente cargado. El certificado
+  es la única fuente de verdad -- así nunca puede quedar desincronizado
+  del `obu_id` que de verdad se usa. El campo "Identidad del dispositivo
+  (obu_id)" de Ajustes se ignora en este caso.
+- **Sin TLS (broker de desarrollo):** `obu_id` = el valor fijo de Ajustes
+  (`Prefs.obuId`, por defecto `obu-dev-01`), porque no hay certificado del
+  que leerlo.
+- La idempotencia del MI repetido (`servidor/gestor_mision.py::armar_mision`)
+  **mejora** con esto: antes un reinicio de proceso generaba un `obu_id`
+  nuevo y el servidor no podía reconocer la misión anterior; ahora el
+  `obu_id` es estable entre reinicios, así que el servidor sí la reconoce
+  y reenvía el MR/ME vigentes (ver `docs/CONTRATO_OBU.md` §3, "MI
+  repetido").
+- `[REVISAR con asesor]`: identidad de **dispositivo** (no de sesión) es
+  una decisión de diseño de seguridad -- confirmar que es lo que se
+  quiere documentar en el Capítulo 4 (coherente con la revocación por OBU
+  de `scripts/seguridad/generar_ca.py revocar`).
+- Las campañas de `gateway/obu_emulada.py` (OE5) no usan TLS hoy y pueden
+  seguir con identidades de prueba fijas por repetición (`--obu-id`, ver
+  `scripts/campanas/lazo_centralizado.py`) -- no afectadas por este
+  cambio.
 
 ## Capturas/fotos para la tesis (una vez que la prueba en mesa funcione)
 
-1. Pantalla de Ajustes con host/puerto/clase configurados.
+1. Pantalla de Ajustes con host/puerto/clase/obu_id configurados.
 2. Pantalla principal antes de iniciar misión (mapa centrado, sin ruta).
 3. Justo tras "Iniciar emergencia": destino marcado + polilínea del MR.
 4. Indicador de próximo semáforo en "concedida", con ETA.

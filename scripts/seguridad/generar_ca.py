@@ -20,9 +20,18 @@ Subcomandos:
     init                                   crea la CA (una sola vez)
     emitir --tipo servidor                 certificado del servidor central
     emitir --tipo rsu --id 1               certificado de la RSU 1
-    emitir --tipo obu --id ses-abc123      certificado de una OBU
+    emitir --tipo obu --id obu-tab-01      certificado de una OBU
     revocar --tipo rsu --id 1              revoca el certificado de la RSU 1 (regenera la CRL)
     listar                                 lista los certificados emitidos y su estado
+
+--id de una OBU: identidad FIJA del dispositivo (item 2b,
+prompt_integracion_app_obu.md), igual al obu_id que se configura en
+Ajustes de app_obu/ o se lee del Common Name del propio certificado
+(app_obu/seguridad/TlsConfig.kt::commonNameCliente) -- NO un id por
+sesión/misión: con mTLS, el certificado identifica a un dispositivo, y la
+ACL (scripts/seguridad/mosquitto_acl.conf, %u) autoriza sus temas por esa
+identidad. Las campañas de gateway/obu_emulada.py pueden seguir usando
+identidades de prueba fijas (obu-emu-01...) vía --obu-id.
 
 Todo bajo deploy/pki/ (NO se commitea: deploy/pki/ está en .gitignore --
 son credenciales, cada despliegue debe generar las suyas).
@@ -107,9 +116,12 @@ def _nombre(tipo: str, id_: str | None) -> tuple[str, str, Path]:
     del cliente -- para RSU y OBU se usa el id TAL CUAL (sin prefijo),
     porque scripts/seguridad/mosquitto_acl.conf usa reglas `pattern` con
     `%u` que dependen de que el username coincida exactamente con el
-    segmento del tema (RSU_ID de agent/rsu_middleware.py, obu_id de
-    gateway/obu_emulada.py). `nombre_archivo` solo es para que los
-    archivos en deploy/pki/ sean legibles (sí lleva el prefijo)."""
+    segmento del tema (RSU_ID de agent/rsu_middleware.py; para una OBU
+    real, el obu_id FIJO del dispositivo en Ajustes de app_obu/, igual al
+    CN que se emite aquí -- ver app_obu/seguridad/TlsConfig.kt; para una
+    OBU emulada de campaña, el --obu-id de gateway/obu_emulada.py).
+    `nombre_archivo` solo es para que los archivos en deploy/pki/ sean
+    legibles (sí lleva el prefijo)."""
     if tipo == "servidor":
         return "servidor-central", "servidor-central", PKI / "servidor"
     if tipo == "rsu":
@@ -118,7 +130,11 @@ def _nombre(tipo: str, id_: str | None) -> tuple[str, str, Path]:
         return id_, f"rsu-{id_}", PKI / "rsu" / id_
     if tipo == "obu":
         if not id_:
-            raise SystemExit("--id es obligatorio para --tipo obu (debe ser el mismo obu_id de gateway/obu_emulada.py)")
+            raise SystemExit(
+                "--id es obligatorio para --tipo obu (debe ser el obu_id FIJO del "
+                "dispositivo configurado en Ajustes de app_obu/, o el --obu-id de "
+                "gateway/obu_emulada.py para una OBU emulada de campaña)",
+            )
         return id_, f"obu-{id_}", PKI / "obu" / id_
     raise SystemExit(f"--tipo desconocido: {tipo!r} (servidor|rsu|obu)")
 

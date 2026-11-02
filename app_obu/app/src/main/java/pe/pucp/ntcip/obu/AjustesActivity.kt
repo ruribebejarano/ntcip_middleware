@@ -79,6 +79,7 @@ class AjustesActivity : AppCompatActivity() {
 
         binding.campoPuerto.setText(prefs.brokerPuerto.toString())
         binding.campoClase.setText(prefs.clase.toString())
+        binding.campoObuId.setText(prefs.obuId)
         binding.interruptorModoSimulado.isChecked = prefs.modoSimulado
         binding.interruptorVibrar.isChecked = prefs.vibrarAlVerde
         binding.textoTrayectoriaElegida.text = prefs.trayectoriaUri?.let { FuenteSimulada.nombreVisible(this, Uri.parse(it)) }
@@ -109,13 +110,15 @@ class AjustesActivity : AppCompatActivity() {
         val host = binding.campoHost.text.toString().trim()
         val puerto = binding.campoPuerto.text.toString().toIntOrNull()
         val clase = binding.campoClase.text.toString().toIntOrNull()
-        if (host.isEmpty() || puerto == null || clase == null) {
-            Toast.makeText(this, "Revisa host/puerto/clase", Toast.LENGTH_SHORT).show()
+        val obuId = binding.campoObuId.text.toString().trim()
+        if (host.isEmpty() || puerto == null || clase == null || obuId.isEmpty()) {
+            Toast.makeText(this, "Revisa host/puerto/clase/obu_id", Toast.LENGTH_SHORT).show()
             return
         }
         prefs.brokerHost = host
         prefs.brokerPuerto = puerto
         prefs.clase = clase
+        prefs.obuId = obuId
         prefs.modoSimulado = binding.interruptorModoSimulado.isChecked
         prefs.vibrarAlVerde = binding.interruptorVibrar.isChecked
         prefs.tlsActivado = binding.interruptorTls.isChecked

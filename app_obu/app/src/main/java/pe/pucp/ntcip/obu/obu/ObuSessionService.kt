@@ -25,7 +25,6 @@ import pe.pucp.ntcip.obu.velocidad.FuenteGnss
 import pe.pucp.ntcip.obu.velocidad.FuenteRutaServidor
 import pe.pucp.ntcip.obu.velocidad.FuentePosicion
 import pe.pucp.ntcip.obu.velocidad.MuestraPosicion
-import kotlin.random.Random
 
 /**
  * Foreground service (tipo "location") que arma/desarma la misión y
@@ -79,7 +78,32 @@ class ObuSessionService : LifecycleService() {
         }
 
         val prefs = Prefs(this)
-        val nuevoObuId = "ses-" + Random.nextBytes(3).joinToString("") { "%02x".format(it.toInt() and 0xFF) }
+
+        // Etapa 3 (TLS 1.3 + mTLS, docs/CONTRATO_OBU.md §1): si está
+        // activado en Ajustes pero algún PEM no se pudo cargar, no se
+        // arranca la misión sin cifrar por un error de configuración.
+        val tls = cargarTlsConfig(prefs)
+        if (prefs.tlsActivado && tls == null) {
+            EventoLogger(this, prefs.obuId).log(EventosObu.CONEXION_MQTT, "-", mapOf("estado" to "error_tls_config"))
+            stopSelf()
+            return
+        }
+
+        // obu_id: identidad FIJA del dispositivo (item 2b,
+        // prompt_integracion_app_obu.md), igual al CN del certificado de
+        // cliente -- no un id al azar por misión, que chocaba con el CN
+        // fijo del certificado mTLS (ACL del broker por
+        // use_identity_as_username, ver scripts/seguridad/mosquitto_acl.conf).
+        // Sin TLS (broker de desarrollo), se usa el valor fijo de Ajustes.
+        val nuevoObuId = if (tls != null) {
+            runCatching { tls.commonNameCliente() }.getOrElse {
+                EventoLogger(this, prefs.obuId).log(EventosObu.CONEXION_MQTT, "-", mapOf("estado" to "error_tls_config"))
+                stopSelf()
+                return
+            }
+        } else {
+            prefs.obuId
+        }
         obuId = nuevoObuId
         terminando = false
         misionId = null
@@ -92,16 +116,6 @@ class ObuSessionService : LifecycleService() {
 
         val eventoLogger = EventoLogger(this, nuevoObuId)
         eventos = eventoLogger
-
-        // Etapa 3 (TLS 1.3 + mTLS, docs/CONTRATO_OBU.md §1): si está
-        // activado en Ajustes pero algún PEM no se pudo cargar, no se
-        // arranca la misión sin cifrar por un error de configuración.
-        val tls = cargarTlsConfig(prefs)
-        if (prefs.tlsActivado && tls == null) {
-            eventoLogger.log(EventosObu.CONEXION_MQTT, "-", mapOf("estado" to "error_tls_config"))
-            stopSelf()
-            return
-        }
 
         iniciarNotificacionPrimerPlano()
 
@@ -285,6 +299,13 @@ class ObuSessionService : LifecycleService() {
     // --- MR / ME -------------------------------------------------------
 
     private fun onMensajeRuta(mr: MensajeMR) {
+        if (mr.mision_id != misionId) {
+            // mision_id distinto (p. ej. el servidor cerro la anterior por
+            // un MI con otro destino, ver gestor_mision.py::armar_mision):
+            // su version empieza de nuevo en 1, así que el guardado de la
+            // misión vieja no debe compararse contra ella.
+            ultimaVersionMrAplicada = -1
+        }
         misionId = mr.mision_id
         eventos?.log(EventosObu.MR_RX, mr.mision_id, mapOf("n_paradas" to mr.paradas.size, "longitud_m" to mr.longitud_total_m))
         // Un MR nuevo reemplaza al anterior (docs/CONTRATO_OBU.md §4): se

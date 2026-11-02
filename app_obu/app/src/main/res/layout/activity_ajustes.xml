@@ -67,6 +67,23 @@
             android:hint="1"
             android:inputType="number" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/ajustes_obu_id" />
+        <EditText
+            android:id="@+id/campoObuId"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="obu-tab-01"
+            android:inputType="textNoSuggestions" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ajustes_obu_id_ayuda"
+            android:textSize="12sp" />
+
         <Switch
             android:id="@+id/interruptorModoSimulado"
             android:layout_width="match_parent"
