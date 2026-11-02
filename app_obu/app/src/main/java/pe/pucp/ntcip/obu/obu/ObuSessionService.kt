@@ -41,6 +41,7 @@ class ObuSessionService : LifecycleService() {
     private var misionId: String? = null
 
     private var seq = 0
+    private var ultimoMiEnviado: MensajeMI? = null
     private var ultimaMuestra: MuestraPosicion? = null
     private var ultimaMuestraEnMs = 0L
     private var ultimoMeEnMs = 0L
@@ -81,6 +82,7 @@ class ObuSessionService : LifecycleService() {
         terminando = false
         misionId = null
         seq = 0
+        ultimoMiEnviado = null
         ultimaMuestra = null
         ultimaVersionMrAplicada = -1
         ultimoTsMeAplicado = -1L
@@ -106,6 +108,16 @@ class ObuSessionService : LifecycleService() {
             onEstado = { me -> lifecycleScope.launch { onMensajeEstado(me) } },
             onConexion = { conectado ->
                 eventoLogger.log(EventosObu.CONEXION_MQTT, "-", mapOf("estado" to if (conectado) "conectado" else "desconectado"))
+                // Reconexión tras una caída (no la primera conexión: ahí
+                // ultimoMiEnviado todavía es null porque el MI se envía
+                // después de conectar() más abajo). El servidor ya trata un
+                // MI repetido del mismo obu_id como no-op, sin duplicar la
+                // misión (servidor/gestor_mision.py::armar_mision,
+                // docs/CONTRATO_OBU.md §2) -- ver bitácora
+                // 2026-10-29_app-obu-fix-serializacion-y-pucp.md §2.
+                if (conectado && !terminando) {
+                    ultimoMiEnviado?.let { mi -> lifecycleScope.launch { reenviarMiTrasReconexion(mi) } }
+                }
             },
         )
         mqtt = cliente
@@ -139,14 +151,14 @@ class ObuSessionService : LifecycleService() {
             runCatching { cliente.conectar() }
             if (terminando) return@launch // se terminó mientras conectaba: no se arma nada
             val ahora = System.currentTimeMillis()
-            cliente.enviarMI(
-                MensajeMI(
-                    obu_id = nuevoObuId, clase = prefs.clase,
-                    origen = Coordenada(origenLat, origenLon),
-                    destino = Coordenada(destinoLat, destinoLon),
-                    ts_ms = ahora,
-                )
+            val mi = MensajeMI(
+                obu_id = nuevoObuId, clase = prefs.clase,
+                origen = Coordenada(origenLat, origenLon),
+                destino = Coordenada(destinoLat, destinoLon),
+                ts_ms = ahora,
             )
+            cliente.enviarMI(mi)
+            ultimoMiEnviado = mi
             eventoLogger.log(EventosObu.MI_TX, "-", mapOf("clase" to prefs.clase, "destino_lat" to destinoLat, "destino_lon" to destinoLon))
             medirReloj("inicio")
 
@@ -218,6 +230,19 @@ class ObuSessionService : LifecycleService() {
                 "precision_m" to muestra.precisionM, "rumbo_medido" to muestra.rumboMedido,
             ) + (if (factorDemo != 1) mapOf("demo_factor" to factorDemo) else emptyMap()),
         )
+    }
+
+    private suspend fun reenviarMiTrasReconexion(mi: MensajeMI) {
+        val miReenviado = mi.copy(ts_ms = System.currentTimeMillis())
+        mqtt?.enviarMI(miReenviado)
+        eventos?.log(
+            EventosObu.MI_TX, "-",
+            mapOf("clase" to miReenviado.clase, "destino_lat" to miReenviado.destino.lat,
+                "destino_lon" to miReenviado.destino.lon, "reenvio" to true),
+        )
+        // Los MP se reanudan solos: el ticker de iniciarTickerPublicacion()
+        // nunca se detuvo (sigue en su propio while(isActive)) y
+        // MqttObuClient ya vuelve a publicar en cuanto HiveMQ reconecta.
     }
 
     private fun actualizarIndicadorConexion() {
