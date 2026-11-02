@@ -11,7 +11,7 @@ semafórica de vehículos de emergencia en Lima Metropolitana**
 | **Inicio del periodo planificado** | 14 de septiembre de 2026 |
 | **Entrega** | 20 de noviembre de 2026 |
 | **Duración** | 10 semanas |
-| **Última actualización** | 2026-10-22 (arquitectura centralizada — ver `docs/bitacora/2026-10-22_arquitectura-centralizada.md`; versión anterior del 13 de septiembre, organizada alrededor de una malla Wi-SUN entre RSU, **superada**: no hay LaunchPad CC1352P disponible y la tesis vigente coordina por 4G con un servidor central, no por una malla dedicada entre RSU — ver `CLAUDE.md`) |
+| **Última actualización** | 2026-11-01 (estado real tras el reporte R11 del 30/10: mTLS contra un broker real y la Raspberry Pi física ya no están pendientes, ver OE4/OE5 abajo; also retirado el lector OBD-II del alcance, ver `redaccion/` y el riesgo R6. Arquitectura centralizada fijada el 2026-10-22 — ver `docs/bitacora/2026-10-22_arquitectura-centralizada.md`; versión anterior del 13 de septiembre, organizada alrededor de una malla Wi-SUN entre RSU, **superada**: no hay LaunchPad CC1352P disponible y la tesis vigente coordina por 4G con un servidor central, no por una malla dedicada entre RSU — ver `CLAUDE.md`) |
 
 ---
 
@@ -84,10 +84,10 @@ en esta sesión):
 | Objetivo específico | Avance |
 |---------------------|--------|
 | OE1 — Arquitectura y límites (incluye la decisión de servidor central, 2026-10-22) | Especificación del esquema OBU→servidor→RSU implementada en código (`servidor/`) y documentada (`docs/bitacora/2026-10-22_arquitectura-centralizada.md`); falta la reescritura formal de `ssec:sel_direccionamiento` en `main.tex` (a cargo de la redacción en paralelo, fuera de este repositorio) |
-| OE2 — Plataforma física RSU | ~50 % (entorno Linux y venv listos; módem 4G SIM7670G **operativo desde 2026-10-28** —datos extremo a extremo por `usb0`, ver `docs/MODEM_4G.md` y `docs/bitacora/2026-10-28_modem-4g.md`—; interfaz Ethernet sin probar; pendiente repetir la campaña de OE5 contra este enlace real) |
+| OE2 — Plataforma física RSU | ~70 % (entorno Linux y venv listos; módem 4G SIM7670G **operativo desde 2026-10-28** —datos extremo a extremo por `usb0`, ver `docs/MODEM_4G.md` y `docs/bitacora/2026-10-28_modem-4g.md`—; Raspberry Pi física ya validada por Wi-Fi/Tailscale en la campaña `pi-lan` del 29/10; interfaz Ethernet sin probar; pendiente repetir la campaña de OE5 contra el enlace 4G real, `pi-4g`, ver B5) |
 | OE3 — Middleware NTCIP | ~60 % (agente SNMPv3 funcional sobre objetos **reales** de NTCIP 1202 —`phaseStatusGroupTable`, `phaseTable`, subárbol `1.3.6.1.4.1.1206.4.2.1`, ya no el OID de prueba `99999`— y 1211 —`priorityRequestTable`, `prgPriorityRequestAbsolute`, `agent/ntcip1211.py`—; MIB reconstruidas, no las oficiales de NEMA; acepta M1/M3 del servidor desde el 2026-10-22, sin cambios de comportamiento en RF-05/06/09. **Corregido 2026-10-28**: esta fila describía todavía el estado previo a P2/P3 de `docs/PLAN_IMPLEMENTACION.md`, ya superado en el código) |
-| OE4 — OBU (cliente delgado) + servidor central | Cliente delgado (`gateway/obu_emulada.py`) y servidor (`servidor/`: ruta, gestión de misión, conflictos) implementados y probados de punta a punta el 2026-10-22 con tres escenarios (lazo, conflicto, desvío); el arbitraje de conflictos (`servidor/conflictos.py`) queda verificado con pruebas unitarias pero, por decisión de alcance del 2026-10-28 [REVISAR con asesor], fuera de la campaña de medición de OE5 y del Capítulo 4 (ver `docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md`); pendiente: TLS/mTLS contra un broker real, Raspberry Pi física, app Android (ver `docs/CONTRATO_OBU.md`) |
-| OE5 — Caracterizar el canal y validar el lazo completo (fusiona el OE5/OE6 anteriores) | Validación emulada completa (sin hardware real) de los tres escenarios de la arquitectura centralizada; falta repetir contra hardware real (Raspberry Pi) y con TLS/mTLS |
+| OE4 — OBU (cliente delgado) + servidor central | Cliente delgado (`gateway/obu_emulada.py`, y la app Android `app_obu/`) y servidor (`servidor/`: ruta, gestión de misión, conflictos) implementados y probados de punta a punta el 2026-10-22 con tres escenarios (lazo, conflicto, desvío); el arbitraje de conflictos (`servidor/conflictos.py`) queda verificado con pruebas unitarias pero, por decisión de alcance del 2026-10-28 [REVISAR con asesor], fuera de la campaña de medición de OE5 y del Capítulo 4 (ver `docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md`). **Actualizado con el reporte R11 (30/10):** mTLS contra un broker real ya no está pendiente (Mosquitto en 8883, TLS 1.3, certificado de cliente); pendiente integrarlo en la app Android (`app_obu/`, Etapa 3, ver B4) y el lector OBD-II sale del alcance (ver trabajo futuro) |
+| OE5 — Caracterizar el canal y validar el lazo completo (fusiona el OE5/OE6 anteriores) | Validación completa de los tres escenarios de la arquitectura centralizada, incluida la campaña `pi-lan` contra la Raspberry Pi real por Wi-Fi (29/10, ver `docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md`); falta repetir la campaña (`pi-4g`) contra el enlace 4G real, con mTLS activo (ver B5) |
 
 ---
 
@@ -175,36 +175,37 @@ adelantado en esta sesión de desarrollo respecto de la semana original.
 
 ---
 
-## Fase IV — Seguridad, hardware real y cierre (S8–S10)
+## Fase IV — Hardware 4G real y cierre (S8–S10)
 
 **[REVISAR con el asesor]**: esta fase reemplaza por completo a la "Fase
 IV — Malla I2I y cierre" original (S8–S10 organizadas alrededor de una
 malla Wi-SUN con LaunchPad CC1352P, que no se implementó y no corresponde
-a la arquitectura vigente). Las tareas de seguridad (TLS/mTLS) y de
-hardware real (Raspberry Pi) que siguen abajo sí son necesarias para
-cerrar OE2/OE4/OE5 tal como quedan definidos ahora; las fechas S8–S10 son
-una ubicación propuesta, no confirmada.
+a la arquitectura vigente). **Actualizado 2026-11-01 con el reporte R11
+(30/10):** TLS 1.3 + mTLS contra un broker real ya no está pendiente
+(Mosquitto en 8883, certificado de cliente) y la Raspberry Pi física ya
+se validó por Wi-Fi/Tailscale (campaña `pi-lan`, 29/10). Lo que sigue
+pendiente de verdad para OE2/OE4/OE5 es la campaña contra el enlace 4G
+real (`pi-4g`) y la integración de TLS/mTLS en la app Android; las fechas
+S8–S10 son una ubicación propuesta, no confirmada.
 
 ### S8 · 2–8 noviembre
-- TLS 1.3 + mTLS reales: levantar un Mosquitto con la configuración de
-  `scripts/seguridad/mosquitto_tls.conf` y la CA de
-  `scripts/seguridad/generar_ca.py` (ya probada de forma aislada, no
-  contra un broker en ejecución) **(OE4)**.
-- Puesta en marcha del enlace 4G/Ethernet de la Raspberry Pi real
-  **(OE2)**.
+- Preparar y ejecutar la campaña `pi-4g` (lazo y desvío) con mTLS activo,
+  siguiendo `redaccion/plan_pruebas_4G.md` (ver B5) **(OE2, OE5)**.
+- Integrar TLS/mTLS en la app Android (`app_obu/seguridad/TlsConfig.kt`,
+  `MqttObuClient`) con la CA de `scripts/seguridad/generar_ca.py`, ver B4
+  **(OE4)**.
+- Probar la interfaz Ethernet de la Raspberry Pi **(OE2)**.
 
 ### S9 · 9–15 noviembre
-- Repetir los escenarios de la campaña de OE5 (lazo y desvío —
-  `conflicto` queda fuera de alcance desde el 2026-10-28, ver decisión de
-  alcance #2 al inicio de este documento) contra la Raspberry Pi real y
-  con TLS/mTLS **(OE2, OE4, OE5)**.
+- Análisis y figuras de la campaña `pi-4g`, comparada con `local` y
+  `pi-lan` (`fig_comparacion`, `fig_rtt_cdf`, `fig_tramos`) **(OE2, OE5)**.
 - Redacción de las secciones del Capítulo 4 correspondientes a OE2 y la
   seguridad de OE4.
-- 🚦 **Decisión G3 — alcance de la seguridad real.** Si TLS/mTLS contra un
-  broker real o la Raspberry Pi física no están listos para el 11 de
-  noviembre, se reporta lo alcanzado (la CA y la ACL sí probadas de forma
-  aislada), se documenta el obstáculo y el resto pasa a trabajo futuro. No
-  se sacrifica la semana de cierre.
+- 🚦 **Decisión G3 — alcance de la campaña 4G.** Si la campaña `pi-4g` no
+  está lista para el 11 de noviembre, se reporta lo alcanzado contra
+  `local` y `pi-lan` (mTLS y Raspberry Pi física, ya logrados), se
+  documenta el obstáculo y el resto pasa a trabajo futuro. No se
+  sacrifica la semana de cierre.
 
 ### S10 · 16–20 noviembre
 - Conclusiones y trabajo futuro, contrastando cada resultado contra los umbrales
@@ -221,7 +222,7 @@ una ubicación propuesta, no confirmada.
 |------|--------------|----------|
 | G1 | 27 septiembre | TLSTM viable → se implementa. No viable → USM + limitación escrita en 3.8. |
 | G2 | 11 octubre | MIB oficiales recibidas → se usan. No recibidas → MIB reconstruidas + limitación declarada. |
-| G3 | 11 noviembre | TLS/mTLS real y Raspberry Pi lista → se caracteriza contra hardware real. No lista → se reporta lo alcanzado en emulación (`evidencia/2026-10-22_arquitectura-centralizada/`) y pasa a trabajo futuro. (Reemplaza al gate original de la malla Wi-SUN, que no aplica a la arquitectura vigente.) |
+| G3 | 11 noviembre | Campaña `pi-4g` lista → se caracteriza contra el enlace 4G real con mTLS. No lista → se reporta lo alcanzado contra `local` y `pi-lan` (mTLS y Raspberry Pi física, ya logrados desde el reporte R11 del 30/10) y la campaña 4G pasa a trabajo futuro. (Reemplaza al gate original de la malla Wi-SUN, que no aplica a la arquitectura vigente.) |
 
 Cada gate tiene una salida definida de antemano. El propósito es que ninguna de
 las tres incertidumbres pueda consumir tiempo indefinido.
@@ -235,7 +236,7 @@ las tres incertidumbres pueda consumir tiempo indefinido.
 | R1 | Las MIB oficiales de NEMA no llegan | Alto — validez de OE3 | Solicitud el primer día; salida definida en G2 |
 | R2 | TLSTM sin soporte maduro en el stack Python | Medio — obliga a replantear 3.8 | Verificación en S2; salida definida en G1 |
 | R3 | Dependencia de un commit no publicado de pysnmp | Medio — reproducibilidad | Fijar el commit exacto y registrarlo en el Capítulo 4 |
-| R4 | TLS/mTLS real y la Raspberry Pi física no están listos a tiempo | Medio — ya acotado | La CA y la ACL se probaron de forma aislada (`scripts/seguridad/`), sin broker real; alcance reducido por diseño si no alcanza, salida en G3. Reemplaza al riesgo original de la malla Wi-SUN (R4), descartada como mecanismo de coordinación — ver nota de alcance al inicio del documento. |
+| R4 | La campaña `pi-4g` (enlace 4G real con mTLS) no está lista a tiempo | Medio — ya acotado | **Actualizado 2026-11-01:** TLS/mTLS real y la Raspberry Pi física ya se lograron (reporte R11, 30/10; campañas `local` y `pi-lan`); el riesgo que queda es solo la campaña `pi-4g`, salida en G3. Reemplaza al riesgo original de la malla Wi-SUN (R4), descartada como mecanismo de coordinación — ver nota de alcance al inicio del documento. |
 | R5 | Sin acceso a un controlador semafórico físico | Medio | El emulador de S4 elimina la dependencia |
 | R6 | El lector OBD-II no responde con el vehículo disponible | Cerrado | **Cerrado 2026-11-01:** OBD-II retirado del alcance; lectura manual validada en R10 como evidencia preliminar |
 
@@ -245,7 +246,7 @@ evidencia preliminar.
 
 ---
 
-## Pendientes de la arquitectura centralizada (actualizado 2026-10-22)
+## Pendientes de la arquitectura centralizada (actualizado 2026-11-01)
 
 El script de ruta, la gestión de misión en el servidor y su arbitraje de
 conflictos — que en la versión anterior de este documento (añadida el
@@ -254,23 +255,27 @@ encajar" — **ya están implementados**: `servidor/rutas.py`,
 `servidor/gestor_mision.py`, `servidor/conflictos.py`, probados con 22
 pruebas unitarias nuevas y 3 escenarios de punta a punta (ver
 `docs/bitacora/2026-10-22_arquitectura-centralizada.md` y
-`evidencia/2026-10-22_arquitectura-centralizada/`). Lo que sigue pendiente
-de verdad:
+`evidencia/2026-10-22_arquitectura-centralizada/`).
 
-- **Mapa de misión en la consola.** `consola/backend/mapa.py` y
-  `consola/static/js/mapa.js` (y la página equivalente de
-  `centro_control/panel/`) seguían leyendo el archivo local que escribía
-  la OBU emulada ANTES de esta migración
-  (`resultados/obu_vivo/estado.json`), que `gateway/obu_emulada.py` ya no
-  escribe. Falta adaptarlos para mostrar la ruta (MR) y el estado (ME) que
-  ahora publica el servidor. **[REVISAR: encajaría junto a la campaña de
-  medición de S7.]**
-- **App Android mínima con mapa y ruta.** Botón "Iniciar/Terminar
-  emergencia" con selector de destino, indicador del próximo semáforo y
-  mapa con la ruta del servidor (sustituye a la OBU emulada de
-  `gateway/obu_emulada.py` para la validación final). El contrato de
-  mensajes que debe cumplir ya está especificado en
-  `docs/CONTRATO_OBU.md`. **[REVISAR: encajaría en la Fase III o al
-  inicio de la Fase IV, S8, según el tiempo disponible.]**
-- **TLS 1.3 + mTLS contra un broker real, y Raspberry Pi física** — ver
-  Fase IV (S8–S9) y el gate G3 arriba.
+**Resueltos desde el 2026-10-22 (actualizado con esta sesión):**
+- **Mapa de misión en la consola** (`consola/backend/mapa.py`,
+  `consola/backend/mision.py`, `consola/static/js/mapa.js`): ya muestra la
+  ruta (MR) y el estado (ME) que publica el servidor, con soporte
+  multi-RSU (ver `docs/bitacora/2026-10-30_consola-multi-rsu.md`).
+- **App Android mínima con mapa y ruta** (`ntcip_app/app_obu/`, rama
+  `app-obu`): implementada y probada en la Tab S6 Lite (ver
+  `app_obu/README.md`); sustituye a la OBU emulada de
+  `gateway/obu_emulada.py` para la validación final. El lector OBD-II de
+  su Etapa 2 sale del alcance (ver trabajo futuro).
+- **TLS 1.3 + mTLS contra un broker real:** logrado (reporte R11, 30/10:
+  Mosquitto en 8883, certificado de cliente).
+- **Raspberry Pi física:** validada por Wi-Fi/Tailscale en la campaña
+  `pi-lan` del 29/10 (ver `docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md`).
+
+Lo que sigue pendiente de verdad (ver Fase IV, S8–S10, y el gate G3
+arriba):
+- Integrar TLS/mTLS en la app Android (`app_obu/seguridad/TlsConfig.kt`,
+  Etapa 3, ver B4).
+- Campaña `pi-4g` (lazo y desvío) contra el enlace 4G real, con mTLS
+  activo (ver B5).
+- Probar la interfaz Ethernet de la Raspberry Pi.
