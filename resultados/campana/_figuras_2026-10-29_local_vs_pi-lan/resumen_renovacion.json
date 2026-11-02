@@ -1,0 +1,38 @@
+[
+  {
+    "escenario": "lazo",
+    "config": "local",
+    "factor": 1.0,
+    "n_repeticiones": 18,
+    "n_solicitudes_primeras": 18,
+    "n_renovaciones": 118,
+    "n_caducidades": 0
+  },
+  {
+    "escenario": "desvio",
+    "config": "local",
+    "factor": 1.0,
+    "n_repeticiones": 18,
+    "n_solicitudes_primeras": 18,
+    "n_renovaciones": 115,
+    "n_caducidades": 0
+  },
+  {
+    "escenario": "lazo",
+    "config": "pi-lan",
+    "factor": 1.0,
+    "n_repeticiones": 18,
+    "n_solicitudes_primeras": 18,
+    "n_renovaciones": 118,
+    "n_caducidades": 0
+  },
+  {
+    "escenario": "desvio",
+    "config": "pi-lan",
+    "factor": 1.0,
+    "n_repeticiones": 18,
+    "n_solicitudes_primeras": 18,
+    "n_renovaciones": 121,
+    "n_caducidades": 0
+  }
+]
