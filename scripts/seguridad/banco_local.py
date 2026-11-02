@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
+import shutil
 import socket
 import subprocess
 import sys
@@ -46,7 +47,20 @@ sys.path.insert(0, str(RAIZ))
 from scripts.seguridad import generar_ca  # noqa: E402
 
 PKI_BANCO = RAIZ / "deploy" / "pki_banco"
-MOSQUITTO_EXE = r"C:\Program Files (x86)\Mosquitto\mosquitto.exe"
+# No está en el PATH en el entorno de desarrollo de este proyecto (instalador
+# de Windows): se busca primero por PATH (shutil.which) y, si no aparece, en
+# la ruta del instalador oficial de Windows -- mosquitto_disponible() es lo
+# que test_seguridad_broker.py usa para saltarse si de verdad no está.
+_RUTA_INSTALADOR_WINDOWS = r"C:\Program Files (x86)\Mosquitto\mosquitto.exe"
+
+
+def mosquitto_disponible() -> str | None:
+    return shutil.which("mosquitto") or (
+        _RUTA_INSTALADOR_WINDOWS if Path(_RUTA_INSTALADOR_WINDOWS).is_file() else None
+    )
+
+
+MOSQUITTO_EXE = mosquitto_disponible()
 ACL_FILE = RAIZ / "scripts" / "seguridad" / "mosquitto_acl.conf"
 ESTADO_JSON = PKI_BANCO / "_banco_estado.json"
 
@@ -184,7 +198,11 @@ def _mosquitto_conf(pki_dir: Path, puerto: int, log_path: Path) -> str:
     ca = pki_dir / "ca"
     servidor = pki_dir / "servidor"
     return f"""\
-listener {puerto} 127.0.0.1
+listener {puerto} 0.0.0.0
+# 0.0.0.0, no 127.0.0.1: T12 de test_seguridad_broker.py conecta por
+# 127.0.0.2 (fuera del SAN del certificado) a propósito, para probar el
+# rechazo del lado del CLIENTE por nombre de host -- sigue siendo
+# solo loopback/LAN, nunca expuesto afuera de esta máquina.
 cafile {ca / 'ca.crt'}
 certfile {servidor / 'servidor-central.crt'}
 keyfile {servidor / 'servidor-central.key'}
@@ -203,6 +221,8 @@ log_type all
 
 
 def levantar(pki_dir: Path = PKI_BANCO, puerto: int | None = None) -> EstadoBanco:
+    if MOSQUITTO_EXE is None:
+        raise SystemExit("No se encontró mosquitto (ni en el PATH ni en la ruta del instalador de Windows).")
     if not (pki_dir / "ca" / "ca.crt").exists():
         raise SystemExit(f"{pki_dir}: no hay PKI todavía -- correr 'preparar' primero.")
     puerto = puerto or _puerto_libre()
@@ -243,6 +263,19 @@ def bajar(estado: EstadoBanco | None = None) -> None:
             return
         estado = EstadoBanco(**json.loads(ESTADO_JSON.read_text(encoding="utf-8")))
     subprocess.run(["taskkill", "/PID", str(estado.pid), "/T", "/F"], capture_output=True)
+    # taskkill /F devuelve el control antes de que Windows termine de
+    # soltar los handles de archivo del proceso muerto -- sin esperar
+    # esto, el levantar() del SIGUIENTE caso (test_seguridad_broker.py
+    # levanta/baja un banco por caso) puede chocar con un PermissionError
+    # al intentar reescribir mosquitto_banco.log/.conf.
+    log_path = Path(estado.pki_dir) / "mosquitto_banco.log"
+    fin = time.monotonic() + 3.0
+    while time.monotonic() < fin and log_path.exists():
+        try:
+            log_path.unlink()
+            break
+        except PermissionError:
+            time.sleep(0.1)
     ESTADO_JSON.unlink(missing_ok=True)
 
 

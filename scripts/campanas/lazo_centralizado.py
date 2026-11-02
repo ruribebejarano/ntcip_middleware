@@ -610,14 +610,28 @@ def _esperar_en_log(ruta_log: Path, fragmento: str, timeout: float = 8.0, interv
     return False
 
 
-def _lanzar_local(rep_dir: Path, tls_dir: Path | None) -> tuple[subprocess.Popen, subprocess.Popen]:
+def _lanzar_local(rep_dir: Path, tls_dir: Path | None,
+                  broker_host: str = "127.0.0.1", broker_port: int = 1883,
+                  ) -> tuple[subprocess.Popen, subprocess.Popen]:
     """config=local: esta máquina hace también de RSU. Devuelve
     (controller, agent) ya lanzados Y CONFIRMADOS listos (puerto TCP
     escuchando / suscrito al broker MQTT) -- no solo "tras dormir un rato
     que normalmente alcanza". servidor se lanza aparte (función
-    _lanzar_servidor), igual en los tres config."""
+    _lanzar_servidor), igual en los tres config.
+
+    broker_host/broker_port tienen el default de agent/rsu_middleware.py
+    (127.0.0.1:1883) por compatibilidad, pero SIEMPRE hay que pasar los
+    reales si se usa un broker en otro puerto -- antes de
+    prompt_seguridad.md/S3 esta función dependía en silencio de que
+    os.environ ya tuviera MQTT_BROKER_HOST/PORT puestos (coincidencia:
+    todas las campañas locales hasta ahora usaron el puerto por defecto
+    1883), un hueco real que se encontró al correr test_seguridad_broker.py
+    T11 contra un broker en un puerto arbitrario -- la RSU conectaba en
+    TLS contra el Mosquitto de desarrollo en 1883 (sin TLS) y el handshake
+    fallaba con ssl.SSLEOFError en vez de un error claro de puerto."""
     entorno = dict(os.environ, RSU_EVENTOS_DIR=str(rep_dir), RSU_ID=RSU_ID,
-                   CONTROLLER_PORT=str(CONTROLLER_PORT), SNMP_PORT=str(SNMP_PORT))
+                   CONTROLLER_PORT=str(CONTROLLER_PORT), SNMP_PORT=str(SNMP_PORT),
+                   MQTT_BROKER_HOST=broker_host, MQTT_BROKER_PORT=str(broker_port))
     if tls_dir:
         ca, cert, key = _rutas_tls(tls_dir, "rsu", RSU_ID)
         entorno.update(RSU_TLS_CA=ca, RSU_TLS_CERT=cert, RSU_TLS_KEY=key)
@@ -980,7 +994,7 @@ def main() -> None:
             # controlador real ya viene corriendo de antes (no se
             # relanza), asi que ahi la pausa cumple su proposito aunque
             # vaya antes.
-            ctrl, agent = _lanzar_local(rep_dir, tls_dir)
+            ctrl, agent = _lanzar_local(rep_dir, tls_dir, args.broker_host, args.broker_port)
         else:
             time.sleep(pausa)
         servidor = _lanzar_servidor(rep_dir, esc["grafo"], registro_path, args.broker_host, args.broker_port,

@@ -1,0 +1,28 @@
+\begin{table}[H]
+\centering
+\caption{Matriz de pruebas de seguridad del broker y del agente SNMPv3 (2026-11-02).}
+\label{tab:seguridad_matriz}
+\small
+\begin{tabular}{lp{5cm}p{4cm}c}
+\toprule
+\textbf{ID} & \textbf{Caso} & \textbf{Resultado esperado} & \textbf{OK} \\
+\midrule
+T01 & Cliente sin certificado & Handshake rechazado & ✔ \\
+T02 & Certificado de una CA ajena & Handshake rechazado & ✔ \\
+T03 & Cliente que fuerza TLS 1.2 & Handshake rechazado & ✔ \\
+T04 & Certificado vencido & Handshake rechazado & ✔ \\
+T05 & Certificado revocado (CRL) & Handshake rechazado -- argumento de revocar una OBU & ✔ \\
+T06 & La OBU publica un M1 en rsu/1/solicitudes & El suscriptor RSU 1 NO lo recibe & ✔ \\
+T07 & obu-emu-01 publica en obu/obu-emu-02/posicion & El servidor NO lo recibe & ✔ \\
+T08 & obu-emu-01 se suscribe a obu/obu-emu-02/ruta & No recibe nada & ✔ \\
+T09 & La RSU 1 se suscribe a rsu/2/solicitudes & No recibe nada & ✔ \\
+T10 & Una OBU publica un M2 falso en servidor/central/respuestas & El broker LO DEJA PASAR (limitación conocida) y el servidor LO IGNORA & ✔ \\
+T11 & Un cliente legítimo (servidor, RSU 1 y OBU) & Conecta y el flujo MI->MR y M1->M2 funciona & ✔ \\
+T12 & El cliente verifica el SAN del servidor contra un host que no coincide & Rechazado del lado del cliente & ✔ \\
+T13 & Repetición de un MP capturado (mismo seq) & Descartado por el servidor (B2) & ✔ \\
+T14 & SNMPv3 sin autenticación (noAuthNoPriv) & Rechazado & ✔ \\
+T15 & SNMPv3 con protocolo de autenticación equivocado & Rechazado & ✔ \\
+T16 & SNMPv3 con clave de autenticación equivocada & Rechazado & ✔ \\
+\bottomrule
+\end{tabular}
+\end{table}

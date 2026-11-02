@@ -1,0 +1,17 @@
+1793634694: mosquitto version 2.1.2 starting
+1793634694: Config loaded from E:\Tesis\ntcip_middleware\deploy\pki_banco\mosquitto_banco.conf.
+1793634694: Bridge support available.
+1793634694: Persistence support available.
+1793634694: TLS support available.
+1793634694: TLS-PSK support available.
+1793634694: Websockets support available.
+1793634694: Warning: ACL pattern 'servidor/central/respuestas' does not contain '%c' or '%u'.
+1793634694: Plugin builtin-security has registered to receive 'acl-check' events.
+1793634694: Opening ipv4 listen socket on port 55516.
+1793634694: mosquitto version 2.1.2 running
+1793634694: New connection from 127.0.0.1:55520 on port 55516.
+1793634694: OpenSSL Error while trying to get the error[0]: error:0A000126:SSL routines::unexpected eof while reading
+1793634694: Client 127.0.0.1 [127.0.0.1:55520] disconnected: protocol error.
+1793634696: New connection from 127.0.0.1:55524 on port 55516.
+1793634696: OpenSSL Error while trying to get the error[0]: error:0A000086:SSL routines::certificate verify failed
+1793634696: Client 127.0.0.1 [127.0.0.1:55524] disconnected: protocol error.
