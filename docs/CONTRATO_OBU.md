@@ -129,10 +129,11 @@ debe publicar nada aquí).
 
 ### MF — Fin de misión
 
-**Tópico:** `obu/{obu_id}/mision` · **Cuándo:** botón "Terminar
-emergencia", o automáticamente si la propia app detecta que llegó al
-destino (aunque el servidor también lo detecta de forma independiente, ver
-§5).
+**Tópico:** `obu/{obu_id}/mision` · **Cuándo:** solo botón "Terminar
+emergencia" — la app no detecta por su cuenta la llegada a destino ni el
+tiempo máximo, para no tener dos lógicas de "llegó" que podrían no
+coincidir (ver §5); esos dos motivos los decide el servidor y la app los
+recibe reflejados en el último ME, no en un MF propio.
 
 ```json
 {"tipo": "MF", "obu_id": "ses-abc123", "motivo": "boton", "ts_ms": 1761144090000}
@@ -189,6 +190,8 @@ procesado y de cada M2 recibido de una RSU (así que, con la OBU activa, a
   ],
   "proximo": {"interseccion_id": "OSM-C24", "rsu_id": "1", "acceso_id": "S", "estado": "concedida", "eta_s": 4.2, "fase": "verde"},
   "conflicto": false,
+  "mision_activa": true,
+  "motivo_fin": null,
   "ts_ms": 1761144002050
 }
 ```
@@ -203,6 +206,18 @@ procesado y de cada M2 recibido de una RSU (así que, con la OBU activa, a
   dato que alimenta el indicador de "próximo semáforo" de la interfaz
   mínima. `null` si no queda ninguna parada pendiente en la ruta.
 - `conflicto`: `true` si alguna parada de ESTA misión está `en_espera`.
+- `mision_activa` (bool, **agregado 2026-11-01**, B3): `true` en todos los
+  ME salvo el último, que ya refleja el desarme y lleva `false`. Antes de
+  este campo, un cliente no podía distinguir "la misión terminó" de "la
+  misión sigue, ya no hay más semáforos por delante" (ambos casos dejan
+  `paradas` todas `cancelada` y `proximo=null`) — ver
+  `app_obu/PROPUESTA_FIN_MISION.md`.
+- `motivo_fin` (string | null, **agregado 2026-11-01**, B3): `"boton" |
+  "destino" | "tiempo_maximo"` en ese último ME; `null` en todos los
+  anteriores. **Compatibilidad hacia atrás:** ambos campos son nuevos al
+  final del mensaje; un cliente que no los conozca sigue funcionando
+  igual que antes (`app_obu/` ya los interpreta, ver
+  `ObuSessionService.onMensajeEstado()`).
 
 ## 5. Ciclo de vida de la misión (quién la desarma)
 
@@ -211,11 +226,12 @@ solicitud vigente) en tres casos, todos reflejados en el ME final antes de
 que la app deje de recibir nada:
 
 1. **Botón** ("Terminar emergencia"): la app envía MF `motivo="boton"`.
-2. **Llegada a destino**: el servidor lo detecta solo, comparando la
-   posición MP con el destino de la misión. [DATO: el umbral de distancia
-   para considerar "llegó" no está definido en este contrato — ver
-   `MARGEN_CRUCE_M` en `servidor/gestor_mision.py` como referencia de
-   orden de magnitud, pero no es literalmente ese parámetro].
+2. **Llegada a destino** (implementado 2026-11-01, B3): el servidor lo
+   detecta solo, comparando la posición MP con el destino de la misión
+   contra `UMBRAL_LLEGADA_DESTINO_M` (`servidor/gestor_mision.py`),
+   **igual a `MARGEN_CRUCE_M` (20 m) por ser el valor más conservador
+   disponible** [REVISAR con asesor: no está calibrado con datos de
+   campo].
 3. **Tiempo máximo** (`TIEMPO_MAXIMO_MISION_S` en
    `servidor/gestor_mision.py`, 1800 s = 30 min, **valor PROVISIONAL**
    [REVISAR con asesor]): el servidor desarma la misión aunque la app no

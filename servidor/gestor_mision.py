@@ -37,6 +37,7 @@ de campo.
 
 from __future__ import annotations
 
+import math
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -51,6 +52,7 @@ from gateway.geometria import (
     Interseccion,
     ParametrosGeometria,
     SeguidorAcceso,
+    proyeccion_local,
 )
 from servidor import conflictos as conflictos_mod
 from servidor import rutas as rutas_mod
@@ -79,6 +81,11 @@ TIEMPO_MAXIMO_MISION_S = 1800.0   # 30 min: límite de seguridad de una misión 
 ANTICIPACION_MINIMA_S = 8.0       # margen mínimo servidor->RSU + transición de fase (RF8) [REVISAR con asesor]
 VELOCIDAD_RESPALDO_KMH = 30.0     # si no hay velocidad GNSS válida (MP sin "velocidad_kmh" útil) [REVISAR con asesor]
 MARGEN_CRUCE_M = 20.0             # cuanto puede "pasarse" la distancia acumulada antes de considerar la parada cruzada [REVISAR con asesor]
+# B3 (app_obu/PROPUESTA_FIN_MISION.md §1): el umbral de llegada a destino no
+# estaba definido. [REVISAR con asesor] -- se elige el valor más
+# conservador, igual a MARGEN_CRUCE_M, para no introducir un orden de
+# magnitud nuevo sin validar con datos de campo.
+UMBRAL_LLEGADA_DESTINO_M = MARGEN_CRUCE_M
 
 ESTADO_PENDIENTE = "pendiente"
 ESTADO_SOLICITADA = "solicitada"
@@ -123,6 +130,7 @@ class Mision:
     t_armado: float = field(default_factory=time.time)
     distancia_recorrida_m: float = 0.0
     ultima_velocidad_kmh: float = VELOCIDAD_RESPALDO_KMH
+    motivo_fin: Optional[str] = None  # "boton" | "destino" | "tiempo_maximo"; None mientras activa=True
 
     def siguiente_parada_pendiente(self) -> Optional[EstadoParada]:
         for iid in self.orden:
@@ -240,6 +248,15 @@ class GestorMision:
         # mas en este metodo.
         self._log(EVT_MP_RX, mision.mision_id, lat=lat, lon=lon,
                   velocidad_kmh=velocidad_kmh, rumbo_deg=rumbo_deg, seq=seq)
+
+        # B3 (app_obu/PROPUESTA_FIN_MISION.md): llegada a destino, antes de
+        # seguir con la geocerca -- la detecta el servidor, no la app (ver
+        # docs/CONTRATO_OBU.md §5).
+        destino_lat, destino_lon = mision.destino
+        x, y = proyeccion_local(lat, lon, destino_lat, destino_lon)
+        if math.hypot(x, y) <= UMBRAL_LLEGADA_DESTINO_M:
+            self.desarmar_mision(obu_id, motivo="destino")
+            return
 
         progreso = rutas_mod.proyectar_sobre_ruta(mision.ruta, lat, lon)
         if progreso.distancia_perpendicular_m > self.umbral_desvio_m:
@@ -496,6 +513,7 @@ class GestorMision:
         return {
             "tipo": "ME", "mision_id": mision.mision_id, "paradas": paradas, "proximo": proximo,
             "conflicto": any(ep.estado == ESTADO_EN_ESPERA for ep in mision.paradas.values()),
+            "mision_activa": mision.activa, "motivo_fin": mision.motivo_fin,
             "ts_ms": int(self.ahora() * 1000),
         }
 
@@ -549,6 +567,7 @@ class GestorMision:
             elif ep.estado not in (ESTADO_CANCELADA, ESTADO_RECHAZADA):
                 self._cancelar_parada(mision, ep, motivo=motivo)
         mision.activa = False
+        mision.motivo_fin = motivo
         self._log(EVT_MISION_DESARMADA, mision.mision_id, motivo=motivo)
         self.enviar_me(obu_id, self._cuerpo_me(mision))
         for iid in mision.orden:

@@ -145,14 +145,55 @@ def test_desarme_cancela_todo_lo_pendiente():
 
     gestor.desarmar_mision("obu-1", motivo="boton")
     assert mision.activa is False
+    assert mision.motivo_fin == "boton"
     assert mision.paradas["SINT-C"].estado == ESTADO_CANCELADA
     assert mision.paradas["SINT-F"].estado == ESTADO_CANCELADA
     assert any(c["motivo"] == "boton" for _, c in reg.m3)
+    assert reg.me[-1][1]["mision_activa"] is False
+    assert reg.me[-1][1]["motivo_fin"] == "boton"
 
     # Tras desarmar, un MP tardio no debe reactivar nada (ssec:minimizacion).
     antes = len(reg.m1)
     gestor.procesar_mp("obu-1", *NODOS_RUTA["F"], VELOCIDAD_KMH, 0.0)
     assert len(reg.m1) == antes
+
+
+def test_me_mision_activa_true_mientras_no_se_desarma():
+    gestor, reg = _gestor()
+    gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    gestor.procesar_mp("obu-1", *NODOS_RUTA["B"], VELOCIDAD_KMH, 0.0)
+    assert reg.me[-1][1]["mision_activa"] is True
+    assert reg.me[-1][1]["motivo_fin"] is None
+
+
+def test_desarme_por_llegada_a_destino():
+    """B3: el servidor detecta la llegada sin que la app envie un MF
+    propio (app_obu/PROPUESTA_FIN_MISION.md)."""
+    gestor, reg = _gestor()
+    gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    mision = gestor.misiones["obu-1"]
+
+    lat_g, lon_g = NODOS_RUTA["G"]
+    lat_cerca, lon_cerca = desplazar(lat_g, lon_g, 0.0, 5.0)  # a 5 m del destino
+    gestor.procesar_mp("obu-1", lat_cerca, lon_cerca, VELOCIDAD_KMH, 0.0)
+
+    assert mision.activa is False
+    assert mision.motivo_fin == "destino"
+    assert reg.me[-1][1]["mision_activa"] is False
+    assert reg.me[-1][1]["motivo_fin"] == "destino"
+
+
+def test_desarme_por_tiempo_maximo():
+    gestor, reg = _gestor(tiempo_maximo_s=0.0)
+    gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    mision = gestor.misiones["obu-1"]
+
+    gestor.procesar_mp("obu-1", *NODOS_RUTA["B"], VELOCIDAD_KMH, 0.0)
+
+    assert mision.activa is False
+    assert mision.motivo_fin == "tiempo_maximo"
+    assert reg.me[-1][1]["mision_activa"] is False
+    assert reg.me[-1][1]["motivo_fin"] == "tiempo_maximo"
 
 
 def test_m2_actualiza_estado_y_reenvia_me():
