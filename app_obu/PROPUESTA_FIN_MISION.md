@@ -1,11 +1,19 @@
 # Propuesta: señal explícita de fin de misión en ME
 
-Este documento es una propuesta, no una implementación. Lo escribe la
-sesión de `app_obu/` (worktree `E:\Tesis\ntcip_app`, rama `app-obu`) porque
-el cambio que hace falta cae en `docs/CONTRATO_OBU.md` y
-`servidor/gestor_mision.py`, fuera de la carpeta de la app y de las
-instrucciones de esta sesión. Lo implementa quien trabaje en el worktree
-principal (`E:\Tesis\ntcip_middleware`).
+**Implementado 2026-11-01 (B3), en `E:\Tesis\ntcip_middleware`** (los
+puntos 2, 3 y 4 de la sección 3 de abajo; el punto 5, pruebas unitarias,
+también): `docs/CONTRATO_OBU.md` ya documenta `mision_activa`/
+`motivo_fin` como campos vigentes del ME, y `servidor/gestor_mision.py`
+detecta la llegada a destino. Esta app (`app_obu/`) ya los interpretaba
+desde antes (ver `ObuSessionService.onMensajeEstado()`), así que no
+necesitó cambios propios. Se deja el resto de este documento tal cual,
+como registro de la propuesta original.
+
+Este documento era una propuesta, no una implementación, cuando se
+escribió. Lo escribió la sesión de `app_obu/` (worktree
+`E:\Tesis\ntcip_app`, rama `app-obu`) porque el cambio que hacía falta
+caía en `docs/CONTRATO_OBU.md` y `servidor/gestor_mision.py`, fuera de la
+carpeta de la app y de las instrucciones de esa sesión.
 
 ## 1. El problema
 
