@@ -172,7 +172,7 @@ Qué tramo se mide hoy y cuál no:
 
 | Tramo | ¿Se mide hoy? | Detalle |
 |---|---|---|
-| `t_adq` (adquisición OBD-II/GNSS) | **No.** | La posición y la velocidad salen de un CSV (`scripts/trayectorias/generar.py`), no de un receptor GNSS ni de un lector OBD-II: no hay un instante de "adquisición" que medir en esta etapa. Ver sección 6.1 para el plan cuando exista `gateway/obd_reader.py`. |
+| `t_adq` (adquisición GNSS) | **No.** | La posición y la velocidad salen de un CSV (`scripts/trayectorias/generar.py`), no de un receptor GNSS real: no hay un instante de "adquisición" que medir en esta etapa. Ver sección 6.4 para el plan de medición con GNSS real. |
 | `t_OBU` | **Sí**, desde esta instrumentación (sección 6.1). | `M1_tx − muestra`. |
 | `t_V2I` | Sí, si los relojes están sincronizados o todo corre en una sola máquina. | Incluye `t_up` + `t_broker` + `t_down` (sección 6.2), hoy sin desagregar salvo que el testigo del broker esté corriendo. |
 | `t_up` (OBU → broker) | Solo con el testigo del broker corriendo (sección 6.2). | Cota superior. |
@@ -273,18 +273,18 @@ en la máquina del broker, comparando el instante del paquete `PUBLISH` que
 entra (OBU → broker) con el del `PUBLISH` que sale (broker → RSU) del mismo
 mensaje — no implementado en este repositorio.
 
-### 6.4 `t_adq` (adquisición OBD-II / GNSS) — PENDIENTE, plan documentado
+### 6.4 `t_adq` (adquisición GNSS) — PENDIENTE, plan documentado
 
 No aplica mientras la posición y la velocidad salgan de un CSV
-(`scripts/trayectorias/generar.py`). Plan para cuando exista
-`gateway/obd_reader.py` (lectura real por `python-OBD`, PID `0x0D`, 1 Hz):
-registrar un evento `obd_pedido` al enviar la consulta al adaptador ELM327 y
-`obd_respuesta` al recibirla, con `t_adq = obd_respuesta.ts_ns −
-obd_pedido.ts_ns` (un solo reloj, el de la OBU). Para el componente GNSS de
-la posición, usar la diferencia entre la marca de tiempo del *fix* que
-reporta el receptor y la hora de lectura de la aplicación. Ninguno de los dos
-eventos existe todavía en el código: **TODO** antes de reportar `t_adq` en el
-Capítulo IV.
+(`scripts/trayectorias/generar.py`). Plan para cuando la OBU use el GNSS
+real del dispositivo (`app_obu/.../velocidad/FuenteGnss.kt`): usar la
+diferencia entre la marca de tiempo del *fix* que reporta el receptor y la
+hora de lectura de la aplicación. Ese evento no existe todavía en el
+código: **TODO** antes de reportar `t_adq` en el Capítulo IV.
+
+El plan de instrumentar un lector OBD-II (ELM327, PID `0x0D` por
+`python-OBD`) como fuente adicional de `t_adq` pasó a trabajo futuro
+(2026-11-01): la OBU retira el lector OBD-II del alcance.
 
 ## 7. Cómo reproducir una medición
 

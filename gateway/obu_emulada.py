@@ -16,9 +16,9 @@
 4. Al terminar la trayectoria (o con Ctrl+C), desarma la misión (MF).
 
 *** EMULACIÓN CON DATOS FICTICIOS *** La posición, el rumbo y la velocidad
-salen de un CSV generado por scripts/trayectorias/generar.py, no de un
-receptor GNSS ni de un lector OBD-II (RF-01, RF-02 quedan fuera de esta
-emulación). Lo que SÍ es real es todo lo que pasa a partir de la muestra:
+salen de un CSV generado por scripts/trayectorias/generar.py, sin receptor
+GNSS real (RF-02 queda fuera de esta emulación). Lo que SÍ es real es todo
+lo que pasa a partir de la muestra:
 los mensajes MI/MP/MF hacia el servidor central y MR/ME que vuelven de él.
 
 Mensajes (tab:mensajes, servidor/main.py), JSON sobre MQTT 5:

@@ -76,7 +76,7 @@ except ImportError:  # pragma: no cover - solo para uso aislado en pruebas
 UMBRAL_DESVIO_M = 60.0            # distancia perpendicular a la ruta que dispara recálculo [REVISAR con asesor]
 TIEMPO_MAXIMO_MISION_S = 1800.0   # 30 min: límite de seguridad de una misión armada [REVISAR con asesor]
 ANTICIPACION_MINIMA_S = 8.0       # margen mínimo servidor->RSU + transición de fase (RF8) [REVISAR con asesor]
-VELOCIDAD_RESPALDO_KMH = 30.0     # si no hay velocidad OBD-II/GPS válida (MP sin "velocidad_kmh" útil) [REVISAR con asesor]
+VELOCIDAD_RESPALDO_KMH = 30.0     # si no hay velocidad GNSS válida (MP sin "velocidad_kmh" útil) [REVISAR con asesor]
 MARGEN_CRUCE_M = 20.0             # cuanto puede "pasarse" la distancia acumulada antes de considerar la parada cruzada [REVISAR con asesor]
 
 ESTADO_PENDIENTE = "pendiente"
