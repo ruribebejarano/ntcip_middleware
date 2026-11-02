@@ -34,6 +34,18 @@ CLAUDE.md
 CLAUDE.local.md
 .claude/
 
+# Bitácora de sesiones y planificación de curso/tesis: uso interno del
+# autor, no son documentación técnica del proyecto. Se siguen escribiendo
+# localmente (CLAUDE.md lo sigue pidiendo), pero no se publican en GitHub.
+docs/bitacora/
+docs/CRONOGRAMA.md
+docs/PLAN_10H_2026-10-19.md
+docs/PLAN_IMPLEMENTACION.md
+docs/PREPARACION_REUNION_ASESOR.md
+docs/prompt_consola_web.md
+docs/prompt_repo_tailscale.md
+docs/SERVICIOS_DEMOSTRACION.md
+
 # resultados/: solo se versionan corridas curadas y documentadas
 # (resultados/<escenario>/<AAAA-MM-DD_HHMM>/, ver resultados/LEEME.md).
 # Estos son directorios de trabajo que se regeneran en cada corrida local
