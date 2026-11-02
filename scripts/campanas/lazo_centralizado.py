@@ -159,6 +159,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(RAIZ))
 from gateway.geometria import desplazar  # noqa: E402
+from scripts.seguridad import generar_ca  # noqa: E402
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
@@ -171,6 +172,32 @@ PAUSA_MAX_DEFAULT_S = 25.0
 CONTROLLER_PORT = 9000
 SNMP_PORT = 1161
 RSU_ID = "1"
+
+
+def _rutas_tls(tls_dir: Path, tipo: str, id_: str | None) -> tuple[str, str, str]:
+    """TLS 1.3 + mTLS para la campaña (prompt_seguridad.md, S1.4): reusa
+    `scripts/seguridad/generar_ca.py` como librería, apuntando su PKI a
+    `tls_dir` en vez de a deploy/pki/ (se asume ya inicializada --
+    `generar_ca.py init` + `emitir --tipo servidor` corridos a mano, o por
+    scripts/seguridad/banco_local.py). Emite el certificado de la RSU/OBU
+    si todavía no existe en esa carpeta: no hay que pre-generar uno por
+    cada repetición de antemano.
+
+    OBU con obu_id sufijado por repetición (ssec:obus_rep, más abajo), NO
+    un id fijo único para toda la campaña: scripts/analisis/lazo_centralizado.py
+    correlaciona MP_tx/MP_rx por (obu_id, seq) sobre TODAS las repeticiones
+    de --dir juntas -- un obu_id fijo entre repeticiones haría que el
+    seq=1 de la repetición 2 pisara al de la repetición 1 en ese cruce."""
+    generar_ca.PKI = tls_dir
+    generar_ca.CA_DIR = tls_dir / "ca"
+    if not (generar_ca.CA_DIR / "ca.crt").exists():
+        raise SystemExit(f"--tls {tls_dir}: no hay una CA ahí (corre 'generar_ca.py init' primero).")
+    _cn, nombre_archivo, out = generar_ca._nombre(tipo, id_)
+    crt = out / f"{nombre_archivo}.crt"
+    if not crt.exists():
+        generar_ca.emitir(tipo, id_)
+    key = out / f"{nombre_archivo}.key"
+    return str(generar_ca.CA_DIR / "ca.crt"), str(crt), str(key)
 
 ESCENARIOS = {
     "lazo": {"grafo": "recta", "registro": "registro_rsu_1.json",
@@ -583,7 +610,7 @@ def _esperar_en_log(ruta_log: Path, fragmento: str, timeout: float = 8.0, interv
     return False
 
 
-def _lanzar_local(rep_dir: Path) -> tuple[subprocess.Popen, subprocess.Popen]:
+def _lanzar_local(rep_dir: Path, tls_dir: Path | None) -> tuple[subprocess.Popen, subprocess.Popen]:
     """config=local: esta máquina hace también de RSU. Devuelve
     (controller, agent) ya lanzados Y CONFIRMADOS listos (puerto TCP
     escuchando / suscrito al broker MQTT) -- no solo "tras dormir un rato
@@ -591,6 +618,9 @@ def _lanzar_local(rep_dir: Path) -> tuple[subprocess.Popen, subprocess.Popen]:
     _lanzar_servidor), igual en los tres config."""
     entorno = dict(os.environ, RSU_EVENTOS_DIR=str(rep_dir), RSU_ID=RSU_ID,
                    CONTROLLER_PORT=str(CONTROLLER_PORT), SNMP_PORT=str(SNMP_PORT))
+    if tls_dir:
+        ca, cert, key = _rutas_tls(tls_dir, "rsu", RSU_ID)
+        entorno.update(RSU_TLS_CA=ca, RSU_TLS_CERT=cert, RSU_TLS_KEY=key)
     ctrl_log = rep_dir / "controller.log"
     ctrl = subprocess.Popen([PY, "-u", str(RAIZ / "controller" / "controller_emulator.py"),
                              "--port", str(CONTROLLER_PORT)],
@@ -615,11 +645,14 @@ def _lanzar_local(rep_dir: Path) -> tuple[subprocess.Popen, subprocess.Popen]:
     return ctrl, agent
 
 
-def _lanzar_servidor(rep_dir: Path, grafo: str, registro: Path, broker_host: str, broker_port: int
-                     ) -> subprocess.Popen:
+def _lanzar_servidor(rep_dir: Path, grafo: str, registro: Path, broker_host: str, broker_port: int,
+                     tls_dir: Path | None = None) -> subprocess.Popen:
     entorno = dict(os.environ, RSU_EVENTOS_DIR=str(rep_dir), GRAFO_SINTETICO=grafo,
                    REGISTRO_RSU_PATH=str(registro), MQTT_BROKER_HOST=broker_host,
                    MQTT_BROKER_PORT=str(broker_port))
+    if tls_dir:
+        ca, cert, key = _rutas_tls(tls_dir, "servidor", None)
+        entorno.update(SERVIDOR_TLS_CA=ca, SERVIDOR_TLS_CERT=cert, SERVIDOR_TLS_KEY=key)
     log = rep_dir / "servidor.log"
     p = subprocess.Popen([PY, "-u", str(RAIZ / "servidor" / "main.py")],
                         stdout=log.open("w", encoding="utf-8"), stderr=subprocess.STDOUT,
@@ -647,15 +680,22 @@ def _lanzar_servidor(rep_dir: Path, grafo: str, registro: Path, broker_host: str
 
 
 def _correr_obus(rep_dir: Path, obus: list[tuple[str, str]], trayectorias: list[Path],
-                 broker_host: str, broker_port: int, factor: float) -> None:
+                 broker_host: str, broker_port: int, factor: float,
+                 tls_dir: Path | None = None) -> None:
     entorno = dict(os.environ, RSU_EVENTOS_DIR=str(rep_dir))
     procesos = []
     for (obu_id, _nombre), tray in zip(obus, trayectorias):
         log = (rep_dir / f"{obu_id}.log").open("w", encoding="utf-8")
-        p = subprocess.Popen([PY, "-u", str(RAIZ / "gateway" / "obu_emulada.py"),
-                             "--broker-host", broker_host, "--broker-port", str(broker_port),
-                             "--trayectoria", str(tray), "--factor", str(factor), "--obu-id", obu_id],
-                            stdout=log, stderr=subprocess.STDOUT, env=entorno, cwd=RAIZ)
+        cmd = [PY, "-u", str(RAIZ / "gateway" / "obu_emulada.py"),
+              "--broker-host", broker_host, "--broker-port", str(broker_port),
+              "--trayectoria", str(tray), "--factor", str(factor), "--obu-id", obu_id]
+        if tls_dir:
+            # Certificado emitido (si no existia) con CN=obu_id, el mismo
+            # que el topico -- ver _rutas_tls() sobre por que NO se usa un
+            # obu_id fijo entre repeticiones.
+            ca, cert, key = _rutas_tls(tls_dir, "obu", obu_id)
+            cmd += ["--tls-ca", ca, "--tls-cert", cert, "--tls-key", key]
+        p = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, env=entorno, cwd=RAIZ)
         procesos.append(p)
         if len(obus) > 1:
             time.sleep(0.2)  # mismo escalonado que correr_e2e_conflicto.sh
@@ -809,7 +849,15 @@ def main() -> None:
     ap.add_argument("--pausa-max", type=float, default=PAUSA_MAX_DEFAULT_S)
     ap.add_argument("--sigma-pos", type=float, default=5.0, help="ruido GNSS, m (1 sigma)")
     ap.add_argument("--salida", default=str(RAIZ / "resultados" / "campana"))
+    ap.add_argument(
+        "--tls", default=None,
+        help="carpeta con una PKI ya inicializada (scripts/seguridad/generar_ca.py init + "
+             "emitir --tipo servidor; ver scripts/seguridad/banco_local.py para una de prueba). "
+             "Si se da, TLS 1.3 + mTLS en el servidor, la RSU local (config=local) y cada OBU "
+             "emulada -- requisito de la campaña pi-4g (redaccion/plan_pruebas_4G.md).",
+    )
     args = ap.parse_args()
+    tls_dir = Path(args.tls) if args.tls else None
 
     _verificar_sin_agente_local_huerfano()
     if args.config != "local":
@@ -932,14 +980,16 @@ def main() -> None:
             # controlador real ya viene corriendo de antes (no se
             # relanza), asi que ahi la pausa cumple su proposito aunque
             # vaya antes.
-            ctrl, agent = _lanzar_local(rep_dir)
+            ctrl, agent = _lanzar_local(rep_dir, tls_dir)
         else:
             time.sleep(pausa)
-        servidor = _lanzar_servidor(rep_dir, esc["grafo"], registro_path, args.broker_host, args.broker_port)
+        servidor = _lanzar_servidor(rep_dir, esc["grafo"], registro_path, args.broker_host, args.broker_port,
+                                    tls_dir)
         if args.config == "local":
             time.sleep(pausa)
         try:
-            _correr_obus(rep_dir, obus_rep, trayectorias, args.broker_host, args.broker_port, args.factor)
+            _correr_obus(rep_dir, obus_rep, trayectorias, args.broker_host, args.broker_port, args.factor,
+                        tls_dir)
             time.sleep(3.0)  # drenar M2/ME finales, igual que correr_e2e*.sh
         finally:
             _detener(servidor, ctrl, agent)

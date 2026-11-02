@@ -41,7 +41,6 @@ from __future__ import annotations
 
 import json
 import os
-import ssl
 import sys
 import time
 from pathlib import Path
@@ -52,6 +51,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ))
 
 from common.events import EventLogger  # noqa: E402
+from common.mqtt_tls import aplicar_tls  # noqa: E402
 from gateway.geometria import cargar_registro  # noqa: E402
 from servidor import rutas as rutas_mod  # noqa: E402
 from servidor.gestor_mision import GestorMision  # noqa: E402
@@ -224,15 +224,6 @@ def _cargar_grafo():
     return rutas_mod.cargar_grafo(ruta)
 
 
-def _tls_kwargs() -> dict | None:
-    if not (TLS_CA_CERT and TLS_CERTFILE and TLS_KEYFILE):
-        return None
-    return {
-        "ca_certs": TLS_CA_CERT, "certfile": TLS_CERTFILE, "keyfile": TLS_KEYFILE,
-        "tls_version": ssl.PROTOCOL_TLS_CLIENT,
-    }
-
-
 def main() -> None:
     global _MQTT_CLIENT, GESTOR
 
@@ -253,10 +244,8 @@ def main() -> None:
     client.on_connect = _on_connect
     client.on_message = _on_message
 
-    tls_kwargs = _tls_kwargs()
-    if tls_kwargs:
-        client.tls_set(**tls_kwargs)
-        print("[servidor] mTLS habilitado (CA/cert/key provistos por variables de entorno)")
+    if aplicar_tls(client, TLS_CA_CERT, TLS_CERTFILE, TLS_KEYFILE, puerto=MQTT_BROKER_PORT):
+        print("[servidor] mTLS habilitado (TLS 1.3 minimo, CA/cert/key por variables de entorno)")
     else:
         print("[servidor] AVISO: sin mTLS -- variables SERVIDOR_TLS_CA/CERT/KEY no definidas "
               "(ver scripts/seguridad/generar_ca.py y docs/bitacora/2026-10-22_arquitectura-centralizada.md)")

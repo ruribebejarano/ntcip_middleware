@@ -56,8 +56,10 @@ entorno):
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent.parent
@@ -65,6 +67,31 @@ PKI = RAIZ / "deploy" / "pki"
 CA_DIR = PKI / "ca"
 DIAS_CA = 3650   # 10 años: CA de laboratorio, no de producción [REVISAR con asesor]
 DIAS_LEAF = 825  # ~27 meses, igual que el límite que exigen los navegadores para TLS de servidor
+
+# SAN por defecto del certificado del SERVIDOR (prompt_seguridad.md, S1.5):
+# los clientes (servidor/main.py, agent/rsu_middleware.py, gateway/obu_*.py,
+# app_obu/ con TLS activado) verifican el nombre del host contra el SAN del
+# certificado del broker (ssl.SSLContext.check_hostname=True, ver
+# common/mqtt_tls.py) -- sin SAN, el handshake falla sin importar que la
+# CA sea de confianza. "laptopricardoub" / 100.121.77.97 son el nombre y la
+# IP de Tailscale de la laptop (docs/ARRANQUE_BROKER_LAPTOP.md), para que
+# la verificación no falle cuando la RSU se conecta por Tailscale.
+SAN_SERVIDOR_POR_DEFECTO = ["localhost", "127.0.0.1", "laptopricardoub", "100.121.77.97"]
+
+
+def _formatear_san(entradas: list[str]) -> str:
+    """'localhost,127.0.0.1' -> 'DNS:localhost,IP:127.0.0.1' (sintaxis de
+    -addext/subjectAltName de openssl)."""
+    partes = []
+    for entrada in entradas:
+        entrada = entrada.strip()
+        try:
+            ipaddress.ip_address(entrada)
+        except ValueError:
+            partes.append(f"DNS:{entrada}")
+        else:
+            partes.append(f"IP:{entrada}")
+    return ",".join(partes)
 
 
 def _run(cmd: list[str]) -> None:
@@ -139,7 +166,7 @@ def _nombre(tipo: str, id_: str | None) -> tuple[str, str, Path]:
     raise SystemExit(f"--tipo desconocido: {tipo!r} (servidor|rsu|obu)")
 
 
-def emitir(tipo: str, id_: str | None) -> None:
+def emitir(tipo: str, id_: str | None, san: str | None = None) -> None:
     _openssl_disponible()
     if not (CA_DIR / "ca.crt").exists():
         raise SystemExit("No existe la CA todavía -- correr primero: python scripts/seguridad/generar_ca.py init")
@@ -150,18 +177,40 @@ def emitir(tipo: str, id_: str | None) -> None:
     csr = out / f"{nombre_archivo}.csr"
     crt = out / f"{nombre_archivo}.crt"
 
+    # SAN solo tiene sentido en el certificado del SERVIDOR (es el que los
+    # clientes verifican por hostname, S1.5); --san sobre rsu/obu se ignora.
+    entradas_san = (san.split(",") if san else SAN_SERVIDOR_POR_DEFECTO) if tipo == "servidor" else None
+    extfile = None
+
     # PKCS#8 (genpkey), no PKCS#1 (genrsa) -- ver la nota en init_ca().
     _run(["openssl", "genpkey", "-algorithm", "RSA", "-pkeyopt", "rsa_keygen_bits:2048", "-out", str(key)])
     _run([
         "openssl", "req", "-new", "-key", str(key), "-out", str(csr),
         "-subj", f"/O=ntcip_middleware (tesis PUCP)/CN={cn}",
     ])
-    _run([
-        "openssl", "ca", "-config", str(CA_DIR / "openssl.cnf"), "-batch",
-        "-days", str(DIAS_LEAF), "-in", str(csr), "-out", str(crt),
-    ])
+    try:
+        cmd_firmar = [
+            "openssl", "ca", "-config", str(CA_DIR / "openssl.cnf"), "-batch",
+            "-days", str(DIAS_LEAF), "-in", str(csr), "-out", str(crt),
+        ]
+        if entradas_san:
+            # copy_extensions=none en openssl.cnf (deliberado: no copiar
+            # extensiones a ciegas de un CSR) -- el SAN se declara aparte,
+            # del lado de la CA, no de lo que pide el CSR.
+            extfile = tempfile.NamedTemporaryFile(
+                "w", suffix=".cnf", delete=False, dir=out, encoding="utf-8",
+            )
+            extfile.write(f"[ v3_san ]\nsubjectAltName = {_formatear_san(entradas_san)}\n")
+            extfile.close()
+            cmd_firmar += ["-extfile", extfile.name, "-extensions", "v3_san"]
+        _run(cmd_firmar)
+    finally:
+        if extfile:
+            Path(extfile.name).unlink(missing_ok=True)
     csr.unlink(missing_ok=True)
     print(f"Certificado emitido: {crt} (CN={cn}), firmado por {CA_DIR / 'ca.crt'}")
+    if entradas_san:
+        print(f"  SAN: {_formatear_san(entradas_san)}")
     print(f"  CA/cert/key para este cliente:")
     print(f"    SERVIDOR_TLS_CA={CA_DIR / 'ca.crt'}" if tipo == "servidor" else "")
     _run(["openssl", "verify", "-CAfile", str(CA_DIR / "ca.crt"), str(crt)])
@@ -230,6 +279,11 @@ def main() -> None:
     p_emitir = sub.add_parser("emitir")
     p_emitir.add_argument("--tipo", required=True, choices=["servidor", "rsu", "obu"])
     p_emitir.add_argument("--id", default=None)
+    p_emitir.add_argument(
+        "--san", default=None,
+        help="Solo para --tipo servidor: lista separada por comas de nombres/IP "
+             f"(default: {','.join(SAN_SERVIDOR_POR_DEFECTO)}).",
+    )
     p_revocar = sub.add_parser("revocar")
     p_revocar.add_argument("--tipo", required=True, choices=["servidor", "rsu", "obu"])
     p_revocar.add_argument("--id", default=None)
@@ -239,7 +293,7 @@ def main() -> None:
     if args.accion == "init":
         init_ca()
     elif args.accion == "emitir":
-        emitir(args.tipo, args.id)
+        emitir(args.tipo, args.id, args.san)
     elif args.accion == "revocar":
         revocar(args.tipo, args.id)
     elif args.accion == "listar":

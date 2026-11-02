@@ -46,6 +46,7 @@ import paho.mqtt.client as mqtt
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from common.events import EVT_M1_TX, EventLogger  # noqa: E402
+from common.mqtt_tls import aplicar_tls  # noqa: E402
 
 TOPIC = "rsu/v2i/solicitud_prioridad"
 
@@ -69,12 +70,17 @@ def main() -> None:
              "distinto por instancia si se corren varias OBU simuladas a la vez "
              "(cada una escribe su propio eventos_<obu-id>.csv).",
     )
+    parser.add_argument("--tls-ca", default=None, help="CA del proyecto; con las tres rutas, mTLS")
+    parser.add_argument("--tls-cert", default=None, help="certificado de cliente para este simulador")
+    parser.add_argument("--tls-key", default=None, help="llave privada PKCS#8 de ese certificado")
     args = parser.parse_args()
 
     eventos = EventLogger(args.obu_id)
     id_solicitud = f"{args.vehiculo_id}-{uuid.uuid4().hex[:8]}"
 
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"obu-{args.vehiculo_id}")
+    if aplicar_tls(client, args.tls_ca, args.tls_cert, args.tls_key, puerto=args.broker_port):
+        print(f"obu_simulator ({args.vehiculo_id}): mTLS habilitado (TLS 1.3 minimo)")
     client.connect(args.broker_host, args.broker_port, keepalive=10)
     client.loop_start()
 

@@ -75,6 +75,7 @@ from common.events import (  # noqa: E402
     EVT_MUESTRA,
     EventLogger,
 )
+from common.mqtt_tls import aplicar_tls  # noqa: E402
 
 
 class ObuEmulada:
@@ -90,6 +91,8 @@ class ObuEmulada:
                                   client_id=f"obu-{self.obu_id}", protocol=mqtt.MQTTv5)
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_message
+        if aplicar_tls(self.client, args.tls_ca, args.tls_cert, args.tls_key, puerto=args.broker_port):
+            print(f"OBU emulada {self.obu_id}: mTLS habilitado (TLS 1.3 minimo)")
 
     # --- MQTT ----------------------------------------------------------
 
@@ -211,6 +214,9 @@ def main() -> None:
                     help="clase NTCIP 1211 (1 = emergencia reconocida; otro valor para probar RF-05)")
     ap.add_argument("--factor", type=float, default=1.0, help="velocidad de reproduccion (1 = tiempo real)")
     ap.add_argument("--espera-final", type=float, default=2.0, help="s a esperar tras el MF antes de cerrar")
+    ap.add_argument("--tls-ca", default=None, help="CA del proyecto (scripts/seguridad/generar_ca.py); con las tres rutas, mTLS")
+    ap.add_argument("--tls-cert", default=None, help="certificado de esta OBU (emitido con --id = --obu-id)")
+    ap.add_argument("--tls-key", default=None, help="llave privada PKCS#8 de ese certificado")
     ObuEmulada(ap.parse_args()).correr()
 
 

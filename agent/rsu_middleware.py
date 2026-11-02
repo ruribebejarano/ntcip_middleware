@@ -113,6 +113,7 @@ from common.events import (  # noqa: E402
     EVT_SNMP_SET_TX,
     EventLogger,
 )
+from common.mqtt_tls import aplicar_tls  # noqa: E402
 from agent.ntcip1211 import (  # noqa: E402
     ACTIVE_PROCESSING,
     CLOSED_CANCELED,
@@ -211,6 +212,13 @@ MQTT_BROKER_PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
 # Tema LEGADO (P0-P3): un solo tema para todas las RSU, mensaje con
 # eta_seg. Se mantiene para gateway/obu_simulator.py y scripts/demo_asesor.sh.
 MQTT_TOPIC = "rsu/v2i/solicitud_prioridad"
+
+# mTLS opcional (prompt_seguridad.md, S1): igual convencion que
+# SERVIDOR_TLS_CA/CERT/KEY de servidor/main.py. Si no se definen, se
+# conecta sin TLS (como hasta ahora).
+RSU_TLS_CA = os.environ.get("RSU_TLS_CA")
+RSU_TLS_CERT = os.environ.get("RSU_TLS_CERT")
+RSU_TLS_KEY = os.environ.get("RSU_TLS_KEY")
 
 # Identificador de esta RSU en el banco de pruebas (hay dos, ver CLAUDE.md).
 # No cambia ningun puerto ni topico, solo el nombre del nodo en el registro
@@ -853,6 +861,8 @@ def start_mqtt_listener() -> mqtt.Client:
                          protocol=mqtt.MQTTv5)
     client.on_connect = _on_mqtt_connect
     client.on_message = _on_mqtt_message
+    if aplicar_tls(client, RSU_TLS_CA, RSU_TLS_CERT, RSU_TLS_KEY, puerto=MQTT_BROKER_PORT):
+        print("[middleware] mTLS habilitado (TLS 1.3 minimo, CA/cert/key por variables de entorno)")
     client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, keepalive=30)
     client.loop_start()
     _MQTT_CLIENT = client
