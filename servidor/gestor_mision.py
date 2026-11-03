@@ -71,6 +71,7 @@ try:
         EVT_MP_RX,
         EVT_RUTA_CALCULADA,
         EVT_RUTA_RECALCULADA,
+        EVT_SOLICITUD_SUSPENDIDA_DETENIDO,
         EVT_VEHICULO_DETENIDO,
         EventLogger,
     )
@@ -89,6 +90,9 @@ MARGEN_CRUCE_M = 20.0             # cuanto puede "pasarse" la distancia acumulad
 # velocidad_kmh<=UMBRAL_DETENIDO_KMH con fuente_velocidad != "respaldo" es
 # "detenido, medido". Ver _clasificar_velocidad().
 UMBRAL_DETENIDO_KMH = 1.0         # mismo umbral de ruido que el default de la app (EvaluadorFixGnss.UMBRAL_DETENIDO_KMH_DEFECTO) [REVISAR con asesor]
+T_VALIDEZ_VEL_S = 5.0             # "sin dato": cuánto se reutiliza la última velocidad en movimiento antes de caer a VELOCIDAD_RESPALDO_KMH [REVISAR con asesor]
+VENTANA_MEDIANA_S = 3.0           # "en movimiento": ventana de suavizado por mediana para el ETA, en vez de la muestra instantánea [REVISAR con asesor]
+T_DETENIDO_MAX_S = 5.0            # "detenido medido": cuánto se tolera (sigue renovando) antes de suspender la solicitud por ETA [REVISAR con asesor]
 # B3 (app_obu/PROPUESTA_FIN_MISION.md §1): el umbral de llegada a destino no
 # estaba definido. [REVISAR con asesor] -- se elige el valor más
 # conservador, igual a MARGEN_CRUCE_M, para no introducir un orden de
@@ -149,14 +153,15 @@ class Mision:
     activa: bool = True
     t_armado: float = field(default_factory=time.time)
     distancia_recorrida_m: float = 0.0
-    ultima_velocidad_kmh: float = VELOCIDAD_RESPALDO_KMH  # la que de verdad usa _eta(), ver _actualizar_velocidad()
+    ultima_velocidad_kmh: float = VELOCIDAD_RESPALDO_KMH  # la que de verdad usa _eta(): suavizada o sustituida, ver _actualizar_velocidad()
     motivo_fin: Optional[str] = None  # "boton" | "destino" | "tiempo_maximo"; None mientras activa=True
     ultimo_mp_seq: Optional[int] = None  # seq del ultimo MP aceptado; detecta reordenamientos/duplicados
     version: int = 1  # version del MR vigente; sube en cada recalculo por desvio (docs/CONTRATO_OBU.md §MR)
-    # Velocidad detenido vs. sin dato (item P2): None = no está "detenido
-    # medido" ahora mismo; se usa para marcar la transición (una vez, no
-    # cada MP detenido), ver _actualizar_velocidad().
-    t_detenido_desde: Optional[float] = None
+    # --- Velocidad detenido vs. sin dato (item P2) --------------------
+    t_detenido_desde: Optional[float] = None  # None = no está "detenido medido" ahora mismo
+    ultima_velocidad_movimiento_kmh: Optional[float] = None  # último valor realmente medido en movimiento
+    ts_ultima_velocidad_movimiento: Optional[float] = None   # su timestamp, para T_VALIDEZ_VEL_S
+    historial_velocidad_movimiento: list[tuple[float, float]] = field(default_factory=list)  # (ts, kmh) en movimiento, ventana VENTANA_MEDIANA_S, para la mediana del ETA
 
     def siguiente_parada_pendiente(self) -> Optional[EstadoParada]:
         for iid in self.orden:
@@ -185,6 +190,9 @@ class GestorMision:
         anticipacion_min_s: float = ANTICIPACION_MINIMA_S,
         velocidad_respaldo_kmh: float = VELOCIDAD_RESPALDO_KMH,
         umbral_detenido_kmh: float = UMBRAL_DETENIDO_KMH,
+        t_validez_vel_s: float = T_VALIDEZ_VEL_S,
+        ventana_mediana_s: float = VENTANA_MEDIANA_S,
+        t_detenido_max_s: float = T_DETENIDO_MAX_S,
     ) -> None:
         self.grafo = grafo
         self.registro = registro
@@ -200,6 +208,9 @@ class GestorMision:
         self.tiempo_maximo_s = tiempo_maximo_s
         self.anticipacion_min_s = anticipacion_min_s
         self.umbral_detenido_kmh = umbral_detenido_kmh
+        self.t_validez_vel_s = t_validez_vel_s
+        self.ventana_mediana_s = ventana_mediana_s
+        self.t_detenido_max_s = t_detenido_max_s
         self.velocidad_respaldo_kmh = velocidad_respaldo_kmh
 
         self.misiones: dict[str, Mision] = {}  # por obu_id
@@ -358,7 +369,7 @@ class GestorMision:
         #    hospital_nino) nunca se renovaba y la RSU la daba por caducada
         #    (RNF-03) antes de que llegara el vehículo; ver
         #    docs/bitacora/2026-10-30_consola-multi-rsu.md.
-        self._respaldo_por_ruta(mision, seq_antes)
+        self._respaldo_por_ruta(mision, seq_antes, clasificacion)
 
         self._revisar_tiempo_maximo(mision)
         self.enviar_me(obu_id, self._cuerpo_me(mision))
@@ -374,24 +385,53 @@ class GestorMision:
 
     def _actualizar_velocidad(self, mision: Mision, velocidad_kmh: Optional[float], fuente_velocidad: Optional[str]) -> str:
         """Clasifica el MP y actualiza `mision.ultima_velocidad_kmh` (la que
-        de verdad usa `_eta()`): "movimiento" la usa tal cual, "sin dato"
-        cae a `velocidad_respaldo_kmh`, "detenido medido" NO se actualiza
-        -- se congela en el último valor conocido (deja de pretender que el
-        vehículo se mueve mientras está genuinamente detenido). Se registra
-        la transición a detenido (una vez, no en cada MP) para el análisis."""
+        de verdad usa `_eta()`) según el criterio de cada caso:
+
+        - "movimiento": mediana de los últimos `ventana_mediana_s` segundos
+          (en vez de la muestra instantánea) -- un MP ruidoso aislado no
+          debe mover el ETA de golpe.
+        - "sin dato": la última velocidad en movimiento conocida, si es más
+          reciente que `t_validez_vel_s`; si no, `velocidad_respaldo_kmh`.
+        - "detenido medido": NO se actualiza -- se congela en el último
+          valor conocido (evita el bug de este item: pretender que el
+          vehículo se mueve a `velocidad_respaldo_kmh` mientras está
+          genuinamente detenido, lo que mantenía un ETA corto y la
+          solicitud renovándose indefinidamente). Se registra la
+          transición (una vez, no en cada MP detenido) para el análisis.
+        """
+        ahora = self.ahora()
         clasificacion = self._clasificar_velocidad(velocidad_kmh, fuente_velocidad)
         if clasificacion == CLASIF_MOVIMIENTO:
             mision.t_detenido_desde = None
-            mision.ultima_velocidad_kmh = velocidad_kmh
+            mision.ultima_velocidad_movimiento_kmh = velocidad_kmh
+            mision.ts_ultima_velocidad_movimiento = ahora
+            historial = mision.historial_velocidad_movimiento
+            historial.append((ahora, velocidad_kmh))
+            corte = ahora - self.ventana_mediana_s
+            while historial and historial[0][0] < corte:
+                historial.pop(0)
+            valores = sorted(v for _, v in historial)
+            mision.ultima_velocidad_kmh = valores[len(valores) // 2]
         elif clasificacion == CLASIF_SIN_DATO:
-            mision.ultima_velocidad_kmh = self.velocidad_respaldo_kmh
+            # Ni se asume que sigue detenido ni que ya se movió: no se toca
+            # t_detenido_desde con un simple "sin dato" (podría ser que el
+            # GNSS falló un instante mientras seguía genuinamente detenido).
+            reciente = (
+                mision.ts_ultima_velocidad_movimiento is not None
+                and ahora - mision.ts_ultima_velocidad_movimiento <= self.t_validez_vel_s
+            )
+            mision.ultima_velocidad_kmh = (
+                mision.ultima_velocidad_movimiento_kmh if reciente else self.velocidad_respaldo_kmh
+            )
         else:  # CLASIF_DETENIDO
             if mision.t_detenido_desde is None:
-                mision.t_detenido_desde = self.ahora()
+                mision.t_detenido_desde = ahora
                 self._log(EVT_VEHICULO_DETENIDO, mision.mision_id, velocidad_kmh=velocidad_kmh)
         return clasificacion
 
-    def _respaldo_por_ruta(self, mision: Mision, seq_antes: dict[str, int]) -> None:
+    def _respaldo_por_ruta(self, mision: Mision, seq_antes: dict[str, int], clasificacion: str) -> None:
+        detenido_hace_s = (self.ahora() - mision.t_detenido_desde) if mision.t_detenido_desde is not None else 0.0
+        suspender_por_detenido = clasificacion == CLASIF_DETENIDO and detenido_hace_s > self.t_detenido_max_s
         for iid in mision.orden:
             ep = mision.paradas[iid]
             if ep.estado not in _ESTADOS_VIGENTES:
@@ -399,6 +439,21 @@ class GestorMision:
             distancia_restante = ep.parada.distancia_llegada_m - mision.distancia_recorrida_m
             if distancia_restante < -MARGEN_CRUCE_M:
                 self._cancelar_parada(mision, ep, motivo="cruce")
+                continue
+            if suspender_por_detenido:
+                # Más de t_detenido_max_s detenido sin cruzar: se deja de
+                # renovar por ETA (vuelve a "pendiente", no "cancelada" --
+                # se re-solicita sola en cuanto este mismo MP loop vuelva a
+                # ver "movimiento" o "sin dato", ver _clasificar_velocidad).
+                # La geocerca (paso 2) sigue intacta: si la parada está
+                # vigente por la geocerca (dentro del radio), ya la habría
+                # renovado antes de llegar aquí (ep.seq != seq_antes.get(iid)),
+                # así que esto solo afecta solicitudes sostenidas HOY solo
+                # por el respaldo de ETA, lejos de la RSU.
+                if ep.seq == seq_antes.get(iid):
+                    self._log(EVT_SOLICITUD_SUSPENDIDA_DETENIDO, ep.id_solicitud or "-", mision_id=mision.mision_id,
+                              interseccion_id=iid, segundos_detenido=round(detenido_hace_s, 1))
+                    self._cancelar_parada(mision, ep, motivo="detenido", volver_a_pendiente=True)
                 continue
             ep.eta_s = self._eta(distancia_restante, mision.ultima_velocidad_kmh)
             if ep.seq == seq_antes.get(iid):
@@ -528,7 +583,10 @@ class GestorMision:
             "origen": "servidor",
         }
 
-    def _cancelar_parada(self, mision: Mision, ep: EstadoParada, *, motivo: str, pasar_a_en_espera: bool = False) -> None:
+    def _cancelar_parada(
+        self, mision: Mision, ep: EstadoParada, *, motivo: str,
+        pasar_a_en_espera: bool = False, volver_a_pendiente: bool = False,
+    ) -> None:
         if ep.estado in (ESTADO_CANCELADA, ESTADO_PENDIENTE):
             return
         if ep.id_solicitud is not None:
@@ -540,6 +598,14 @@ class GestorMision:
             self.enviar_m3(ep.parada.rsu_id, cuerpo)
             self._log(EVT_M3_TX, ep.id_solicitud, mision_id=mision.mision_id, motivo=motivo, origen="servidor")
             self._solicitud_a_parada.pop(ep.id_solicitud, None)
+        if volver_a_pendiente:
+            # Suspensión por "detenido" (item P2), no un cierre definitivo
+            # ni un conflicto: vuelve a "pendiente" para que el paso 1 de
+            # procesar_mp la re-solicite sola en cuanto el vehículo retome
+            # movimiento -- no promueve a otras misiones en_espera de la
+            # misma RSU, porque esta parada sigue siendo de esta misión.
+            ep.estado = ESTADO_PENDIENTE
+            return
         ep.estado = ESTADO_EN_ESPERA if pasar_a_en_espera else ESTADO_CANCELADA
         if not pasar_a_en_espera:
             self._promover_en_espera(ep.parada.rsu_id)

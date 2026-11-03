@@ -47,6 +47,20 @@ VELOCIDAD_KMH = 36.0  # 10 m/s, para que cada paso del grafo sintetico (~144 m) 
 GEOCERCA_CHICA = ParametrosGeometria(r_g_m=50.0)
 
 
+class _Reloj:
+    """Reloj falso para gestor.ahora: controla a mano el paso del tiempo
+    (T_DETENIDO_MAX_S, T_VALIDEZ_VEL_S) sin time.sleep() real."""
+
+    def __init__(self, inicio: float = 1_000.0) -> None:
+        self.t = inicio
+
+    def __call__(self) -> float:
+        return self.t
+
+    def avanzar(self, segundos: float) -> None:
+        self.t += segundos
+
+
 class _Registrador:
     """Acumula lo que el GestorMision hubiera publicado por MQTT."""
 
@@ -496,7 +510,10 @@ def test_detenido_dentro_de_la_geocerca_sigue_renovando_por_geocerca():
     """La geocerca (paso 2, gateway.geometria.SeguidorAcceso) es de
     posicion pura, no mira velocidad: un vehiculo detenido DENTRO del
     radio que ya pidio sigue renovando igual que antes -- no pierde la
-    solicitud por estar parado justo en el semaforo que la pidio."""
+    solicitud por estar parado justo en el semaforo que la pidio. El
+    bug de este item era la renovacion indefinida LEJOS de la RSU (ver
+    test_detenido_lejos_de_la_rsu_suspende_la_solicitud_tras_el_margen),
+    no esta."""
     gestor, reg = _gestor()
     gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
     gestor.procesar_mp("obu-1", *NODOS_RUTA["B"], VELOCIDAD_KMH, 0.0, fuente_velocidad="gps")  # entra a R_g de SINT-C
@@ -508,3 +525,91 @@ def test_detenido_dentro_de_la_geocerca_sigue_renovando_por_geocerca():
     gestor.procesar_mp("obu-1", *NODOS_RUTA["B"], 0.0, 0.0, fuente_velocidad="gps")  # detenido, sin moverse de B
     assert ep.estado == ESTADO_SOLICITADA
     assert ep.seq > seq_antes
+
+
+def test_detenido_lejos_de_la_rsu_suspende_la_solicitud_tras_el_margen():
+    """Item P2: una solicitud sostenida SOLO por el respaldo de ETA (fuera
+    de la geocerca) no debe renovarse para siempre si el vehiculo se
+    detiene de verdad lejos de la RSU -- antes de este item, el servidor
+    pretendia que seguia moviendose a VELOCIDAD_RESPALDO_KMH, lo que
+    mantenia un ETA corto y la solicitud renovandose indefinidamente. Se
+    tolera hasta T_DETENIDO_MAX_S (5 s por defecto) detenido antes de
+    suspender (M3 motivo="detenido", vuelve a "pendiente", no "cancelada")."""
+    reloj = _Reloj()
+    gestor, reg = _gestor(parametros_geocerca=GEOCERCA_CHICA, ahora=reloj)
+    gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    lat_a, lon_a = NODOS_RUTA["A"]
+    lat, lon = desplazar(lat_a, lon_a, 0.0, 220.0)  # 68 m de SINT-C: ETA si, geocerca chica no
+    gestor.procesar_mp("obu-1", lat, lon, VELOCIDAD_KMH, rumbo_deg=0.0, fuente_velocidad="gps")
+    mision = gestor.misiones["obu-1"]
+    ep = mision.paradas["SINT-C"]
+    assert ep.estado == ESTADO_SOLICITADA
+
+    # Primeros segundos detenido: dentro de la tolerancia, sigue renovando.
+    for _ in range(4):
+        reloj.avanzar(1.0)
+        gestor.procesar_mp("obu-1", lat, lon, 0.0, rumbo_deg=0.0, fuente_velocidad="gps")
+    assert ep.estado == ESTADO_SOLICITADA
+    assert ep.seq > 1
+    assert not any(c["motivo"] == "detenido" for _, c in reg.m3)
+
+    # Pasado T_DETENIDO_MAX_S detenido sin cruzar: se suspende.
+    reloj.avanzar(3.0)
+    gestor.procesar_mp("obu-1", lat, lon, 0.0, rumbo_deg=0.0, fuente_velocidad="gps")
+    assert ep.estado == ESTADO_PENDIENTE
+    assert any(c["motivo"] == "detenido" for _, c in reg.m3)
+
+
+def test_al_retomar_movimiento_tras_la_suspension_se_vuelve_a_pedir():
+    """Al reanudar movimiento despues de una suspension por "detenido", el
+    ETA se recalcula sobre la posicion real y la parada vuelve a pedirse
+    SOLA (como una solicitud nueva, seq reinicia en 1) en cuanto vuelve a
+    caer dentro del margen de anticipacion -- no requiere ningun MI/MF
+    nuevo ni intervencion de la app."""
+    reloj = _Reloj()
+    gestor, reg = _gestor(parametros_geocerca=GEOCERCA_CHICA, ahora=reloj)
+    gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    lat_a, lon_a = NODOS_RUTA["A"]
+    lat, lon = desplazar(lat_a, lon_a, 0.0, 220.0)
+    gestor.procesar_mp("obu-1", lat, lon, VELOCIDAD_KMH, rumbo_deg=0.0, fuente_velocidad="gps")
+    mision = gestor.misiones["obu-1"]
+    ep = mision.paradas["SINT-C"]
+
+    for _ in range(4):
+        reloj.avanzar(1.0)
+        gestor.procesar_mp("obu-1", lat, lon, 0.0, rumbo_deg=0.0, fuente_velocidad="gps")
+    reloj.avanzar(3.0)
+    gestor.procesar_mp("obu-1", lat, lon, 0.0, rumbo_deg=0.0, fuente_velocidad="gps")
+    assert ep.estado == ESTADO_PENDIENTE  # suspendida, ver la prueba anterior
+
+    reloj.avanzar(1.0)
+    lat2, lon2 = desplazar(lat_a, lon_a, 0.0, 230.0)  # avanza un poco mas: 58 m de SINT-C, sigue dentro de ETA
+    gestor.procesar_mp("obu-1", lat2, lon2, VELOCIDAD_KMH, rumbo_deg=0.0, fuente_velocidad="gps")
+    assert ep.estado == ESTADO_SOLICITADA
+    assert ep.seq == 1
+
+
+def test_sin_dato_reutiliza_la_ultima_velocidad_en_movimiento_si_es_reciente():
+    """"Sin dato" de velocidad (GNSS sin lectura) reutiliza la ultima
+    velocidad REAL en movimiento mientras sea reciente (T_VALIDEZ_VEL_S,
+    5 s por defecto) en vez de caer directo al respaldo generico -- un
+    vehiculo que de verdad iba a 36 km/h no deberia verse, un instante
+    despues de perder el fix, como si fuera a VELOCIDAD_RESPALDO_KMH
+    (30 km/h por defecto, una suposicion mucho mas generica)."""
+    reloj = _Reloj()
+    gestor, reg = _gestor(ahora=reloj)
+    gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    lat, lon = desplazar(*NODOS_RUTA["A"], 0.0, 50.0)
+    gestor.procesar_mp("obu-1", lat, lon, VELOCIDAD_KMH, rumbo_deg=0.0, fuente_velocidad="gps")
+    mision = gestor.misiones["obu-1"]
+    assert mision.ultima_velocidad_kmh == VELOCIDAD_KMH
+
+    # Pierde el fix de velocidad poco despues, todavia dentro de la ventana de validez.
+    reloj.avanzar(2.0)
+    gestor.procesar_mp("obu-1", lat, lon, None, rumbo_deg=0.0, fuente_velocidad="respaldo")
+    assert mision.ultima_velocidad_kmh == VELOCIDAD_KMH
+
+    # Mas tarde, ya fuera de la ventana de validez: cae al respaldo generico.
+    reloj.avanzar(10.0)
+    gestor.procesar_mp("obu-1", lat, lon, None, rumbo_deg=0.0, fuente_velocidad="respaldo")
+    assert mision.ultima_velocidad_kmh == gestor.velocidad_respaldo_kmh
