@@ -1,0 +1,1 @@
+Ninguna parada con cruce real (ultimo_m3_motivo=cruce) incumplió RF8 (anticipación real < 8 s) en las 4 campañas válidas del 2026-10-29. No hay incumplimiento que reportar en estos datos: no se aproxima ni se inventa uno para tener contenido que mostrar.
