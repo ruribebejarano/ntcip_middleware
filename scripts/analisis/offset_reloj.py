@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""M6 (prompt_figuras_cap4.md): offset de reloj de la RSU respecto al
-servidor, por corrida (inicio y fin de cada una), a partir de la cota de
+"""M6 (prompt_figuras_cap4.md): offset de reloj de la RSU respecto a su
+referencia NTP (no respecto al servidor), por corrida (inicio y fin de cada una), a partir de la cota de
 reloj que ya guarda scripts/campanas/lazo_centralizado.py en config.json
 (reloj_pi_inicio/reloj_pi_fin: salida combinada de 'chronyc tracking' +
 'chronyc sources -v' en la Pi, capturada por scripts/pi.sh clock).
@@ -110,21 +110,24 @@ def main() -> None:
     for i, (etq, off, cota, evaluable) in enumerate(puntos):
         color = AZUL if evaluable else "#b91c1c"
         marker = "o" if evaluable else "x"
-        if cota:
+        # Sin barra en los no evaluables: su "cota" es el centinela de chrony
+        # (1,5 s), no una medición, y aplastaría la escala de los demás puntos.
+        if cota and evaluable:
             ax.errorbar(i, off, yerr=cota, fmt=marker, color=color, ecolor=INK2, elinewidth=0.8,
                        capsize=3, ms=6)
         else:
             ax.plot(i, off, marker=marker, color=color, ms=6, ls="none")
     ax.axhline(0, color=INK2, lw=0.6)
     ax.set_xticks(list(xs), [p[0] for p in puntos], fontsize=7)
-    ax.set_ylabel("Offset de reloj RSU (ms)\n(+ = adelantado, - = atrasado)")
-    ax.set_title("Offset de reloj de la RSU frente al servidor (config=pi-lan)", loc="left", fontsize=8)
+    # El offset es frente a la referencia NTP de chrony, no frente al
+    # servidor (la laptop no se mide aquí). Sin título: lo pone el \caption.
+    ax.set_ylabel("Offset del reloj de la RSU\nfrente a NTP (ms)")
     ax.grid(True, axis="y")
     leyenda = [
         plt.Line2D([0], [0], marker="o", color=AZUL, lw=0, label="Evaluable (chrony sincronizado)"),
         plt.Line2D([0], [0], marker="x", color="#b91c1c", lw=0, label="RNF-01 no evaluable (chrony perdió sync.)"),
     ]
-    ax.legend(handles=leyenda, loc="upper right", frameon=False, fontsize=6)
+    ax.legend(handles=leyenda, loc="upper center", bbox_to_anchor=(0.5, -0.2), frameon=False, fontsize=6)
     fig.savefig(salida / "fig_offset_reloj.pdf", bbox_inches="tight")
     fig.savefig(salida / "fig_offset_reloj.png", bbox_inches="tight")
     plt.close(fig)

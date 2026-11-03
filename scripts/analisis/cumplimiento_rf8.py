@@ -98,22 +98,22 @@ def fig_cdf(ax, grupos: dict[str, dict]):
         ys = [(i + 1) / n for i in range(n)]
         ax.step(vals, ys, where="post", color=color, label=f"{etq} (n={n})")
     ax.axvline(ANTICIPACION_MINIMA_S, color="#0b0b0b", lw=1.0, ls="--")
-    ax.text(ANTICIPACION_MINIMA_S, 0.02, " 8 s (RF8)", fontsize=7, va="bottom", ha="left")
+    # Sin título: lo pone el \caption de la tesis, donde este margen es RF-14.
+    ax.text(ANTICIPACION_MINIMA_S, 0.02, " 8 s (RF-14)", fontsize=7, va="bottom", ha="left")
     ax.set_xlabel("Anticipación real (s)")
     ax.set_ylabel("Probabilidad acumulada")
     ax.set_ylim(0, 1.02)
-    ax.set_title("CDF de anticipación real (RF8)", loc="left")
-    ax.legend(loc="lower right", frameon=False)
+    ax.legend(loc="upper left", bbox_to_anchor=(0.12, 1.0), frameon=False)
     ax.grid(True)
 
 
 def tabla_latex(grupos: dict[str, dict], salida: Path) -> None:
     lineas = [
         "\\begin{table}[H]", "\\centering",
-        "\\caption{Cumplimiento de RF8 (anticipación real $\\geq$ 8 s) por condición y escenario, "
-        "sobre las 4 campañas válidas del 2026-10-29 (72 paradas). Las paradas del escenario "
+        "\\caption{Paradas con anticipación real $\\geq$ 8~s (RF-14) por condición de enlace y escenario, "
+        "sobre las cuatro corridas de la campaña (72 paradas). Las paradas del escenario "
         "\\emph{desvío} sin cruce (ruta recalculada antes de llegar a esa RSU) se reportan aparte: "
-        "no son incumplimiento, no hubo evento de cruce que medir.}",
+        "no son incumplimiento, no hubo cruce que medir.}",
         "\\label{tab:cumplimiento_rf8}", "\\small",
         "\\begin{tabular}{lrrrr}", "\\toprule",
         "\\textbf{Condición/escenario} & \\textbf{n con cruce} & \\textbf{\\% $\\geq$ 8 s} & "
