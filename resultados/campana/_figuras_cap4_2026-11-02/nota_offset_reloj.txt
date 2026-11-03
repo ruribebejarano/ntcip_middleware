@@ -1,0 +1,8 @@
+1 s de error de reloj equivale a 13.9 m a 50 km/h (velocidad de referencia pedida), o a 10.0 m a 36 km/h (la velocidad real usada en las trayectorias de estas campañas, ver resultados/campana/*/rep_*/trayectoria_obu-*.csv).
+
+Offset observado (|System time|) en las corridas evaluables: máximo 1.634 ms -> 22.699 mm a 50 km/h (despreciable).
+Cota de error (Root dispersion + Root delay/2) en esas corridas: hasta 22.9 ms -> 31.80 cm a 50 km/h.
+
+Corridas con RNF-01 'no evaluable' (chrony perdió sincronización NTP en algún punto): 1 de 4 puntos (inicio/fin) revisados.
+
+Error de reloj tolerable frente a RF8 (anticipación mínima 8 s): a 50 km/h hacen falta ~72 ms de error de reloj para desplazar la posición equivalente en 1 m (irrelevante frente a los ~40 m de radio de detección de la RSU, RADIO_DETECCION_RSU_M en servidor/rutas.py); incluso la cota de error medida aquí (decenas de ms en el peor caso evaluable) es varios órdenes de magnitud menor que el margen de 8 s de RF8 -- el error de reloj de chrony NO es, en esta evidencia, un riesgo real para cumplir RF8. El riesgo real es perder la sincronización NTP por completo (como en desvio_pi-lan), que invalida la cota, no que la cota en sí sea grande.
