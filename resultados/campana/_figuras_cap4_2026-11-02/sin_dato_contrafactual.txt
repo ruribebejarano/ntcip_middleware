@@ -1,0 +1,1 @@
+Ninguna parada con cruce real quedó sin dato: todas tenían resultado='concedida' (con evento de liberación o sin cambio detectado) para determinar la fase sin prioridad en el cruce.
