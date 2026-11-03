@@ -63,6 +63,16 @@ resultados/consola/
 # lanzador de demos sin ventanas (scripts/demo/lanzar_rsus.ps1): logs,
 # eventos y estado.json de cada corrida; se regeneran, no son evidencia curada.
 resultados/demo/
+# eventos crudos de una corrida de prueba en mesa (app_obu, sin GNSS real):
+# se regenera, no es evidencia curada.
+resultados/app_mesa/
+# export para un tablero externo (claude.ai), generado desde las carpetas
+# 20261029-* de resultados/campana/ -- no es evidencia curada, se regenera.
+resultados/campana/_tablero/
+# corrida multi-RSU del escenario Hospital del Niño (3 RSU): directorio de
+# trabajo que se regenera (app_obu/pruebas/demo_hospital_nino.ps1 o la
+# consola multi-RSU), no una corrida curada en resultados/<escenario>/<fecha>/.
+resultados/hospital_nino/
 
 # cache de descarga de osmnx/Overpass (scripts/datos/regenerar_grafo.py):
 # se regenera solo; lo que SI se versiona es el .graphml ya cacheado en
