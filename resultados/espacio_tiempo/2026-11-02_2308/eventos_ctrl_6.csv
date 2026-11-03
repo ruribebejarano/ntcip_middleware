@@ -1,0 +1,4 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1793679190301834100,ctrl_6,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1793679190308401400,ctrl_6,ctrl_fase_cambio,mis-9b681b24-OSM-PUCP-08,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""obu-hospitalnino-"",""eta_seg"":8}"
+1793679204297994500,ctrl_6,ctrl_fase_cambio,mis-9b681b24-OSM-PUCP-08,"{""fase"":""amarillo"",""prioridad_activa"":false,""motivo"":""liberacion_manual""}"

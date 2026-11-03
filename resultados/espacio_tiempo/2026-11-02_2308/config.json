@@ -1,0 +1,30 @@
+{
+  "escenario": "espacio_tiempo_hospital_nino",
+  "proposito": "M1 (prompt_figuras_cap4.md): diagrama espacio-tiempo de la ola verde, multi-RSU",
+  "fecha_inicio": "2026-11-02T23:08",
+  "commit": "f826a80",
+  "sucio": false,
+  "rsus": [
+    {"rsu_id": "4", "interseccion_id": "OSM-PUCP-07", "acum_m": 547.0, "snmp_port": 1174, "controller_port": 9104},
+    {"rsu_id": "5", "interseccion_id": "OSM-PUCP-03", "acum_m": 1098.7, "snmp_port": 1175, "controller_port": 9105},
+    {"rsu_id": "6", "interseccion_id": "OSM-PUCP-08", "acum_m": 1747.8, "snmp_port": 1176, "controller_port": 9106}
+  ],
+  "registro_rsu_path": "app_obu/pruebas/registro_rsu_hospital_nino.json",
+  "ruta_longitud_m": 2928.1,
+  "broker": "127.0.0.1:18830 (mosquitto standalone, sin TLS, allow_anonymous true -- distinto del servicio Windows en 1883 y del broker de la sesion de seguridad en paralelo)",
+  "obu_id": "obu-hospitalnino-m1",
+  "trayectoria": "app_obu/pruebas/trayectoria_hospital_nino.csv (303 muestras, 302 s)",
+  "factor_reproduccion": 1.0,
+  "controlador_timing_defecto": {"verde_s": 8, "amarillo_s": 3.0, "todo_rojo_s": 2.0, "rojo_general_s": 8},
+  "fecha_fin": "2026-11-02T23:15",
+  "procesos_lanzados": [
+    "mosquitto standalone (puerto 18830)",
+    "controller_emulator.py --port 9104 (RSU_ID=4)",
+    "controller_emulator.py --port 9105 (RSU_ID=5)",
+    "controller_emulator.py --port 9106 (RSU_ID=6)",
+    "agent/rsu_middleware.py x3 (RSU_ID=4,5,6)",
+    "servidor/main.py (REGISTRO_RSU_PATH=registro_rsu_hospital_nino.json)",
+    "gateway/obu_emulada.py --obu-id obu-hospitalnino-m1 --factor 1.0"
+  ],
+  "todos_los_procesos_apagados_al_terminar": true
+}
