@@ -11,6 +11,7 @@
 #   scripts/pi.sh status   <servicio> [host]
 #   scripts/pi.sh logs     <servicio> [host]   (Ctrl+C para salir)
 #   scripts/pi.sh fetch           [host]
+#   scripts/pi.sh fetch-eventos   [host]
 #   scripts/pi.sh clock           [host]
 #   scripts/pi.sh red             <subcomando> [host] [-- extra...]
 #   scripts/pi.sh tailscale-ping  [host] [destino]
@@ -20,6 +21,10 @@
 #   docs/MODEM_4G.md sección 4): modo-normal | modo-campana | estado |
 #   evidencia. Lo que vaya después de [host] se pasa tal cual a
 #   red_4g.sh (p. ej. "scripts/pi.sh red modo-campana rsu --sin-wifi").
+# "fetch-eventos": solo resultados/eventos/ (lo único que usa la campaña),
+#   comprimido con tar+gzip. "fetch" copia TODO resultados/ y, sin rsync en
+#   Git Bash, lo hace con scp -r completo cada vez: llamado por repetición
+#   eran ~5 MB x 18 por corrida, inaceptable sobre el plan de datos 4G.
 # "tailscale-ping": `tailscale ping --c 1 <destino>` DESDE la Pi hacia
 #   <destino> (nombre Tailscale, "laptopricardoub" por defecto -- ver
 #   docs/MODEM_4G.md sección 4). Para verificar que el camino es directo
@@ -46,7 +51,7 @@ REMOTE_DIR="~/ntcip_middleware"
 DEFAULT_HOST="rsu"
 
 usage() {
-  sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'
   exit 1
 }
 
@@ -128,6 +133,14 @@ case "$cmd" in
     else
       scp -r "$HOST:$REMOTE_DIR/resultados/." "$DEST/"
     fi
+    ;;
+
+  fetch-eventos)
+    HOST="${2:-$DEFAULT_HOST}"
+    DEST="resultados/${HOST}"
+    mkdir -p "$DEST"
+    echo "==> Copiando resultados/eventos/ de $HOST (tar+gzip) a $DEST/eventos/"
+    ssh "$HOST" "cd $REMOTE_DIR/resultados && tar czf - eventos" | tar xzf - -C "$DEST"
     ;;
 
   red)

@@ -265,7 +265,10 @@ def _condicion_de_repeticion(rep_dir: Path, config: str, host_rsu: str,
     if config == "local":
         eventos_rsu = [e for e in iter_eventos(rep_dir) if e["nodo"] == "rsu_1"]
     else:
-        _pi_sh("fetch", host_rsu)
+        # fetch-eventos, no fetch: solo resultados/eventos/ comprimido (ver
+        # scripts/pi.sh) -- esto corre en CADA repetición y, sobre 4G, el
+        # fetch completo copiaba ~5 MB cada vez.
+        _pi_sh("fetch-eventos", host_rsu)
         origen = RAIZ / "resultados" / host_rsu / "eventos"
         if not origen.exists():
             return None
@@ -1057,8 +1060,8 @@ def main() -> None:
               f"el análisis, no 'NO CUMPLE' -- ver docs/bitacora/2026-10-29_fase-controlador-emulado.md.")
 
     if args.config != "local":
-        print("[campaña] Trayendo eventos de la RSU real (scripts/pi.sh fetch)...")
-        r = _pi_sh("fetch", args.host_rsu)
+        print("[campaña] Trayendo eventos de la RSU real (scripts/pi.sh fetch-eventos)...")
+        r = _pi_sh("fetch-eventos", args.host_rsu)
         print(r.stdout, r.stderr)
         _repartir_eventos_pi(corrida, args.host_rsu, ventanas)
 
