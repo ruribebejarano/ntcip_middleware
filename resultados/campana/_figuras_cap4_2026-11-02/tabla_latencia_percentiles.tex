@@ -1,0 +1,16 @@
+\begin{table}[H]
+\centering
+\caption{Percentiles de latencia por condición. Para $L$ (N $\approx$ 18 por condición), p99 coincide en la práctica con el máximo observado (N $<$ 100: no es un percentil estimado con precisión, ver texto). El tramo OBU$\to$servidor ($t_{OBU\to srv}$) tiene N $\geq$ 100 (todas las posiciones MP de la campaña), así que su p99 sí es un percentil real.}
+\label{tab:latencia_percentiles}
+\small
+\begin{tabular}{llrrrrl}
+\toprule
+\textbf{Métrica} & \textbf{Condición} & \textbf{N} & \textbf{p50} & \textbf{p95} & \textbf{p99} & \textbf{Máx.} \\
+\midrule
+$L$ (p99 $\approx$ máx., N$<$100) & local & 36 & 18.89 & 26.97 & 28.06 & 28.06 \\
+$L$ (p99 $\approx$ máx., N$<$100) & pi-lan & 36 & 9.16 & 51.52 & 63.19 & 63.19 \\
+$t_{OBU\to srv}$ & local & 1620 & 0.58 & 0.69 & 0.74 & 1.30 \\
+$t_{OBU\to srv}$ & pi-lan & 1620 & 0.59 & 0.69 & 0.72 & 0.77 \\
+\bottomrule
+\end{tabular}
+\end{table}

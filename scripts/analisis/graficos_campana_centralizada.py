@@ -118,10 +118,23 @@ TRAMOS = [("t_srv_ms", "$t_{srv}$", False), ("t_srv_RSU_ms", "$t_{srv\\to RSU}$"
           ("t_RSU_ms", "$t_{RSU}$", False), ("retorno_ms", "$t_{retorno}$", True)]
 
 
-def fig_tramos(ax, resultados: dict[str, dict]):
+#: RNF-01: umbral de L (prompt_figuras_cap4.md, M5.1). No se grafica L en
+#: si en fig_tramos (ver TRAMOS arriba), pero la linea de umbral se deja
+#: igual como referencia visual de cuanto margen hay en cada tramo
+#: individual frente al presupuesto total.
+UMBRAL_RNF01_MS = 1000.0
+
+
+def fig_tramos(ax, resultados: dict[str, dict], marcar_umbral_rnf01: bool = False):
     etiquetas = list(resultados)
     pos = 1
     xticks, xlabels = [], []
+    max_valor = 0.0
+    for metrica, _, _ in TRAMOS:
+        for etq in etiquetas:
+            vals = _valores_de(resultados[etq], metrica)
+            if vals:
+                max_valor = max(max_valor, max(vals))
     for metrica, nombre, es_dos_relojes in TRAMOS:
         for etq, color in zip(etiquetas, PALETA):
             g = resultados[etq]
@@ -147,9 +160,30 @@ def fig_tramos(ax, resultados: dict[str, dict]):
         pos += 0.6
     ax.set_xticks(xticks, xlabels, fontsize=6.5)
     ax.set_ylabel("Latencia (ms)")
-    ax.set_title("(b) Desglose por tramo (arquitectura centralizada)", loc="left")
+    titulo = "(b) Desglose por tramo (arquitectura centralizada)"
+    if marcar_umbral_rnf01:
+        # El umbral de RNF-01 (1000 ms) es L completo (= t_srv_RSU + t_RSU),
+        # no un tramo individual -- se marca igual como referencia de
+        # cuanto margen le queda a CADA tramo por separado frente al
+        # presupuesto total. Si los tramos reales son >> 3x mas chicos que
+        # el umbral, una escala lineal hasta 1000 ms los aplastaria a una
+        # linea en la base (ilegible): se usa escala log en ese caso, y se
+        # dice en el titulo/pie de figura.
+        if max_valor > 0 and UMBRAL_RNF01_MS > 3 * max_valor:
+            ax.set_yscale("log")
+            ax.set_ylim(bottom=max(0.01, max_valor * 0.01))
+            titulo += " -- escala log: el margen a RNF-01 es grande"
+        else:
+            ax.set_ylim(bottom=0, top=UMBRAL_RNF01_MS * 1.08)
+        ax.axhline(UMBRAL_RNF01_MS, color="#0b0b0b", lw=1.0, ls="--", zorder=1)
+        ax.text(ax.get_xlim()[1], UMBRAL_RNF01_MS, " RNF-01 (1000 ms)", fontsize=6.5, va="bottom", ha="right")
+        margen = UMBRAL_RNF01_MS - max_valor
+        ax.annotate(f"margen al umbral (peor tramo medido): {margen:.1f} ms",
+                   (0.01, 0.02), xycoords="axes fraction", fontsize=6, color="#52514e")
+    else:
+        ax.set_ylim(bottom=0)
+    ax.set_title(titulo, loc="left")
     ax.grid(True, axis="y")
-    ax.set_ylim(bottom=0)
 
 
 def fig_comparacion(ax, resultados: dict[str, dict]):
@@ -289,6 +323,8 @@ def main() -> None:
     ap.add_argument("--etiqueta", action="append", required=True)
     ap.add_argument("--salida", required=True)
     ap.add_argument("--nota", default="")
+    ap.add_argument("--marcar-umbral-rnf01", action="store_true",
+                    help="agrega la linea de 1000 ms (RNF-01) a fig_tramos -- M5, prompt_figuras_cap4.md")
     args = ap.parse_args()
 
     grupos = _grupos(args.dir, args.etiqueta)
@@ -317,7 +353,7 @@ def main() -> None:
                    f"(laptop/w32time sin caracterizar) [REVISAR con asesor]") if nota_cota else ""
 
     fig, ax = plt.subplots(figsize=(COL2, 2.9))
-    fig_tramos(ax, resultados)
+    fig_tramos(ax, resultados, marcar_umbral_rnf01=args.marcar_umbral_rnf01)
     guardar(fig, salida, "fig_tramos")
 
     fig, ax = plt.subplots(figsize=(COL2, 2.6))
