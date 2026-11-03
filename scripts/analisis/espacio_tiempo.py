@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""M1 (prompt_figuras_cap4.md): diagrama espacio-tiempo de la ola verde,
-sobre la corrida multi-RSU de resultados/espacio_tiempo/<AAAA-MM-DD_HHMM>/
+"""M1 (prompt_figuras_cap4.md): diagrama espacio-tiempo de la priorización
+sucesiva -- el servidor central prioriza cada RSU de la ruta por separado;
+no es una coordinación de ola verde entre RSU (fuera del alcance) --, sobre
+la corrida multi-RSU de resultados/espacio_tiempo/<AAAA-MM-DD_HHMM>/
 (3 RSU del escenario Hospital del Niño, generada porque las 4 campañas del
-29/10 tienen una sola RSU por misión y no permiten mostrar una ola verde).
+29/10 tienen una sola RSU por misión y no permiten mostrar varias RSU).
 
 Eje X: tiempo (s) desde el MI (mision_armada en eventos_servidor.csv).
 Eje Y: distancia a lo largo de la ruta (m) -- la de cada RSU viene de
@@ -86,6 +88,9 @@ COLOR_VERDE_FORZADO = "#1baf7a"
 COLOR_NO_VERIFICADO = "#e4e3df"
 COLOR_FASE = {"verde": "#1baf7a", "amarillo": "#eab308", "todo_rojo": "#eb6834", "rojo_general": "#b91c1c"}
 COL2 = 7.16
+# Nombres de fase del código -> texto de la figura (la tesis dice "ámbar" y
+# "rojo general", no los identificadores internos).
+NOMBRE_FASE = {"verde": "verde", "amarillo": "ámbar", "todo_rojo": "todo rojo", "rojo_general": "rojo general"}
 
 
 def distancia_acumulada(trayectoria: list[dict]) -> list[float]:
@@ -157,6 +162,7 @@ def main() -> None:
     salida.mkdir(parents=True, exist_ok=True)
 
     fig, ax = plt.subplots(figsize=(COL2, 4.0))
+    etiquetas_rsu: list[tuple[float, str]] = []
 
     for r in cfg["rsus"]:
         rsu_id, interseccion, acum_m = r["rsu_id"], r["interseccion_id"], r["acum_m"]
@@ -191,42 +197,46 @@ def main() -> None:
 
         # Anotaciones puntuales de fase natural (decision y liberacion) -- NO una linea continua, ver docstring.
         if info["fase_decision"] and info["ts_decision"] is not None:
-            ax.annotate(f"decisión: {info['fase_decision']}", ((info["ts_decision"] - t0) / NS, acum_m - ANCHO_BANDA_M / 2 - 22),
+            fase = NOMBRE_FASE.get(info["fase_decision"], info["fase_decision"])
+            ax.annotate(f"decisión: {fase}", ((info["ts_decision"] - t0) / NS, acum_m - ANCHO_BANDA_M / 2 - 40),
                        fontsize=5.5, color=INK2, ha="left", va="top")
         if info["fase_liberacion"] and info["ts_liberacion"] is not None:
-            ax.annotate(f"liberación: {info['fase_liberacion']}",
-                       ((info["ts_liberacion"] - t0) / NS, acum_m + ANCHO_BANDA_M / 2 + 22),
+            fase = NOMBRE_FASE.get(info["fase_liberacion"], info["fase_liberacion"])
+            ax.annotate(f"liberación: {fase}",
+                       ((info["ts_liberacion"] - t0) / NS + 3, acum_m + ANCHO_BANDA_M / 2 + 18),
                        fontsize=5.5, color=INK2, ha="left", va="bottom")
 
-        # Anticipacion real (verde -> cruce). Encima de la banda, pegado al
-        # eje Y, para no superponerse con las anotaciones de decision/
-        # liberacion (que quedan cerca del marcador, mas a la derecha).
+        # Anticipacion real (verde -> cruce): como etiqueta del eje derecho,
+        # no dentro del gráfico, donde chocaba con las anotaciones de
+        # decisión/liberación y con la leyenda.
         if info["ts_verde"] is not None and m3s:
             antic_s = (m3s[0]["ts_ns"] - info["ts_verde"]) / NS
-            ax.annotate(f"RSU {rsu_id} ({interseccion}) -- anticipación real: {antic_s:.2f} s",
-                       (t_tray[0] + 2, acum_m + ANCHO_BANDA_M / 2 + 45), fontsize=6.5, color="#0b0b0b",
-                       ha="left", va="bottom", fontweight="bold")
+            etiquetas_rsu.append((acum_m, f"RSU {rsu_id} ({interseccion})\nanticipación {antic_s:.2f} s"))
 
     # Trayectoria del vehiculo, encima de las bandas.
-    ax.plot(t_tray, d_tray, color=AZUL, lw=1.6, zorder=6, label="Trayectoria OBU")
+    ax.plot(t_tray, d_tray, color=AZUL, lw=1.6, zorder=6, label="Trayectoria de la OBU")
 
-    ax.set_xlabel("Tiempo desde el MI (s)")
+    # Sin título: lo pone el \caption de la tesis.
+    ax.set_xlabel("Tiempo desde el armado de la misión (s)")
     ax.set_ylabel("Distancia a lo largo de la ruta (m)")
-    ax.set_title("Diagrama espacio-tiempo de la ola verde (escenario multi-RSU, Hospital del Niño)",
-                loc="left", fontsize=8.5)
     ax.set_xlim(t_tray[0], t_tray[-1])
     ax.set_ylim(0, max(d_tray[-1], max(r["acum_m"] for r in cfg["rsus"]) + 80))
     ax.grid(True, axis="x", alpha=0.5)
+    ax_rsu = ax.twinx()
+    ax_rsu.set_ylim(ax.get_ylim())
+    ax_rsu.set_yticks([y for y, _ in etiquetas_rsu], [txt for _, txt in etiquetas_rsu], fontsize=6.5)
+    ax_rsu.tick_params(axis="y", length=0)
+    ax_rsu.spines["right"].set_visible(False)
 
     leyenda = [
-        plt.Line2D([0], [0], color=AZUL, lw=1.6, label="Trayectoria OBU"),
+        plt.Line2D([0], [0], color=AZUL, lw=1.6, label="Trayectoria de la OBU"),
         Rectangle((0, 0), 1, 1, facecolor=COLOR_VERDE_FORZADO, label="Prioridad activa (verde forzado, medido)"),
         Rectangle((0, 0), 1, 1, facecolor=COLOR_NO_VERIFICADO, label="Fase no verificada (sin evento de referencia)"),
         plt.Line2D([0], [0], marker="^", color=INK2, lw=0, label="M1 enviado"),
         plt.Line2D([0], [0], marker="x", color="#0b0b0b", lw=0, label="M3 (cruce)"),
         plt.Line2D([0], [0], marker="o", color=COLOR_VERDE_FORZADO, mec="#0b0b0b", lw=0, label="Verde concedido"),
     ]
-    ax.legend(handles=leyenda, loc="lower right", frameon=False, fontsize=6)
+    ax.legend(handles=leyenda, loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=3, frameon=False, fontsize=6)
 
     fig.savefig(salida / "fig_espacio_tiempo.pdf", bbox_inches="tight")
     fig.savefig(salida / "fig_espacio_tiempo.png", bbox_inches="tight")
