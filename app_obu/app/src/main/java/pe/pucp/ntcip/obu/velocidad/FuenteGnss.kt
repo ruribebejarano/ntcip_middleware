@@ -37,7 +37,10 @@ import kotlinx.coroutines.launch
  * asignado -- un rumbo por defecto en vez del último real podría disparar
  * una cancelación por `MOTIVO_RUMBO` mientras el vehículo solo está
  * parado en la cola, no desviado).
- * - Sin velocidad (`!hasSpeed()`): se envía `velocidadKmh = 0.0`.
+ * - Sin velocidad (`!hasSpeed()`): se envía `velocidadKmh = null` +
+ *   `fuenteVelocidad = "respaldo"` -- "sin dato", no "detenido" (ver
+ *   [EvaluadorFixGnss] para la distinción completa con "detenido,
+ *   medido", ítem P2 de `prompt_cierre_repo_2026-11-02.md`).
  * - Sin rumbo (`!hasBearing()`): se hereda el último rumbo real conocido
  *   de esta misma misión; si nunca hubo uno todavía (vehículo detenido
  *   antes de moverse por primera vez), se usa 0.0° como mejor esfuerzo
@@ -136,5 +139,12 @@ class FuenteGnss(
         const val PRECISION_MAXIMA_DEFECTO_M = 30f
         const val ANTIGUEDAD_MAXIMA_DEFECTO_MS = 5000L
         const val RUMBO_POR_DEFECTO_SIN_HISTORIA = 0.0
+        // Ruido típico de la velocidad GNSS a casi-cero (sección 2.1 de
+        // GPS Trajectory data, varios estudios reportan 0.5-1.5 km/h de
+        // ruido parado); por debajo de esto se redondea a "detenido,
+        // medido" (0.0) en vez de reportar un valor espurio en movimiento.
+        // [REVISAR con asesor] no está calibrado con el GNSS real del
+        // proyecto.
+        const val UMBRAL_DETENIDO_KMH_DEFECTO = 1.0
     }
 }

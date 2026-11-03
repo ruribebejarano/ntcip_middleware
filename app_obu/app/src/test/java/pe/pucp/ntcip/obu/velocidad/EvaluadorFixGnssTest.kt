@@ -23,13 +23,14 @@ class EvaluadorFixGnssTest {
             tienePrecision = true, precisionM = 5f,
             tsFixMs = 1000L, ahoraMs = 1500L,
         )
-        assertEquals(36.0, r!!.velocidadKmh, 0.01) // 10 m/s * 3.6
+        assertEquals(36.0, r!!.velocidadKmh!!, 0.01) // 10 m/s * 3.6
+        assertEquals("gps", r.fuenteVelocidad)
         assertEquals(90.0, r.rumboDeg, 0.01)
         assertEquals(true, r.rumboMedido)
     }
 
     @Test
-    fun `vehiculo detenido sin velocidad ni rumbo, pero con precision buena, no se descarta`() {
+    fun `sin lectura de velocidad (no detenido necesariamente), velocidadKmh null y fuente respaldo`() {
         val ev = evaluador()
         // primero un fix en movimiento, para dejar un rumbo conocido
         ev.evaluar(
@@ -39,17 +40,31 @@ class EvaluadorFixGnssTest {
             tienePrecision = true, precisionM = 5f,
             tsFixMs = 1000L, ahoraMs = 1000L,
         )
-        // luego se detiene: sin speed ni bearing, pero el fix sigue siendo bueno
-        val detenido = ev.evaluar(
+        // luego Android deja de reportar speed/bearing, pero el fix sigue siendo bueno
+        val sinDato = ev.evaluar(
             lat = -12.10, lon = -77.03,
             tieneVelocidad = false, velocidadMs = 0f,
             tieneRumbo = false, rumboDeg = 0f,
             tienePrecision = true, precisionM = 5f,
             tsFixMs = 2000L, ahoraMs = 2000L,
         )
-        assertEquals(0.0, detenido!!.velocidadKmh, 0.01)
-        assertEquals(123.0, detenido.rumboDeg, 0.01) // heredado, no inventado
-        assertEquals(false, detenido.rumboMedido)
+        assertNull(sinDato!!.velocidadKmh) // sin dato, NO "detenido medido" (item P2)
+        assertEquals("respaldo", sinDato.fuenteVelocidad)
+        assertEquals(123.0, sinDato.rumboDeg, 0.01) // heredado, no inventado
+        assertEquals(false, sinDato.rumboMedido)
+    }
+
+    @Test
+    fun `velocidad medida por debajo del umbral de ruido es detenido medido, no sin dato`() {
+        val r = evaluador().evaluar(
+            lat = -12.10, lon = -77.03,
+            tieneVelocidad = true, velocidadMs = 0.1f, // 0.36 km/h, bajo el umbral por defecto (1.0 km/h)
+            tieneRumbo = true, rumboDeg = 90f,
+            tienePrecision = true, precisionM = 5f,
+            tsFixMs = 1000L, ahoraMs = 1000L,
+        )
+        assertEquals(0.0, r!!.velocidadKmh!!, 0.01)
+        assertEquals("gps", r.fuenteVelocidad) // medido, no "sin dato" -- distinción clave del item P2
     }
 
     @Test

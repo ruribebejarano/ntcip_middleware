@@ -5,9 +5,11 @@ import kotlinx.coroutines.flow.Flow
 data class MuestraPosicion(
     val lat: Double,
     val lon: Double,
-    val velocidadKmh: Double,
+    // null = sin dato de velocidad (fuenteVelocidad="respaldo"); 0.0 con
+    // fuenteVelocidad="gps" = detenido, medido -- ver EvaluadorFixGnss.
+    val velocidadKmh: Double?,
     val rumboDeg: Double,
-    val fuenteVelocidad: String, // "gps" | "simulada" -- ver nota sobre el enum del contrato en app_obu/README.md
+    val fuenteVelocidad: String, // "gps" | "respaldo" | "simulada" -- ver nota sobre el enum del contrato en app_obu/README.md
     val tsMs: Long,
     // rumboMedido=false cuando rumboDeg viene heredado del último rumbo
     // real conocido (o del valor por defecto si nunca hubo uno) -- ver

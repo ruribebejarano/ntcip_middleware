@@ -1,5 +1,6 @@
 package pe.pucp.ntcip.obu
 
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
@@ -73,6 +74,25 @@ class JsonObuTest {
         assertEquals("gps", obj["fuente_velocidad"]?.jsonPrimitive?.content)
         assertEquals("1761144002000", obj["ts_ms"]?.jsonPrimitive?.content)
         assertEquals("2", obj["seq"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `MP sin dato de velocidad serializa velocidad_kmh como null, no la omite (docs-CONTRATO_OBU)`() {
+        val mp = MensajeMP(
+            obu_id = "ses-abc123",
+            lat = -12.1100,
+            lon = -77.0320,
+            velocidad_kmh = null,
+            rumbo_deg = 0.0,
+            fuente_velocidad = "respaldo",
+            ts_ms = 1_761_144_002_000L,
+            seq = 3,
+        )
+        val obj = jsonObu.parseToJsonElement(jsonObu.encodeToString(mp)).jsonObject
+
+        assertTrue("falta 'velocidad_kmh' en el JSON (debe venir explícito, como null)", obj.containsKey("velocidad_kmh"))
+        assertEquals(JsonNull, obj["velocidad_kmh"])
+        assertEquals("respaldo", obj["fuente_velocidad"]?.jsonPrimitive?.content)
     }
 
     @Test

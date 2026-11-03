@@ -140,11 +140,39 @@ debe publicar nada aquí).
 }
 ```
 
-- `fuente_velocidad`: `"gps"` | `"respaldo"` | `"simulada"` — informativo, el
-  servidor acepta valores desconocidos y no distingue hoy entre fuentes al calcular el ETA (usa
-  `VELOCIDAD_RESPALDO_KMH` de `servidor/gestor_mision.py` si
-  `velocidad_kmh` es inválida o ≈0). [REVISAR con asesor] si conviene que
-  el servidor penalice la confianza del ETA según la fuente.
+- `velocidad_kmh`: `number | null`. Puede venir **ausente u omitido** del
+  JSON, con el mismo significado que `null` (el servidor trata ambos
+  casos igual) — distingue dos situaciones que antes eran indistinguibles
+  (ítem P2 de `prompt_cierre_repo_2026-11-02.md`):
+  - `null` (u omitido) + `fuente_velocidad="respaldo"`: **sin dato de
+    velocidad** — el GNSS no tiene una lectura de velocidad válida en
+    este fix (`!Location.hasSpeed()` en Android), no implica que el
+    vehículo esté detenido.
+  - `0.0` (o cualquier valor ≤ al umbral de ruido, ver
+    `app_obu/.../EvaluadorFixGnss.kt::UMBRAL_DETENIDO_KMH`) +
+    `fuente_velocidad="gps"`: **detenido, medido** — el GNSS sí tiene una
+    lectura de velocidad y es ≈0; el vehículo está parado de verdad (cola,
+    semáforo en rojo), confirmado por el sensor, no por falta de dato.
+  - Cualquier otro valor + `fuente_velocidad="gps"`: velocidad medida en
+    movimiento, como antes.
+  - **Compatibilidad hacia atrás:** un MP sin el campo `velocidad_kmh` en
+    absoluto (formato previo a este ítem) se trata igual que `null`: sin
+    dato, no detenido.
+- `fuente_velocidad`: `"gps"` | `"respaldo"` | `"simulada"` — ya no es solo
+  informativo: junto con `velocidad_kmh` es lo que distingue "sin dato"
+  de "detenido medido" (párrafo anterior). El servidor usa
+  `VELOCIDAD_RESPALDO_KMH` de `servidor/gestor_mision.py` solo para el
+  caso "sin dato" (y solo si no hay una velocidad en movimiento reciente
+  que reutilizar, ver `T_VALIDEZ_VEL_S` ahí mismo); para "detenido
+  medido" no calcula una solicitud nueva por ETA, y una solicitud ya
+  vigente se deja de renovar por ETA pasados
+  `T_DETENIDO_MAX_S` detenido sin cruzar (vuelve a pedirse sola si el
+  vehículo retoma movimiento) — ver
+  `servidor/gestor_mision.py::_respaldo_por_ruta` y su docstring para el
+  detalle completo; la geocerca (`SeguidorAcceso`, posición pura) sigue
+  renovando igual que antes mientras el vehículo esté dentro del radio,
+  detenido o no — un vehículo parado justo en el semáforo que pidió no
+  pierde la solicitud por estar detenido ahí.
 - `seq`: contador creciente por OBU (no por solicitud). El servidor
   descarta un MP con `seq` menor o igual al último aceptado para esa
   misión (`servidor/gestor_mision.py::procesar_mp`, evento

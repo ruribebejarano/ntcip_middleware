@@ -186,7 +186,13 @@ def _procesar_mp(obu_id: str, data: dict) -> None:
     try:
         lat = float(data["lat"])
         lon = float(data["lon"])
-        velocidad_kmh = float(data.get("velocidad_kmh", 0.0))
+        # velocidad_kmh admite None (ausente u omitido): "sin dato de
+        # velocidad", NO "detenido" (docs/CONTRATO_OBU.md §MP, item P2 de
+        # prompt_cierre_repo_2026-11-02.md) -- float(None) lanzaría
+        # TypeError, así que no se fuerza a float cuando es None.
+        velocidad_kmh_raw = data.get("velocidad_kmh")
+        velocidad_kmh = float(velocidad_kmh_raw) if velocidad_kmh_raw is not None else None
+        fuente_velocidad = data.get("fuente_velocidad")
         rumbo_deg = float(data.get("rumbo_deg", 0.0))
     except (KeyError, TypeError, ValueError) as exc:
         print(f"[servidor] MP inválido de '{obu_id}': {exc}")
@@ -196,7 +202,7 @@ def _procesar_mp(obu_id: str, data: dict) -> None:
     if pendiente is not None and obu_id not in GESTOR.misiones:
         GESTOR.armar_mision(obu_id, pendiente["clase"], (lat, lon), pendiente["destino"])
 
-    GESTOR.procesar_mp(obu_id, lat, lon, velocidad_kmh, rumbo_deg, seq=data.get("seq"))
+    GESTOR.procesar_mp(obu_id, lat, lon, velocidad_kmh, rumbo_deg, fuente_velocidad=fuente_velocidad, seq=data.get("seq"))
 
 
 def _procesar_m2(data: dict) -> None:

@@ -15,7 +15,7 @@ sys.path.insert(0, str(RAIZ))
 import networkx as nx
 import pytest
 
-from gateway.geometria import Acceso, Interseccion, desplazar, proyeccion_local
+from gateway.geometria import Acceso, Interseccion, ParametrosGeometria, desplazar, proyeccion_local
 from servidor.gestor_mision import (
     ESTADO_CANCELADA,
     ESTADO_EN_ESPERA,
@@ -36,6 +36,15 @@ NODOS_RUTA = {
     "G": (-12.1022, -77.0320),
 }
 VELOCIDAD_KMH = 36.0  # 10 m/s, para que cada paso del grafo sintetico (~144 m) sea ~14.5 s
+
+# Geocerca mas chica que el margen de anticipacion por ETA (80 m a
+# VELOCIDAD_KMH con ANTICIPACION_MINIMA_S=8s por defecto, r_g_m=150 por
+# defecto): con esto, entre 50 y 80 m de la parada SOLO el respaldo por
+# ETA (paso 1/3 de procesar_mp) puede sostener una solicitud, no la
+# geocerca (paso 2) -- usada para aislar ese mecanismo en las pruebas de
+# "detenido" del item P2 (prompt_cierre_repo_2026-11-02.md), sin tener que
+# reproducir el rodeo de _recorrido_con_rodeo.
+GEOCERCA_CHICA = ParametrosGeometria(r_g_m=50.0)
 
 
 class _Registrador:
@@ -440,3 +449,62 @@ def test_rodeo_la_solicitud_se_renueva_y_se_cierra_por_avance_en_ruta():
     assert [c["motivo"] for c in m3_c] == ["cruce"]
     assert m3_c[0]["seq"] == m1_c[-1]["seq"] + 1
     assert mision.paradas["SINT-C"].estado == ESTADO_CANCELADA
+
+
+# --- Velocidad detenido vs. sin dato (item P2 de prompt_cierre_repo_2026-11-02.md) ---
+
+
+def test_mp_sin_dato_de_velocidad_no_crashea_y_no_es_detenido():
+    """docs/CONTRATO_OBU.md §MP: velocidad_kmh=None (GNSS sin lectura de
+    velocidad) es "sin dato", no "detenido" -- no debe lanzar excepcion
+    (antes de este item, servidor/main.py hacia float(None)) ni marcar
+    t_detenido_desde."""
+    gestor, reg = _gestor()
+    gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    gestor.procesar_mp("obu-1", *NODOS_RUTA["A"], None, rumbo_deg=0.0, fuente_velocidad="respaldo")
+    mision = gestor.misiones["obu-1"]
+    assert mision.t_detenido_desde is None
+    # Nunca hubo una velocidad en movimiento conocida: cae al respaldo generico.
+    assert mision.ultima_velocidad_kmh == gestor.velocidad_respaldo_kmh
+
+
+def test_detenido_medido_no_dispara_una_solicitud_nueva_por_eta():
+    """"Detenido medido" (velocidad ~0 CON lectura, fuente != "respaldo")
+    no debe disparar una solicitud NUEVA por anticipacion de ETA (paso 1
+    de procesar_mp) -- a diferencia de la misma posicion en movimiento,
+    que si la dispara (control positivo, confirma que GEOCERCA_CHICA en
+    efecto aisla el respaldo por ETA de la geocerca en esta prueba)."""
+    lat_a, lon_a = NODOS_RUTA["A"]
+    # A 68 m de SINT-C: dentro del margen de anticipacion ETA (80 m a
+    # VELOCIDAD_KMH con ANTICIPACION_MINIMA_S=8s), fuera de GEOCERCA_CHICA (50 m).
+    lat, lon = desplazar(lat_a, lon_a, 0.0, 220.0)
+
+    gestor_detenido, reg_detenido = _gestor(parametros_geocerca=GEOCERCA_CHICA)
+    gestor_detenido.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    gestor_detenido.procesar_mp("obu-1", lat, lon, 0.0, rumbo_deg=0.0, fuente_velocidad="gps")
+    assert gestor_detenido.misiones["obu-1"].paradas["SINT-C"].estado == ESTADO_PENDIENTE
+    assert reg_detenido.m1 == []
+
+    gestor_movimiento, reg_movimiento = _gestor(parametros_geocerca=GEOCERCA_CHICA)
+    gestor_movimiento.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    gestor_movimiento.procesar_mp("obu-1", lat, lon, VELOCIDAD_KMH, rumbo_deg=0.0, fuente_velocidad="gps")
+    assert gestor_movimiento.misiones["obu-1"].paradas["SINT-C"].estado == ESTADO_SOLICITADA
+    assert len(reg_movimiento.m1) == 1
+
+
+def test_detenido_dentro_de_la_geocerca_sigue_renovando_por_geocerca():
+    """La geocerca (paso 2, gateway.geometria.SeguidorAcceso) es de
+    posicion pura, no mira velocidad: un vehiculo detenido DENTRO del
+    radio que ya pidio sigue renovando igual que antes -- no pierde la
+    solicitud por estar parado justo en el semaforo que la pidio."""
+    gestor, reg = _gestor()
+    gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    gestor.procesar_mp("obu-1", *NODOS_RUTA["B"], VELOCIDAD_KMH, 0.0, fuente_velocidad="gps")  # entra a R_g de SINT-C
+    mision = gestor.misiones["obu-1"]
+    ep = mision.paradas["SINT-C"]
+    assert ep.estado == ESTADO_SOLICITADA
+    seq_antes = ep.seq
+
+    gestor.procesar_mp("obu-1", *NODOS_RUTA["B"], 0.0, 0.0, fuente_velocidad="gps")  # detenido, sin moverse de B
+    assert ep.estado == ESTADO_SOLICITADA
+    assert ep.seq > seq_antes

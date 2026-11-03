@@ -42,7 +42,9 @@ data class MensajeMP(
     val obu_id: String,
     val lat: Double,
     val lon: Double,
-    val velocidad_kmh: Double,
+    // null = sin dato de velocidad (fuente_velocidad="respaldo"); 0.0 con
+    // fuente_velocidad="gps" = detenido, medido (docs/CONTRATO_OBU.md §MP).
+    val velocidad_kmh: Double?,
     val rumbo_deg: Double,
     val fuente_velocidad: String,
     val ts_ms: Long,

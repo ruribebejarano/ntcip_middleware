@@ -12,10 +12,22 @@ package pe.pucp.ntcip.obu.velocidad
  * heredarlo cuando un fix válido no trae rumbo propio (vehículo
  * detenido). Una instancia por misión -- igual que [FuenteGnss], que es
  * quien la crea.
+ *
+ * `velocidadKmh` de la [MuestraPosicion] resultante distingue (ítem P2 de
+ * `prompt_cierre_repo_2026-11-02.md`, docs/CONTRATO_OBU.md §MP) "sin dato
+ * de velocidad" de "detenido, medido": sin lectura de velocidad
+ * (`!tieneVelocidad`) es `null` + `fuenteVelocidad="respaldo"`; con
+ * lectura y ésta por debajo de [umbralDetenidoKmh] (ruido del GNSS a
+ * velocidad casi nula) es `0.0` + `fuenteVelocidad="gps"` -- el servidor
+ * usa esa distinción para no seguir re-pidiendo prioridad por ETA
+ * mientras el vehículo está genuinamente detenido lejos de la RSU (antes
+ * ambos casos llegaban como `0.0`+`"gps"` y el servidor no podía
+ * diferenciarlos).
  */
 class EvaluadorFixGnss(
     private val precisionMaximaM: Float = FuenteGnss.PRECISION_MAXIMA_DEFECTO_M,
     private val antiguedadMaximaMs: Long = FuenteGnss.ANTIGUEDAD_MAXIMA_DEFECTO_MS,
+    private val umbralDetenidoKmh: Double = FuenteGnss.UMBRAL_DETENIDO_KMH_DEFECTO,
 ) {
     private var ultimoRumboConocido: Double? = null
 
@@ -50,12 +62,14 @@ class EvaluadorFixGnss(
         val rumboMedido = tieneRumbo
         if (rumboMedido) ultimoRumboConocido = rumboDeg.toDouble()
 
+        val velocidadMedidaKmh = if (tieneVelocidad) velocidadMs * 3.6 else null
+
         return MuestraPosicion(
             lat = lat,
             lon = lon,
-            velocidadKmh = if (tieneVelocidad) velocidadMs * 3.6 else 0.0,
+            velocidadKmh = velocidadMedidaKmh?.let { if (it <= umbralDetenidoKmh) 0.0 else it },
             rumboDeg = ultimoRumboConocido ?: FuenteGnss.RUMBO_POR_DEFECTO_SIN_HISTORIA,
-            fuenteVelocidad = "gps",
+            fuenteVelocidad = if (tieneVelocidad) "gps" else "respaldo",
             tsMs = tsFixMs,
             rumboMedido = rumboMedido,
             precisionM = precisionM,
