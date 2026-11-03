@@ -1,0 +1,5 @@
+Texto para el \caption de LaTeX de cada figura (no está incrustado en el PNG):
+
+fig_comparacion / tabla_latencia: Campaña 2026-10-29, lazo+desvío combinados por config (igual que _figuras_2026-10-29_local_vs_pi-lan); fig_tramos regenerada con el umbral de RNF-01 (M5.1, prompt_figuras_cap4.md).
+
+fig_tramos: † cruza reloj laptop/Pi ($t_{srv\to RSU}$, $t_{retorno}$) -- pi-lan: cota reloj Pi no sincronizado (laptop/w32time sin caracterizar) [REVISAR con asesor]
