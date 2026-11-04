@@ -333,8 +333,13 @@ def _pi_sh(*args: str) -> subprocess.CompletedProcess:
     # imprime "●"/"○" (UTF-8 multibyte) y el locale por defecto de Windows
     # (cp1252) no los puede decodificar -- sin esto, subprocess.run()
     # LANZA UnicodeDecodeError en vez de devolver el texto.
+    #
+    # stdin=DEVNULL: si este script corre desde una terminal, "ssh -t" de
+    # pi.sh crea una pty en la Pi: `ip route` sale con códigos de color que
+    # _interfaz_default_activa no reconoce (aborta la campaña), y sudo podría
+    # quedarse esperando una contraseña en una corrida desatendida.
     return subprocess.run([BASH, (RAIZ / "scripts" / "pi.sh").as_posix(), *args],
-                          cwd=RAIZ, capture_output=True, text=True,
+                          cwd=RAIZ, capture_output=True, text=True, stdin=subprocess.DEVNULL,
                           encoding="utf-8", errors="replace")
 
 
@@ -545,6 +550,7 @@ INTERFAZ_ESPERADA = {"pi-4g": "usb0", "pi-lan": "wlan0"}
 
 
 def _interfaz_default_activa(estado_texto: str) -> str | None:
+    estado_texto = re.sub(r"\x1b\[[0-9;]*m", "", estado_texto)
     rutas = re.findall(r"^default via \S+ dev (\S+).*?metric (\d+)", estado_texto, re.MULTILINE)
     if not rutas:
         return None
