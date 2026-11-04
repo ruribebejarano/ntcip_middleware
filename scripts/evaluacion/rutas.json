@@ -1,0 +1,22 @@
+{
+  "pucp_mariano_cornejo": {
+    "descripcion": "PUCP (Av. Universitaria) hacia Av. Mariano Cornejo, unos 2,9 km",
+    "origen": [-12.074664, -77.082933],
+    "destino": [-12.0664649, -77.0626982],
+    "velocidad_emulada_kmh": 35,
+    "max_rsu": 3,
+    "separacion_min_m": 300,
+    "min_desde_origen_m": 200,
+    "primer_rsu_id": 50
+  },
+  "corredor_san_miguel": {
+    "descripcion": "Ruta corta de unos 1,2 km en San Miguel, con hasta dos RSU",
+    "origen": [-12.1090, -77.0320],
+    "destino": [-12.102075, -77.0319919],
+    "velocidad_emulada_kmh": 36,
+    "max_rsu": 2,
+    "separacion_min_m": 300,
+    "min_desde_origen_m": 200,
+    "primer_rsu_id": 60
+  }
+}

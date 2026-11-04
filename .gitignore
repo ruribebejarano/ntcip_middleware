@@ -88,3 +88,6 @@ deploy/pki/
 # negativos, como el certificado vencido/revocado) -- se regenera con
 # "banco_local.py preparar", nunca se commitea.
 deploy/pki_banco/
+
+# Evaluaciones de scripts/evaluacion/: se regeneran; las curadas se copian aparte.
+resultados/evaluacion/

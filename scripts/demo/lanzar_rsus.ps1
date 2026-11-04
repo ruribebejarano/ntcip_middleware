@@ -48,6 +48,7 @@ param(
     [int]$CtrlBase = 9100,            # primer puerto TCP de controlador a probar
     [string]$Broker = "127.0.0.1",
     [int]$BrokerPort = 1883,
+    [string]$TlsPki = "",           # carpeta de la PKI: RSU y servidor usan mTLS
     [string]$Python = "",
     [switch]$ConServidor,
     [switch]$ConConsola,
@@ -179,7 +180,19 @@ $fecha = Get-Date -Format "yyyy-MM-ddTHHmmss"
 $DirCorrida = Join-Path $DirDemo $fecha
 New-Item -ItemType Directory -Force $DirCorrida | Out-Null
 
-$VarsLimpias = "RSU_ID", "SNMP_PORT", "CONTROLLER_PORT", "RSU_EVENTOS_DIR", "REGISTRO_RSU_PATH"
+$VarsLimpias = "RSU_ID", "SNMP_PORT", "CONTROLLER_PORT", "RSU_EVENTOS_DIR", "REGISTRO_RSU_PATH", "RSU_TLS_CA", "RSU_TLS_CERT", "RSU_TLS_KEY", "SERVIDOR_TLS_CA", "SERVIDOR_TLS_CERT", "SERVIDOR_TLS_KEY"
+
+# Rutas CA, certificado y llave de un cliente, emitido si falta.
+function Vars-Tls($prefijo, $tipo, $id) {
+    if (-not $TlsPki) { return @{} }
+    # "Continue": openssl escribe en stderr, y con "Stop" PowerShell 5 lo toma como error.
+    $ErrorActionPreference = "Continue"
+    $a = @((Join-Path $Raiz "scripts\evaluacion\cert_cliente.py"), "--pki", $TlsPki, "--tipo", $tipo)
+    if ($id) { $a += @("--id", $id) }
+    $r = @(& $Python @a 2>$null)
+    if ($r.Count -ne 3) { throw "No se pudo obtener el certificado de $tipo $id." }
+    return @{ "${prefijo}_TLS_CA" = $r[0]; "${prefijo}_TLS_CERT" = $r[1]; "${prefijo}_TLS_KEY" = $r[2] }
+}
 function Iniciar-Oculto($nombre, $argumentos, $vars) {
     $guardadas = @{}
     foreach ($k in ($VarsLimpias + @($vars.Keys) + "PYTHONUNBUFFERED", "PYTHONIOENCODING", "MQTT_BROKER_HOST", "MQTT_BROKER_PORT" | Select-Object -Unique)) {
@@ -225,7 +238,7 @@ foreach ($r in $plan) {
     $dirEventos = Join-Path $DirCorrida "rsu$id"
     $pc = Iniciar-Oculto "controlador_$id" @("controller\controller_emulator.py", "--port", $r.ctrl_port) @{ RSU_ID = $id; RSU_EVENTOS_DIR = $dirEventos }
     if (-not (Esperar-Puerto "tcp" $r.ctrl_port $pc 15)) { $fallos += "controlador RSU $id (ver controlador_$id.err.log)" }
-    $pm = Iniciar-Oculto "rsu_$id" @("agent\rsu_middleware.py") @{ RSU_ID = $id; RSU_EVENTOS_DIR = $dirEventos; SNMP_PORT = $r.snmp_port; CONTROLLER_PORT = $r.ctrl_port }
+    $pm = Iniciar-Oculto "rsu_$id" @("agent\rsu_middleware.py") ((Vars-Tls "RSU" "rsu" $id) + @{ RSU_ID = $id; RSU_EVENTOS_DIR = $dirEventos; SNMP_PORT = $r.snmp_port; CONTROLLER_PORT = $r.ctrl_port })
     if (-not (Esperar-Puerto "udp" $r.snmp_port $pm 20)) { $fallos += "middleware RSU $id (ver rsu_$id.err.log)" }
     $r.pid_controlador = $pc.Id
     $r.pid_middleware = $pm.Id
@@ -238,7 +251,7 @@ foreach ($r in $plan) {
 
 if ($ConServidor) {
     Write-Host "`n=== Servidor central ===" -ForegroundColor Cyan
-    $ps = Iniciar-Oculto "servidor" @("servidor\main.py") @{ REGISTRO_RSU_PATH = $RegistroAbs; RSU_EVENTOS_DIR = (Join-Path $DirCorrida "servidor") }
+    $ps = Iniciar-Oculto "servidor" @("servidor\main.py") ((Vars-Tls "SERVIDOR" "servidor" $null) + @{ REGISTRO_RSU_PATH = $RegistroAbs; RSU_EVENTOS_DIR = (Join-Path $DirCorrida "servidor") })
     Start-Sleep -Seconds 3
     if ($ps.HasExited) { $fallos += "servidor central (ver servidor.err.log)" }
     $estado.servidor = [ordered]@{ pid = $ps.Id; log = (Join-Path $DirCorrida "servidor.log") }

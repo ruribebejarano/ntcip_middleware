@@ -7,6 +7,7 @@ prioridad; una RSU (*Roadside Unit*) traduce esa solicitud al protocolo
 NTCIP del controlador de tránsito.
 
 [Guía de comandos](docs/GUIA_COMANDOS.md) — cómo levantar el sistema completo paso a paso.
+[Evaluaciones con OBU emulada o GNSS real](docs/EVALUACIONES.md) — cómo correrlas y cambiar rutas.
 [Resultados de la campaña](docs/RESULTADOS_CAMPANA.md) — mediciones en local, por Wi-Fi y por 4G.
 
 ## Arquitectura
