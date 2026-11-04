@@ -91,3 +91,4 @@ deploy/pki_banco/
 
 # Evaluaciones de scripts/evaluacion/: se regeneran; las curadas se copian aparte.
 resultados/evaluacion/
+resultados/consumo/_pruebas/
