@@ -42,7 +42,10 @@ condiciones, así que solo el tramo servidor–RSU usa el enlace medido.
 
 Las 36 paradas de `pi-lan` dan `L` negativa (mediana cercana a −55 ms, con un RTT
 de 11 ms). Eso solo se explica porque el desfase entre los relojes de la laptop y
-de la Pi supera al tramo medido, y el reloj de la laptop no está caracterizado.
+de la Pi supera al tramo medido. El reloj de la laptop no está caracterizado durante
+las corridas: una consulta posterior a la campaña lo situó a unos 60 ms de la misma
+referencia NTP (`evidencia/demo_2026-11-04/00_estado-del-banco.txt`), del orden de ese
+desfase.
 
 Por eso, en `pi-lan` y `pi-4g` se usa el RTT, medido con un solo reloj, como cota
 superior de `L`: la RSU decide antes de que M2 vuelva al servidor. Los datos no se

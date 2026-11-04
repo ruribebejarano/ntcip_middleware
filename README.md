@@ -217,9 +217,6 @@ resultados/      Resultados de campañas de medición
   mTLS.
 - **Plazo de retención de los datos de posición**: sin definir, y el prototipo no
   elimina los registros de forma automática.
-- **Broker local de la RSU**: el `mosquitto` instalado en la Pi sigue escuchando
-  en el puerto 1883 sin TLS. El agente no lo usa: se conecta al broker central por
-  8883.
 - **Enlace I2I entre RSU vecinas**: no implementado. Si se agrega, sería
   sobre el mismo broker MQTT, sin una malla dedicada.
 - **Controlador de tránsito físico**: la RSU se adapta hoy contra

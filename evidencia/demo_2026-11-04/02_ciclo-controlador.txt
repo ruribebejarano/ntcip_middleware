@@ -1,0 +1,15 @@
+$ python3 (sondeo de get_status cada 0.3s, 25s) + journalctl -u rsu-controller (línea de tiempo)
+(ejecutado en rsu, 2026-11-04 08:24:45)
+
+== Sondeando get_status cada 0.3s durante 25s (impulsa el avance de fase) ==
+t= 0.00s  fase = verde
+t= 5.11s  fase = amarillo
+t= 8.12s  fase = todo_rojo
+t=10.22s  fase = rojo_general
+t=18.04s  fase = verde
+
+== journalctl -u rsu-controller --since '-26 seconds' --no-pager ==
+Nov 04 08:24:51 ricardoub python3[4433]: [controlador] Fase -> amarillo (ciclo_normal)
+Nov 04 08:24:54 ricardoub python3[4433]: [controlador] Fase -> todo_rojo (ciclo_normal)
+Nov 04 08:24:56 ricardoub python3[4433]: [controlador] Fase -> rojo_general (ciclo_normal)
+Nov 04 08:25:04 ricardoub python3[4433]: [controlador] Fase -> verde (ciclo_normal)

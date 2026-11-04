@@ -11,8 +11,9 @@
 #   bash scripts/demo_asesor.sh --sin-pausas  (de corrido, para probar el script)
 #
 # Requiere: alias SSH "rsu" (ver scripts/check_pi.sh), snmpget/snmpset/snmpwalk
-# en la Pi (ya instalados, ver docs/agent.md), los tres servicios activos
-# (scripts/pi.sh status agent|controller|mosquitto).
+# en la Pi (ya instalados, ver docs/agent.md), rsu-agent y rsu-controller activos
+# (scripts/pi.sh status agent|controller). El mosquitto de la Pi no participa: se
+# muestra su estado solo como información.
 #
 # Los pasos que necesitan logica Python en la Pi (3, 4, 5, 6) escriben un
 # .py local a un archivo temporal, lo copian con scp a /tmp en la Pi, lo
@@ -114,7 +115,7 @@ correr_python_remoto() {
 # Paso 0: estado del banco
 # ===========================================================================
 encabezado "0" "Estado del banco de pruebas" "(verificación operativa previa, sin requerimiento específico)"
-observar "Los tres servicios 'active (running)' y un desfase de reloj de pocos ms entre la Pi y la laptop."
+observar "rsu-agent y rsu-controller 'active (running)' y un desfase de reloj de pocos ms entre la Pi y la laptop."
 archivo0="$EVID_DIR/00_estado-del-banco.txt"
 {
   echo "\$ scripts/check_pi.sh"
@@ -133,7 +134,7 @@ archivo0="$EVID_DIR/00_estado-del-banco.txt"
   scripts/pi.sh clock 2>&1
 } > "$archivo0" 2>&1
 cat "$archivo0"
-if [ "$(grep -c 'active (running)' "$archivo0")" -ge 3 ]; then
+if [ "$(grep -c 'active (running)' "$archivo0")" -ge 2 ]; then
   marcar "0. Estado del banco" "-" 0
 else
   marcar "0. Estado del banco" "-" 1
@@ -265,7 +266,7 @@ print(f"\n29 bytes OER (hex): {hexdata}")
 print("  priorityRequestID=90 | vehiculo_id='ambulancia-demo' | clase_tipo=1 (maxima precedencia)")
 print("  clase_nivel=1 | estrategia=1 | t_servicio_deseado=8s | t_salida_estimada=13s")
 
-SNMP_BASE = ["snmpset", "-v3", "-u", "rsuLabUser", "-l", "authPriv", "-a", "SHA",
+SNMP_BASE = ["snmpset", "-v3", "-u", "rsuLabUser", "-l", "authPriv", "-a", "SHA-256",
              "-A", "labAuthPass123", "-x", "AES", "-X", "labPrivPass123", "-n", "",
              "127.0.0.1:1161"]
 print("\n== snmpset prgPriorityRequestAbsolute ==")
@@ -363,7 +364,7 @@ s = SolicitudPrioridadAbsoluta(
     estrategia=1, t_servicio_deseado=8, t_salida_estimada=13, t_solicitud=int(time.time()),
 )
 hexdata = codificar(s).hex()
-SNMP_BASE = ["snmpset", "-v3", "-u", "rsuLabUser", "-l", "authPriv", "-a", "SHA",
+SNMP_BASE = ["snmpset", "-v3", "-u", "rsuLabUser", "-l", "authPriv", "-a", "SHA-256",
              "-A", "labAuthPass123", "-x", "AES", "-X", "labPrivPass123", "-n", "",
              "127.0.0.1:1161"]
 print("\n== snmpset prgPriorityRequestAbsolute durante 'amarillo' (SET se acepta igual) ==")
@@ -448,7 +449,7 @@ s = SolicitudPrioridadAbsoluta(
     estrategia=1, t_servicio_deseado=8, t_salida_estimada=13, t_solicitud=int(time.time()),
 )
 hexdata = codificar(s).hex()
-SNMP_BASE = ["snmpset", "-v3", "-u", "rsuLabUser", "-l", "authPriv", "-a", "SHA",
+SNMP_BASE = ["snmpset", "-v3", "-u", "rsuLabUser", "-l", "authPriv", "-a", "SHA-256",
              "-A", "labAuthPass123", "-x", "AES", "-X", "labPrivPass123", "-n", "",
              "127.0.0.1:1161"]
 print("priorityRequestVehicleClassType=5 (CLASES_EMERGENCIA_RECONOCIDAS={1})")
@@ -509,7 +510,7 @@ s = SolicitudPrioridadAbsoluta(
     estrategia=1, t_servicio_deseado=8, t_salida_estimada=13, t_solicitud=int(time.time()),
 )
 hexdata = codificar(s).hex()
-SNMP_BASE = ["snmpset", "-v3", "-u", "rsuLabUser", "-l", "authPriv", "-a", "SHA",
+SNMP_BASE = ["snmpset", "-v3", "-u", "rsuLabUser", "-l", "authPriv", "-a", "SHA-256",
              "-A", "labAuthPass123", "-x", "AES", "-X", "labPrivPass123", "-n", "",
              "127.0.0.1:1161"]
 print("\n== snmpset prgPriorityRequestAbsolute (no se vuelve a refrescar) ==")
@@ -532,73 +533,6 @@ if grep -q "caducad" "$archivo6"; then
   marcar "6. Caducidad (RF-09)" "RF-09, RNF-03" 0
 else
   marcar "6. Caducidad (RF-09)" "RF-09, RNF-03" 1
-fi
-pausar
-
-# ===========================================================================
-# Paso 7: lazo V2I completo (OBU -> MQTT -> RSU -> NTCIP -> controlador)
-# ===========================================================================
-encabezado "7" "Lazo V2I completo: OBU simulada -> MQTT -> NTCIP 1211 -> controlador" "RF-03, RF-04, RF-07, RF-10, RNF-01"
-observar "El controlador fuerza verde para la OBU simulada, y latencia_tramos.py muestra los tramos t_V2I/t_RSU/t_NTCIP de esa solicitud."
-archivo7="$EVID_DIR/07_lazo-v2i-completo.txt"
-PI_IP="$(ssh -G "$HOST" | awk '/^hostname /{print $2}')"
-# Preferir el venv del proyecto (ya tiene paho-mqtt instalado). En Git Bash
-# / Windows, "python3" suele resolver al stub de Microsoft Store (falla con
-# "no se encontró Python"), no al interprete real -- se prueba cada
-# candidato y se verifica que de verdad corra antes de confiar en el.
-PYBIN=""
-for candidato in ".venv/Scripts/python.exe" python python3 "/c/Program Files/Python313/python.exe"; do
-  if "$candidato" --version >/dev/null 2>&1; then PYBIN="$candidato"; break; fi
-done
-if [ -z "$PYBIN" ]; then
-  echo "No se encontró un interprete de Python funcional en la laptop." | tee -a "$archivo7"
-  PYBIN="python"
-fi
-
-cmd_mostrar="$PYBIN gateway/obu_simulator.py --broker-host $PI_IP --vehiculo-id ambulancia-demo-v2i --eta-seg 8 --clase-tipo 1"
-comando "$cmd_mostrar"
-{
-  echo "\$ $cmd_mostrar"
-  echo "(ejecutado en la laptop, $(date '+%Y-%m-%d %H:%M:%S'))"
-  echo
-} > "$archivo7"
-"$PYBIN" gateway/obu_simulator.py --broker-host "$PI_IP" --vehiculo-id ambulancia-demo-v2i --eta-seg 8 --clase-tipo 1 >> "$archivo7" 2>&1
-echo "Esperando ~6 s para que el controlador reaccione (incluye el caso de llegar en despeje)..." >> "$archivo7"
-sleep 6
-
-comando "scripts/pi.sh fetch (copia resultados/ de la Pi a resultados/rsu/)"
-{
-  echo ""
-  echo "\$ scripts/pi.sh fetch"
-} >> "$archivo7"
-scripts/pi.sh fetch >> "$archivo7" 2>&1
-
-COMBINADO="resultados/demo_combinado"
-rm -rf "$COMBINADO"
-mkdir -p "$COMBINADO"
-cp resultados/eventos/eventos_obu.csv "$COMBINADO/" 2>/dev/null
-cp resultados/rsu/eventos/eventos_rsu_1.csv "$COMBINADO/" 2>/dev/null
-cp resultados/rsu/eventos/eventos_ctrl_1.csv "$COMBINADO/" 2>/dev/null
-
-comando "python scripts/analisis/latencia_tramos.py --dir $COMBINADO"
-{
-  echo ""
-  echo "\$ python scripts/analisis/latencia_tramos.py --dir $COMBINADO"
-} >> "$archivo7"
-"$PYBIN" scripts/analisis/latencia_tramos.py --dir "$COMBINADO" >> "$archivo7" 2>&1
-r7=$?
-if [ -f "$COMBINADO/latencia_tramos.csv" ]; then
-  {
-    echo ""
-    echo "== $COMBINADO/latencia_tramos.csv =="
-    cat "$COMBINADO/latencia_tramos.csv"
-  } >> "$archivo7"
-fi
-cat "$archivo7"
-if [ "$r7" = "0" ] && [ -s "$COMBINADO/latencia_tramos.csv" ] && [ "$(wc -l < "$COMBINADO/latencia_tramos.csv")" -ge 2 ]; then
-  marcar "7. Lazo V2I completo" "RF-03, RF-04, RF-07, RF-10, RNF-01" 0
-else
-  marcar "7. Lazo V2I completo" "RF-03, RF-04, RF-07, RF-10, RNF-01" 1
 fi
 pausar
 

@@ -1,0 +1,66 @@
+$ scripts/check_pi.sh
+==> Probando SSH contra el alias 'rsu' (ver ~/.ssh/config)
+    OK: la Pi responde por SSH.
+==> Estado del repo en la Pi (~/ntcip_middleware)
+## master...origin/master
+==> Entorno virtual (~/rsu-env)
+    OK: ~/rsu-env existe.
+==> Listo.
+
+$ scripts/pi.sh status agent
+● rsu-agent.service - RSU - Middleware NTCIP (agente SNMPv3 + enlace V2I) (prototipo de tesis)
+     Loaded: loaded (/etc/systemd/system/rsu-agent.service; enabled; preset: enabled)
+    Drop-In: /etc/systemd/system/rsu-agent.service.d
+             └─broker.conf, tls.conf
+     Active: active (running) since Wed 2026-11-04 01:54:09 -05; 6h ago
+ Invocation: 96b696c5cb034028bf5af9c2f74c336d
+
+$ scripts/pi.sh status controller
+● rsu-controller.service - RSU - Emulador del controlador de transito (prototipo de tesis)
+     Loaded: loaded (/etc/systemd/system/rsu-controller.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-11-02 19:14:52 -05; 1 day 13h ago
+ Invocation: b8fe097957114a3c918347d983cbcce9
+   Main PID: 4433 (python3)
+      Tasks: 1 (limit: 4810)
+
+$ scripts/pi.sh status mosquitto
+○ mosquitto.service - Mosquitto MQTT Broker
+     Loaded: loaded (/usr/lib/systemd/system/mosquitto.service; disabled; preset: enabled)
+     Active: inactive (dead) since Wed 2026-11-04 06:38:20 -05; 1h 46min ago
+   Duration: 2d 8h 58min 9.375s
+ Invocation: 892bbafaccc246b295806ba059bf8307
+       Docs: man:mosquitto.conf(5)
+
+$ scripts/pi.sh clock
+==> Estado combinado de chrony en la Pi (rsu) -- 'System time' es la
+    mejor estimacion de chrony del error del reloj local; 'Root dispersion'
+    + 'Root delay' acotan la incertidumbre de esa estimacion (NO ignorar
+    este bloque: es la cota de error real, ver docs/MEDICION_LATENCIA.md 8.4):
+Reference ID    : D8EF2304 (time2.google.com)
+Stratum         : 2
+Ref time (UTC)  : Wed Nov 04 13:16:28 2026
+System time     : 0.000160335 seconds fast of NTP time
+Last offset     : -0.000043108 seconds
+RMS offset      : 0.000313180 seconds
+Frequency       : 7.276 ppm slow
+Residual freq   : +0.000 ppm
+Skew            : 0.073 ppm
+Root delay      : 0.041091446 seconds
+Root dispersion : 0.001963014 seconds
+Update interval : 1034.9 seconds
+Leap status     : Normal
+==> Offset de la Pi (rsu) contra time.cloudflare.com (vía chronyc sources, detalle por fuente;
+    el campo despues de '+/-' es el error ESTIMADO de esa medicion puntual,
+    no un margen a ignorar):
+MS Name/IP address         Stratum Poll Reach LastRx Last sample               
+^+ time.cloudflare.com           3  10   377   490  -4175us[-4175us] +/-   50ms
+==> Offset de la laptop (Windows) contra time.cloudflare.com:
+Seguimiento time.cloudflare.com [162.159.200.123:123].
+Recopilando 3 muestras.
+La hora actual es 4/11/2026 08:24:39.
+08:24:39, -00.0583981s
+08:24:41, -00.0582744s
+08:24:43, -00.0641252s
+==> Nota: si el servicio 'Windows Time' (w32time) no está corriendo en la
+    laptop, su reloj no se autocorrige y este offset puede crecer con el
+    tiempo. Verificar con: w32tm /query /status
