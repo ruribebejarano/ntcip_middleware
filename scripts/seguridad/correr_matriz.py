@@ -50,7 +50,7 @@ MATRIZ = {
     "T12": ("El cliente verifica el SAN del servidor contra un host que no coincide", "Rechazado del lado del cliente"),
     "T13": ("Repetición de un MP capturado (mismo seq)", "Descartado por el servidor (B2)"),
     "T14": ("SNMPv3 sin autenticación (noAuthNoPriv)", "Rechazado"),
-    "T15": ("SNMPv3 con SHA-1 (protocolo anterior, ya no configurado)", "Rechazado"),
+    "T15": ("SNMPv3 con SHA-1 (protocolo no configurado en el agente)", "Rechazado"),
     "T16": ("SNMPv3 con clave de autenticación equivocada", "Rechazado"),
     "T17": ("SNMPv3 con SHA-256 + AES-128 (credenciales reales)", "GET exitoso a nivel USM"),
 }
