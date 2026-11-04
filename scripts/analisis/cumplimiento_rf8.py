@@ -99,7 +99,7 @@ def fig_cdf(ax, grupos: dict[str, dict]):
         ax.step(vals, ys, where="post", color=color, label=f"{etq} (n={n})")
     ax.axvline(ANTICIPACION_MINIMA_S, color="#0b0b0b", lw=1.0, ls="--")
     # Sin título: lo pone el \caption de la tesis, donde este margen es RF-14.
-    ax.text(ANTICIPACION_MINIMA_S, 0.02, " 8 s (RF-14)", fontsize=7, va="bottom", ha="left")
+    ax.text(ANTICIPACION_MINIMA_S, 0.02, " 8 s (RF-13)", fontsize=7, va="bottom", ha="left")
     ax.set_xlabel("Anticipación real (s)")
     ax.set_ylabel("Probabilidad acumulada")
     ax.set_ylim(0, 1.02)
@@ -111,7 +111,7 @@ def tabla_latex(grupos: dict[str, dict], salida: Path) -> None:
     n_total = sum(len(g["con_cruce"]) + len(g["sin_dato_desvio"]) + len(g["sin_dato_otro"]) for g in grupos.values())
     lineas = [
         "\\begin{table}[H]", "\\centering",
-        f"\\caption{{Paradas con anticipación real $\\geq$ 8~s (RF-14) por condición de enlace y escenario "
+        f"\\caption{{Paradas con anticipación real $\\geq$ 8~s (RF-13) por condición de enlace y escenario "
         f"({n_total} paradas). Una parada sin cruce (ruta recalculada antes de llegar a esa RSU) se "
         "contaría aparte: no sería incumplimiento, no habría cruce que medir.}",
         "\\label{tab:anticipacion_parada}", "\\small",
