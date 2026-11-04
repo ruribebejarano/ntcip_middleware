@@ -1,0 +1,13 @@
+{
+  "config": "pi-4g",
+  "escenario": "desvio",
+  "fecha_inicio": "2026-11-03T23:50:41",
+  "fecha_fin": "2026-11-04T00:23:07",
+  "repeticiones": 17,
+  "estado": "ok",
+  "rx_bytes": 940560,
+  "tx_bytes": 2260466,
+  "total_bytes": 3201026,
+  "total_mb": 3.201,
+  "mb_por_repeticion": 0.188
+}

@@ -1,0 +1,13 @@
+id_solicitud,mision_id,rsu_id,resultado,etapa_alcanzada,cola_despeje,t_srv_ms,t_srv_RSU_ms,t_RSU_ms,RTT_srv_ms,L_ms,t_verde_ms,T_desp_ms,anticipacion_real_s,obtuvo_verde,ultimo_m3_motivo,fase_decision,condicion_llegada
+mis-30c44bed-C,mis-30c44bed,1,concedida,,True,0.439,162.854906,1.38651,301.9874,164.241416,2999.085403,2834.299946,12.000756797,True,cruce,amarillo,ambar_todo_rojo
+mis-b41989f9-C,mis-b41989f9,1,concedida,,True,0.501,-28.007649,1.080026,112.0031,-26.927623,2751.642416,2778.016609,10.248557884,True,cruce,amarillo,ambar_todo_rojo
+mis-d07be1b1-C,mis-d07be1b1,1,concedida,,False,0.412,160.134352,0.861877,300.6696,160.996229,160.996229,,13.839025971,True,cruce,verde,verde
+mis-955f4e55-C,mis-955f4e55,1,concedida,,False,0.7568,17.321874,0.992619,161.1585,18.314493,18.314493,,14.981370607,True,cruce,verde,verde
+mis-7c567ce9-C,mis-7c567ce9,1,concedida,,True,0.4806,258.273188,1.056248,418.7688,259.329436,5215.717501,4955.884506,9.784569499,True,cruce,amarillo,ambar_todo_rojo
+mis-f63b90ff-C,mis-f63b90ff,1,concedida,,False,0.4986,-33.292842,1.011118,118.5406,-32.281724,-31.741201,,16.032175901,True,cruce,rojo_general,rojo_general
+mis-7f4b6ada-C,mis-7f4b6ada,1,concedida,,False,0.7026,-33.864767,0.998804,99.9226,-32.865963,-32.359774,,14.032125974,True,cruce,rojo_general,rojo_general
+mis-cf9da3ba-C,mis-cf9da3ba,1,concedida,,False,0.4128,141.963562,1.030026,289.8607,142.993588,142.993588,,13.857052012,True,cruce,verde,verde
+mis-25718403-C,mis-25718403,1,concedida,,False,0.44,-35.589451,0.858543,116.5587,-34.730908,-34.238385,,16.034614685,True,cruce,rojo_general,rojo_general
+mis-655b67d7-C,mis-655b67d7,1,concedida,,False,0.4387,-37.54738,0.990544,116.1393,-36.556836,-36.059832,,14.035857832,True,cruce,rojo_general,rojo_general
+mis-34769043-C,mis-34769043,1,concedida,,False,0.4337,13.288185,1.062675,163.6876,14.35086,14.35086,,14.98635064,True,cruce,verde,verde
+mis-e44af0b1-C,mis-e44af0b1,1,concedida,,True,0.4962,69.569309,1.022526,222.1744,70.591835,1797.811146,1726.732288,13.201971054,True,cruce,todo_rojo,ambar_todo_rojo

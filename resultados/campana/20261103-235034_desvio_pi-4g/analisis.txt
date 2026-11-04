@@ -1,0 +1,31 @@
+Cota de error de reloj (lado Pi, chrony): ± 26.25 ms -- la laptop (w32time) no está caracterizada, ver NOTA_RELOJ.
+
+Misiones: 17  Paradas: 17 (concedidas 17, sin verde 0, rechazadas 0, sin respuesta 0; en cola de despeje: 6)
+RTT_srv (ms, un reloj):     n=17, mediana=187.36, p95=395.30, max=395.30
+t_RSU (ms, un reloj):       n=17, mediana=1.03, p95=1.09, max=1.09
+L -- RNF-01 (ms):           n=17, mediana=20.02, p95=228.13, max=228.13  [cruza dos relojes: NO evaluar RNF-01 con este valor; L <= RTT_srv (p95 395.30 ms vs 1000 ms)]
+t_OBU_srv (ms):             n=1493, mediana=0.65, p95=0.86, max=13.24
+Anticipacion real (s, RF8=8.0 s): n=17, mediana=14.05, p95=15.04, max=15.04
+t_verde (ms, espera hasta el verde):  n=17, mediana=68.92, p95=2256.58, max=2256.58
+T_desp (ms, espera de despeje RF-06): n=6, mediana=989.32, p95=2030.95, max=2030.95
+
+Condición de llegada (fase de la RSU al decidir): {'ambar_todo_rojo': 6, 'verde': 7, 'rojo_general': 4}
+  [verde] RTT_srv: n=7, mediana=173.82, p95=394.49, max=394.49
+  [verde] t_RSU:   n=7, mediana=0.86, p95=1.04, max=1.04
+  [verde] L:       n=7, mediana=20.02, p95=228.13, max=228.13
+  [verde] t_verde: n=7, mediana=20.02, p95=228.13, max=228.13
+  [verde] Anticipación real: n=7, mediana=14.93, p95=15.04, max=15.04
+  [ambar_todo_rojo] RTT_srv: n=6, mediana=187.36, p95=395.30, max=395.30
+  [ambar_todo_rojo] t_RSU:   n=6, mediana=1.03, p95=1.09, max=1.09
+  [ambar_todo_rojo] L:       n=6, mediana=31.51, p95=225.09, max=225.09
+  [ambar_todo_rojo] t_verde: n=6, mediana=972.39, p95=2256.58, max=2256.58
+  [ambar_todo_rojo] T_desp:  n=6, mediana=989.32, p95=2030.95, max=2030.95
+  [ambar_todo_rojo] Anticipación real: n=6, mediana=12.98, p95=14.06, max=14.06
+  [rojo_general] RTT_srv: n=4, mediana=113.26, p95=388.28, max=388.28
+  [rojo_general] t_RSU:   n=4, mediana=1.05, p95=1.08, max=1.08
+  [rojo_general] L:       n=4, mediana=-48.39, p95=219.69, max=219.69
+  [rojo_general] t_verde: n=4, mediana=-47.81, p95=220.24, max=220.24
+  [rojo_general] Anticipación real: n=4, mediana=14.05, p95=14.98, max=14.98
+
+Detalle: resultados\campana\20261103-235034_desvio_pi-4g\lazo_por_parada.csv, resultados\campana\20261103-235034_desvio_pi-4g\lazo_por_mision.csv
+Resumen: resultados\campana\20261103-235034_desvio_pi-4g\lazo_resumen.json

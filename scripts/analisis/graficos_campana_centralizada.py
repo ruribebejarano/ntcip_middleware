@@ -26,9 +26,9 @@ Figuras:
                      (t_srv, t_srv->RSU, t_RSU, retorno -- este ultimo
                      derivado = RTT_srv - L) por etiqueta (caja + puntos);
                      los tramos de dos relojes (t_srv->RSU, retorno) se
-                     marcan con "†" y trama rayada -- se muestran
-                     SIEMPRE que haya datos, ya no se excluyen por un
-                     umbral (ver docs/MEDICION_LATENCIA.md 8.4). L en si
+                     dibujan solo si comparten reloj (config=local): con la
+                     RSU real salen negativos por el desfase laptop/Pi, ver
+                     _cruza_reloj. L en si
                      (= t_srv_RSU + t_RSU) no se grafica aca: ya esta en
                      tabla_latencia.tex con su cota de reloj.
   fig_comparacion   RTT_srv y t_RSU lado a lado, una caja por etiqueta
@@ -103,6 +103,16 @@ def fig_rtt_cdf(ax, resultados: dict[str, dict]):
     ax.grid(True)
 
 
+def _cruza_reloj(g: dict) -> bool:
+    """True si la RSU no comparte el reloj del servidor (cota != 0, o sin
+    caracterizar). Las corridas del 2026-11-04 dan L negativa en el 100 % de
+    las paradas de pi-lan (mediana -55 ms con RTT_srv de 11 ms): el desfase
+    laptop/Pi (~60 ms, w32time sin caracterizar) supera al tramo medido, así
+    que L, t_srv->RSU, retorno y t_verde no se reportan en esas etiquetas.
+    Queda RTT_srv (un reloj), que acota L: la decisión precede a M2."""
+    return g.get("cota_reloj_pi_ms") != 0
+
+
 def _valores_de(g: dict, clave: str) -> list[float]:
     return g.get(f"_{clave}_valores", [])
 
@@ -130,32 +140,28 @@ def fig_tramos(ax, resultados: dict[str, dict], marcar_umbral_rnf01: bool = Fals
     pos = 1
     xticks, xlabels = [], []
     max_valor = 0.0
-    for metrica, _, _ in TRAMOS:
+    for metrica, _, es_dos_relojes in TRAMOS:
         for etq in etiquetas:
             vals = _valores_de(resultados[etq], metrica)
-            if vals:
+            if vals and not (es_dos_relojes and _cruza_reloj(resultados[etq])):
                 max_valor = max(max_valor, max(vals))
     for metrica, nombre, es_dos_relojes in TRAMOS:
         for etq, color in zip(etiquetas, PALETA):
             g = resultados[etq]
             vals = _valores_de(g, metrica)
-            # El tramo es de dos relojes EN ESTA corrida solo si de verdad
-            # cruza maquinas (cota_reloj_pi_ms != 0); en config=local los
-            # cuatro procesos comparten el reloj del sistema -- marcarlo
-            # igual seria un falso positivo de incertidumbre.
-            cruza_reloj = es_dos_relojes and bool(g.get("cota_reloj_pi_ms"))
+            # Tramo de dos relojes con la RSU real: no se dibuja (_cruza_reloj).
+            if es_dos_relojes and _cruza_reloj(g):
+                continue
             if vals:
                 jit = [pos + 0.12 * math.sin(i * 2.399) for i in range(len(vals))]
                 ax.scatter(jit, vals, s=9, color=color, alpha=0.85, lw=0, zorder=3)
-                hatch = "///" if cruza_reloj else None
                 ax.boxplot([vals], positions=[pos], widths=0.5, showfliers=False,
                           patch_artist=True,
-                          boxprops=dict(facecolor=color + "33", edgecolor=color, lw=0.7, hatch=hatch),
+                          boxprops=dict(facecolor=color + "33", edgecolor=color, lw=0.7),
                           medianprops=dict(color="#0b0b0b", lw=1.1), whiskerprops=dict(color=INK2, lw=0.7),
                           capprops=dict(color=INK2, lw=0.7))
             xticks.append(pos)
-            sufijo = "†" if cruza_reloj else ""
-            xlabels.append(f"{nombre}{sufijo}\n{etq}")
+            xlabels.append(f"{nombre}\n{etq}")
             pos += 1
         pos += 0.6
     ax.set_xticks(xticks, xlabels, fontsize=6.5)
@@ -223,7 +229,10 @@ def guardar(fig, salida: Path, nombre: str):
 #: métricas que cruzan el reloj de la laptop y el de la Pi (ver
 #: docs/MEDICION_LATENCIA.md 8.4): llevan la cota de error de reloj de su
 #: etiqueta en la tabla, no un valor puntual sin incertidumbre.
-METRICAS_DOS_RELOJES = {"t_OBU_srv_ms", "L_ms", "anticipacion_real_s"}
+#: t_OBU_srv no entra: la OBU emulada corre en la misma laptop que el servidor.
+METRICAS_DOS_RELOJES = {"L_ms", "anticipacion_real_s"}
+#: no se reportan si la RSU no comparte el reloj del servidor (_cruza_reloj).
+METRICAS_SOLO_MISMO_RELOJ = {"L_ms", "t_verde_ms"}
 
 
 def _cota_para_tabla(g: dict, clave: str) -> str:
@@ -244,11 +253,11 @@ def tabla_latex(resultados: dict[str, dict], salida: Path, nota: str):
                 ("$t_{OBU\\to srv}$", "t_OBU_srv_ms", "ms"), ("$L$ (RNF-01)", "L_ms", "ms"),
                 ("Anticipación real", "anticipacion_real_s", "s")]
     lineas = ["\\begin{table}[H]", "\\centering",
-              "\\caption{Latencia del lazo, arquitectura centralizada. " + nota +
-              " Las métricas de dos relojes ($t_{OBU\\to srv}$, $L$, Anticipación real) llevan "
-              "la cota de error de reloj del lado de la Pi (chrony); la laptop sincroniza por "
-              "w32time, cuya precisión no está caracterizada "
-              "[REVISAR con asesor] -- ver sección 8.4.}",
+              "\\caption{Latencia del lazo, escenarios de lazo y desvío combinados por condición de "
+              "enlace. " + nota + " Con la RSU real no se reporta $L$, porque cruza el reloj de dos "
+              "equipos y el desfase entre ellos supera al tramo medido: su cota superior es "
+              "RTT\\_srv, medido con un solo reloj. La anticipación real lleva la cota de error de "
+              "reloj del lado de la Raspberry Pi.}",
               "\\label{tab:latencia_campana_centralizada}", "\\small",
               "\\begin{tabular}{llrrrrll}", "\\toprule",
               "\\textbf{Métrica} & \\textbf{Config.} & \\textbf{n} & \\textbf{Mediana} & "
@@ -256,6 +265,8 @@ def tabla_latex(resultados: dict[str, dict], salida: Path, nota: str):
               "\\midrule"]
     for nombre, clave, unidad in metricas:
         for etq, g in resultados.items():
+            if clave in METRICAS_SOLO_MISMO_RELOJ and _cruza_reloj(g):
+                continue
             m = g.get(clave, {})
             if m.get("n"):
                 lineas.append(f"{nombre} & {etq} & {m['n']} & {m['mediana']:.2f} & {m['p95']:.2f} & "
@@ -281,9 +292,11 @@ def tabla_condicion_latex(resultados: dict[str, dict], salida: Path, nota: str):
                 ("$L$ (RNF-01)", "L_ms", "ms"), ("$t_{verde}$", "t_verde_ms", "ms"),
                 ("$T_{desp}$ (RF-06)", "T_desp_ms", "ms"), ("Anticipación real (RF8)", "anticipacion_real_s", "s")]
     lineas = ["\\begin{table}[H]", "\\centering",
-              "\\caption{Latencia del lazo por condición de llegada (fase de la RSU al decidir: "
-              "verde / ámbar-todo\\_rojo tratadas juntas por ser ambas FASES\\_NO\\_INTERRUMPIBLES / "
-              "rojo general). " + nota + "}",
+              "\\caption{Latencia del lazo por condición de llegada: la fase del controlador en el "
+              "momento de la decisión (verde, ámbar/todo rojo --tratadas juntas por ser ambas no "
+              "interrumpibles-- o rojo general). Escenarios de lazo y desvío combinados por condición "
+              "de enlace. $L$ y $t_{verde}$ se reportan solo en la condición local, "
+              "donde no cruzan el reloj de dos equipos.}",
               "\\label{tab:latencia_por_condicion}", "\\small",
               "\\begin{tabular}{lllrrrl}", "\\toprule",
               "\\textbf{Métrica} & \\textbf{Config.} & \\textbf{Condición} & \\textbf{n} & "
@@ -291,6 +304,8 @@ def tabla_condicion_latex(resultados: dict[str, dict], salida: Path, nota: str):
               "\\midrule"]
     for nombre, clave, unidad in metricas:
         for etq, g in resultados.items():
+            if clave in METRICAS_SOLO_MISMO_RELOJ and _cruza_reloj(g):
+                continue
             for cond in ("verde", "ambar_todo_rojo", "rojo_general"):
                 m = g.get("por_condicion_llegada", {}).get(cond, {}).get(clave, {})
                 if m.get("n"):
@@ -347,11 +362,6 @@ def main() -> None:
     fig_rtt_cdf(ax, resultados)
     guardar(fig, salida, "fig_rtt_cdf")
 
-    nota_cota = "; ".join(f"{etq}: cota reloj Pi {_cota_para_tabla(g, 'L_ms')}"
-                          for etq, g in resultados.items() if g.get("cota_reloj_pi_ms"))
-    nota_tramos = (f"† cruza reloj laptop/Pi ($t_{{srv\\to RSU}}$, $t_{{retorno}}$) -- {nota_cota} "
-                   f"(laptop/w32time sin caracterizar) [REVISAR con asesor]") if nota_cota else ""
-
     fig, ax = plt.subplots(figsize=(COL2, 2.9))
     fig_tramos(ax, resultados, marcar_umbral_rnf01=args.marcar_umbral_rnf01)
     guardar(fig, salida, "fig_tramos")
@@ -367,8 +377,6 @@ def main() -> None:
     notas = []
     if args.nota:
         notas.append(f"fig_comparacion / tabla_latencia: {args.nota}")
-    if nota_tramos:
-        notas.append(f"fig_tramos: {nota_tramos}")
     if notas:
         (salida / "notas_figuras.txt").write_text(
             "Texto para el \\caption de LaTeX de cada figura (no está incrustado en el PNG):\n\n"

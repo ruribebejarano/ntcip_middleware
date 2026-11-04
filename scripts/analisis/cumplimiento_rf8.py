@@ -59,7 +59,7 @@ plt.rcParams.update({
     "figure.dpi": 150, "lines.linewidth": 1.4,
 })
 AZUL, NARANJA, AQUA, VIOLETA = "#2a78d6", "#eb6834", "#1baf7a", "#6250d6"
-PALETA = [AZUL, NARANJA, AQUA, VIOLETA]
+PALETA = [AZUL, NARANJA, AQUA, VIOLETA, "#b8860b", "#52514e"]
 COL1 = 3.5
 
 
@@ -103,18 +103,18 @@ def fig_cdf(ax, grupos: dict[str, dict]):
     ax.set_xlabel("Anticipación real (s)")
     ax.set_ylabel("Probabilidad acumulada")
     ax.set_ylim(0, 1.02)
-    ax.legend(loc="upper left", bbox_to_anchor=(0.12, 1.0), frameon=False)
+    ax.legend(loc="upper left", bbox_to_anchor=(0.12, 1.0), frameon=False, fontsize=6.5)
     ax.grid(True)
 
 
 def tabla_latex(grupos: dict[str, dict], salida: Path) -> None:
+    n_total = sum(len(g["con_cruce"]) + len(g["sin_dato_desvio"]) + len(g["sin_dato_otro"]) for g in grupos.values())
     lineas = [
         "\\begin{table}[H]", "\\centering",
-        "\\caption{Paradas con anticipación real $\\geq$ 8~s (RF-14) por condición de enlace y escenario, "
-        "sobre las cuatro corridas de la campaña (72 paradas). Las paradas del escenario "
-        "\\emph{desvío} sin cruce (ruta recalculada antes de llegar a esa RSU) se reportan aparte: "
-        "no son incumplimiento, no hubo cruce que medir.}",
-        "\\label{tab:cumplimiento_rf8}", "\\small",
+        f"\\caption{{Paradas con anticipación real $\\geq$ 8~s (RF-14) por condición de enlace y escenario "
+        f"({n_total} paradas). Una parada sin cruce (ruta recalculada antes de llegar a esa RSU) se "
+        "contaría aparte: no sería incumplimiento, no habría cruce que medir.}",
+        "\\label{tab:anticipacion_parada}", "\\small",
         "\\begin{tabular}{lrrrr}", "\\toprule",
         "\\textbf{Condición/escenario} & \\textbf{n con cruce} & \\textbf{\\% $\\geq$ 8 s} & "
         "\\textbf{n sin dato (desvío)} & \\textbf{n sin dato (otro)} \\\\",
@@ -151,7 +151,7 @@ def incumplimientos(grupos: dict[str, dict], salida: Path) -> list[dict]:
                           f"anticipación real = {h['anticipacion_real_s']:.3f} s < 8 s")
     else:
         lineas.append("Ninguna parada con cruce real (ultimo_m3_motivo=cruce) incumplió RF8 "
-                      "(anticipación real < 8 s) en las 4 campañas válidas del 2026-10-29. "
+                      "(anticipación real < 8 s). "
                       "No hay incumplimiento que reportar en estos datos: no se aproxima ni se "
                       "inventa uno para tener contenido que mostrar.")
     (salida / "incumplimientos.txt").write_text("\n".join(lineas) + "\n", encoding="utf-8")

@@ -1,0 +1,18 @@
+\begin{table}[H]
+\centering
+\caption{Llegadas en verde con prioridad y estimación contrafactual sin prioridad (controlador emulado de tiempos fijos: verde 8~s, ámbar 3~s, todo rojo 2~s, rojo general 8~s). La demora evitada es el valor esperado bajo el supuesto de llegada uniforme dentro de la fase (la mitad de su duración más las fases completas restantes hasta el verde); su mediana, p95 y total se calculan sobre los cruces que sin prioridad no habrían sido en verde.}
+\label{tab:contrafactual_verde}
+\small
+\begin{tabular}{l r >{\raggedleft\arraybackslash}p{1.9cm} >{\raggedleft\arraybackslash}p{1.9cm} >{\raggedleft\arraybackslash}p{2.1cm} r r}
+\toprule
+\textbf{Condición/ escenario} & \textbf{N} & \textbf{\% verde con prioridad} & \textbf{\% verde sin prioridad (est.)} & \textbf{Demora evitada, mediana (s)} & \textbf{p95 (s)} & \textbf{Total (s)} \\
+\midrule
+local/lazo & 17 & 100.0 & 41.2 & 4.00 & 11.50 & 55.00 \\
+local/desvio & 17 & 100.0 & 35.3 & 4.00 & 11.50 & 59.00 \\
+pi-lan/lazo & 18 & 100.0 & 38.9 & 4.00 & 11.50 & 56.50 \\
+pi-lan/desvio & 18 & 100.0 & 33.3 & 4.00 & 9.00 & 58.00 \\
+pi-4g/lazo & 12 & 100.0 & 33.3 & 4.00 & 11.50 & 62.00 \\
+pi-4g/desvio & 17 & 100.0 & 52.9 & 4.00 & 11.50 & 39.50 \\
+\bottomrule
+\end{tabular}
+\end{table}

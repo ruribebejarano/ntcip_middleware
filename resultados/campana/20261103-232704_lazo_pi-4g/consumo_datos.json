@@ -1,0 +1,13 @@
+{
+  "config": "pi-4g",
+  "escenario": "lazo",
+  "fecha_inicio": "2026-11-03T23:27:12",
+  "fecha_fin": "2026-11-03T23:50:08",
+  "repeticiones": 12,
+  "estado": "ok",
+  "rx_bytes": 690646,
+  "tx_bytes": 1540714,
+  "total_bytes": 2231360,
+  "total_mb": 2.231,
+  "mb_por_repeticion": 0.186
+}

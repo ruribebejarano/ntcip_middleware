@@ -96,7 +96,8 @@ def main() -> None:
     puntos = []  # (etiqueta, offset_ms, cota_ms, evaluable)
     for d in args.dir:
         cfg = json.loads((Path(d) / "config.json").read_text(encoding="utf-8"))
-        nombre = f"{cfg['escenario']}"
+        enlace = {"pi-lan": "Wi-Fi", "pi-4g": "4G"}.get(cfg["config"], cfg["config"])
+        nombre = f"{enlace}\n{cfg['escenario']}"
         for momento in ("inicio", "fin"):
             texto = cfg.get(f"reloj_pi_{momento}")
             off = offset_ms(texto)
@@ -105,7 +106,7 @@ def main() -> None:
             if off is not None:
                 puntos.append((f"{nombre}\n({momento})", off, cota, evaluable))
 
-    fig, ax = plt.subplots(figsize=(COL1, 2.8))
+    fig, ax = plt.subplots(figsize=(max(COL1, 0.65 * len(puntos)), 2.8))
     xs = range(len(puntos))
     for i, (etq, off, cota, evaluable) in enumerate(puntos):
         color = AZUL if evaluable else "#b91c1c"
@@ -123,11 +124,12 @@ def main() -> None:
     # servidor (la laptop no se mide aquí). Sin título: lo pone el \caption.
     ax.set_ylabel("Offset del reloj de la RSU\nfrente a NTP (ms)")
     ax.grid(True, axis="y")
-    leyenda = [
-        plt.Line2D([0], [0], marker="o", color=AZUL, lw=0, label="Evaluable (chrony sincronizado)"),
-        plt.Line2D([0], [0], marker="x", color="#b91c1c", lw=0, label="RNF-01 no evaluable (chrony perdió sync.)"),
-    ]
-    ax.legend(handles=leyenda, loc="upper center", bbox_to_anchor=(0.5, -0.2), frameon=False, fontsize=6)
+    if any(not p[3] for p in puntos):
+        leyenda = [
+            plt.Line2D([0], [0], marker="o", color=AZUL, lw=0, label="Evaluable (chrony sincronizado)"),
+            plt.Line2D([0], [0], marker="x", color="#b91c1c", lw=0, label="RNF-01 no evaluable (chrony perdió sync.)"),
+        ]
+        ax.legend(handles=leyenda, loc="upper center", bbox_to_anchor=(0.5, -0.32), frameon=False, fontsize=6)
     fig.savefig(salida / "fig_offset_reloj.pdf", bbox_inches="tight")
     fig.savefig(salida / "fig_offset_reloj.png", bbox_inches="tight")
     plt.close(fig)
@@ -162,7 +164,7 @@ def main() -> None:
         "servidor/rutas.py); incluso la cota de error medida aquí (decenas de ms en el peor caso evaluable) "
         "es varios órdenes de magnitud menor que el margen de 8 s de RF8 -- el error de reloj de chrony NO "
         "es, en esta evidencia, un riesgo real para cumplir RF8. El riesgo real es perder la sincronización "
-        "NTP por completo (como en desvio_pi-lan), que invalida la cota, no que la cota en sí sea grande."
+        "NTP por completo, que invalida la cota, no que la cota en sí sea grande."
     )
     (salida / "nota_offset_reloj.txt").write_text("\n".join(lineas) + "\n", encoding="utf-8")
 

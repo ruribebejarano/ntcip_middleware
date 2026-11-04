@@ -690,7 +690,11 @@ def main() -> None:
     print(f"t_RSU (ms, un reloj):       {_fmt(g['t_RSU_ms'])}")
     l = g["L_ms"]
     if l.get("n"):
-        if not g["reloj_pi_sincronizado"]:
+        if g.get("cota_reloj_pi_ms") != 0:
+            print(f"L -- RNF-01 (ms):           {_fmt(l)}  "
+                  f"[cruza dos relojes: NO evaluar RNF-01 con este valor; L <= RTT_srv "
+                  f"(p95 {g['RTT_srv_ms']['p95']:.2f} ms vs {UMBRAL_L_MS:.0f} ms)]")
+        elif not g["reloj_pi_sincronizado"]:
             print(f"L -- RNF-01 (ms):           {_fmt(l)}  "
                   f"[peor caso -> {g['rnf01_veredicto_peor_caso']} -- la medición de L sigue siendo "
                   f"válida, lo que no se puede evaluar es la cota de reloj]")

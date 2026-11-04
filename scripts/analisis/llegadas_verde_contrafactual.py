@@ -164,16 +164,15 @@ def main() -> None:
     lineas = [
         "\\begin{table}[H]", "\\centering",
         "\\caption{Llegadas en verde con prioridad y estimación contrafactual sin prioridad "
-        "(controlador emulado de tiempos fijos: verde 8\\,s, amarillo 3.0\\,s, todo-rojo 2.0\\,s, "
-        "rojo general 8\\,s). La demora evitada es el valor esperado bajo el supuesto de llegada "
-        "uniforme dentro de la fase (= duración/2 + fases completas restantes hasta verde); el "
-        "rango exacto está en \\texttt{contrafactual\\_detalle.csv}. No incluye paradas sin cruce "
-        "real (desvío) ni paradas sin evento de referencia para la fase sin prioridad "
-        "(ver \\texttt{sin\\_dato\\_contrafactual.txt}).}",
+        "(controlador emulado de tiempos fijos: verde 8~s, ámbar 3~s, todo rojo 2~s, rojo general 8~s). "
+        "La demora evitada es el valor esperado bajo el supuesto de llegada uniforme dentro de la "
+        "fase (la mitad de su duración más las fases completas restantes hasta el verde); su mediana, "
+        "p95 y total se calculan sobre los cruces que sin prioridad no habrían sido en verde.}",
         "\\label{tab:contrafactual_verde}", "\\small",
-        "\\begin{tabular}{lrrrrrr}", "\\toprule",
-        "\\textbf{Condición/escenario} & \\textbf{N} & \\textbf{\\% verde con prioridad} & "
-        "\\textbf{\\% verde sin prioridad (est.)} & \\textbf{Demora evitada mediana (s)} & "
+        "\\begin{tabular}{l r >{\\raggedleft\\arraybackslash}p{1.9cm} >{\\raggedleft\\arraybackslash}p{1.9cm} "
+        ">{\\raggedleft\\arraybackslash}p{2.1cm} r r}", "\\toprule",
+        "\\textbf{Condición/ escenario} & \\textbf{N} & \\textbf{\\% verde con prioridad} & "
+        "\\textbf{\\% verde sin prioridad (est.)} & \\textbf{Demora evitada, mediana (s)} & "
         "\\textbf{p95 (s)} & \\textbf{Total (s)} \\\\",
         "\\midrule",
     ]

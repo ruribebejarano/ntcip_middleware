@@ -1,12 +1,20 @@
 """lazo_centralizado._interfaz_default_activa: ruta de menor métrica, también
 con la salida coloreada de `ip route` cuando ssh crea una pty."""
 
+import importlib.util
 import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(RAIZ / "scripts" / "campanas"))
-from lazo_centralizado import _interfaz_default_activa  # noqa: E402
+sys.path.insert(0, str(RAIZ))
+# Hay otro lazo_centralizado en scripts/analisis: se carga por ruta, con otro
+# nombre, para no chocar con él al recolectar todas las pruebas.
+_spec = importlib.util.spec_from_file_location(
+    "runner_lazo_centralizado", RAIZ / "scripts" / "campanas" / "lazo_centralizado.py")
+_runner = importlib.util.module_from_spec(_spec)
+sys.modules[_spec.name] = _runner
+_spec.loader.exec_module(_runner)
+_interfaz_default_activa = _runner._interfaz_default_activa
 
 
 def test_elige_la_ruta_de_menor_metrica():

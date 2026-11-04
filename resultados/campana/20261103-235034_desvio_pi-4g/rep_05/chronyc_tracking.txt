@@ -1,0 +1,32 @@
+==> Estado combinado de chrony en la Pi (rsu) -- 'System time' es la
+    mejor estimacion de chrony del error del reloj local; 'Root dispersion'
+    + 'Root delay' acotan la incertidumbre de esa estimacion (NO ignorar
+    este bloque: es la cota de error real, ver docs/MEDICION_LATENCIA.md 8.4):
+Reference ID    : D8EF2304 (time2.google.com)
+Stratum         : 2
+Ref time (UTC)  : Wed Nov 04 03:50:05 2026
+System time     : 0.000156060 seconds slow of NTP time
+Last offset     : -0.000156342 seconds
+RMS offset      : 0.000172539 seconds
+Frequency       : 7.290 ppm slow
+Residual freq   : -0.001 ppm
+Skew            : 0.034 ppm
+Root delay      : 0.038215239 seconds
+Root dispersion : 0.005734181 seconds
+Update interval : 1036.8 seconds
+Leap status     : Normal
+==> Offset de la Pi (rsu) contra time.cloudflare.com (vía chronyc sources, detalle por fuente;
+    el campo despues de '+/-' es el error ESTIMADO de esa medicion puntual,
+    no un margen a ignorar):
+MS Name/IP address         Stratum Poll Reach LastRx Last sample               
+^+ time.cloudflare.com           3  10   377   308  -6885us[-6885us] +/-   70ms
+==> Offset de la laptop (Windows) contra time.cloudflare.com:
+Seguimiento time.cloudflare.com [162.159.200.123:123].
+Recopilando 3 muestras.
+La hora actual es 4/11/2026 00:00:27.
+00:00:27, -00.0531329s
+00:00:29, -00.0530529s
+00:00:31, -00.0533077s
+==> Nota: si el servicio 'Windows Time' (w32time) no está corriendo en la
+    laptop, su reloj no se autocorrige y este offset puede crecer con el
+    tiempo. Verificar con: w32tm /query /status

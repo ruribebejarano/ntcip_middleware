@@ -1,0 +1,6 @@
+== con TLS
+L -- RNF-01 (ms):           n=17, mediana=3.32, p95=24.86, max=24.86  [peor caso p95+cota=24.86 ms vs 1000 ms -> CUMPLE]
+t_OBU_srv (ms):             n=1493, mediana=0.87, p95=1.05, max=22.86
+== sin TLS
+L -- RNF-01 (ms):           n=17, mediana=2.96, p95=25.95, max=25.95  [peor caso p95+cota=25.95 ms vs 1000 ms -> CUMPLE]
+t_OBU_srv (ms):             n=1493, mediana=0.58, p95=0.69, max=0.86

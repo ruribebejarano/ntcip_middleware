@@ -4,8 +4,7 @@ recuperación del plan, sobre las 4 campañas válidas de la arquitectura
 centralizada. Complementa (no reemplaza) scripts/analisis/graficos_campana_centralizada.py:
 fig_tramos con el umbral de RNF-01 se regenera corriendo ESE script con
 --marcar-umbral-rnf01 (ver informe de la sesión) -- este módulo solo cubre
-fig_rtt_cdf (reemplazada aquí por la CDF de L con percentiles, mismo
-nombre de archivo, pedido así explícitamente por el prompt),
+fig_l_cdf (CDF de L, o de RTT_srv como cota si la RSU no comparte reloj),
 tabla_latencia_percentiles.tex y la recuperación del plan.
 
 *** Tamaño de muestra (L por condición): cada condición tiene ~18 paradas.
@@ -33,8 +32,7 @@ corriendo después de liberar cada prioridad, hasta ver ciclo_normal de
 nuevo -- no está en el banco de pruebas actual. ***
 
 Salidas en --salida:
-  fig_rtt_cdf.pdf/.png (SOBRESCRITA: ahora es la CDF de L, no RTT_srv --
-                        ver docstring de M5.2 en prompt_figuras_cap4.md)
+  fig_l_cdf.pdf/.png
   tabla_latencia_percentiles.tex
   recuperacion_plan.txt
 
@@ -62,7 +60,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 RAIZ = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(RAIZ / "scripts" / "analisis"))
 sys.path.insert(0, str(RAIZ))
-from lazo_centralizado import analizar, cargar, percentil  # noqa: E402
+from lazo_centralizado import analizar, cargar, cota_reloj_pi_ms_de_dirs, percentil  # noqa: E402
 from common.events import (  # noqa: E402
     EVT_CTRL_FASE_CAMBIO, EVT_MISION_ARMADA, EVT_MP_RX, EVT_MP_TX,
 )
@@ -175,11 +173,15 @@ def main() -> None:
     for etq, dirs in grupos.items():
         eventos = cargar(dirs)
         _, filas_parada, _ = analizar(eventos)
-        l_vals = [f["L_ms"] for f in filas_parada if f.get("L_ms") is not None]
+        # Con la RSU real, L cruza dos relojes y sale negativa por el desfase
+        # laptop/Pi: se reporta RTT_srv (un reloj), que la acota por arriba.
+        mismo_reloj = cota_reloj_pi_ms_de_dirs(dirs) == 0
+        clave = "L_ms" if mismo_reloj else "RTT_srv_ms"
+        l_vals = [f[clave] for f in filas_parada if f.get(clave) is not None]
         t_obu_srv = extraer_t_obu_srv(eventos)
-        resultados[etq] = {"L_ms": l_vals, "t_obu_srv_ms": t_obu_srv}
+        resultados[etq] = {"L_ms": l_vals, "t_obu_srv_ms": t_obu_srv, "mismo_reloj": mismo_reloj}
 
-    # --- fig_rtt_cdf.pdf/.png: CDF de L con p50/p95/p99 + linea RNF-01 ----
+    # --- fig_l_cdf.pdf/.png: CDF de L con p50/p95/p99 + linea RNF-01 ------
     max_l = max((max(r["L_ms"]) for r in resultados.values() if r["L_ms"]), default=0.0)
     usar_log = max_l > 0 and UMBRAL_RNF01_MS > 3 * max_l
     fig, ax = plt.subplots(figsize=(COL1, 2.6))
@@ -195,7 +197,7 @@ def main() -> None:
             ax.axvline(v, color=color, lw=0.8, ls=ls, alpha=0.7)
     ax.axvline(UMBRAL_RNF01_MS, color="#0b0b0b", lw=1.2, ls="-")
     ax.text(UMBRAL_RNF01_MS, 0.02, " RNF-01\n 1000 ms", fontsize=6, va="bottom", ha="right")
-    ax.set_xlabel("L (ms)")
+    ax.set_xlabel("L, o RTT_srv como cota de L (ms)")
     ax.set_ylabel("Probabilidad acumulada")
     ax.set_ylim(0, 1.02)
     titulo = "CDF de L con p50 (:), p95 (--), p99 (-.)"
@@ -210,17 +212,17 @@ def main() -> None:
     ax.set_title(titulo, loc="left")
     ax.legend(loc="center right", frameon=False, fontsize=6.5)
     ax.grid(True)
-    fig.savefig(salida / "fig_rtt_cdf.pdf", bbox_inches="tight")
-    fig.savefig(salida / "fig_rtt_cdf.png", bbox_inches="tight")
+    fig.savefig(salida / "fig_l_cdf.pdf", bbox_inches="tight")
+    fig.savefig(salida / "fig_l_cdf.png", bbox_inches="tight")
     plt.close(fig)
 
     # --- tabla_latencia_percentiles.tex -------------------------------------
     lineas = [
         "\\begin{table}[H]", "\\centering",
-        "\\caption{Percentiles de latencia por condición. Para $L$ (N $\\approx$ 18 por condición), "
-        "p99 coincide en la práctica con el máximo observado (N $<$ 100: no es un percentil estimado "
-        "con precisión, ver texto). El tramo OBU$\\to$servidor ($t_{OBU\\to srv}$) tiene N $\\geq$ 100 "
-        "(todas las posiciones MP de la campaña), así que su p99 sí es un percentil real.}",
+        "\\caption{Percentiles de latencia por condición de enlace, en ms. Con la RSU real se reporta "
+        "RTT\\_srv como cota superior de $L$. Con $N < 100$, p99 coincide con el máximo observado y no "
+        "es un percentil estimado con precisión. El tramo OBU$\\to$servidor ($t_{OBU\\to srv}$) "
+        "incluye todos los mensajes de posición, por lo que su p99 sí es un percentil real.}",
         "\\label{tab:latencia_percentiles}", "\\small",
         "\\begin{tabular}{llrrrrl}", "\\toprule",
         "\\textbf{Métrica} & \\textbf{Condición} & \\textbf{N} & \\textbf{p50} & \\textbf{p95} & "
@@ -230,8 +232,9 @@ def main() -> None:
         vals = r["L_ms"]
         if vals:
             n = len(vals)
-            nota = " (p99 $\\approx$ máx., N$<$100)" if n < 100 else ""
-            lineas.append(f"$L${nota} & {etq} & {n} & {percentil(vals,50):.2f} & {percentil(vals,95):.2f} & "
+            nota = " (p99 $\\approx$ máx.)" if n < 100 else ""
+            metrica = "$L$" if r["mismo_reloj"] else "RTT\\_srv"
+            lineas.append(f"{metrica}{nota} & {etq} & {n} & {percentil(vals,50):.2f} & {percentil(vals,95):.2f} & "
                           f"{percentil(vals,99):.2f} & {max(vals):.2f} \\\\")
     for etq, r in resultados.items():
         vals = r["t_obu_srv_ms"]
@@ -253,8 +256,7 @@ def main() -> None:
     else:
         texto = (
             f"Recuperación del plan: NO SE PUDO CALCULAR. Se revisaron {len(filas_rec)} paradas con "
-            "liberación/caducidad de prioridad (72 de las 4 campañas + 3 de la corrida multi-RSU de "
-            "M1) y en NINGUNA hay un evento ctrl_fase_cambio posterior con motivo=ciclo_normal: el "
+            "liberación/caducidad de prioridad y en NINGUNA hay un evento ctrl_fase_cambio posterior con motivo=ciclo_normal: el "
             "controlador emulado solo se re-evalúa cuando algo lo consulta (sin timer propio, ver "
             "controller/controller_emulator.py), y nada vuelve a consultarlo tras liberar una "
             "prioridad si no llega una solicitud nueva (agent/rsu_middleware.py no tiene un watchdog "
@@ -265,7 +267,7 @@ def main() -> None:
         )
     (salida / "recuperacion_plan.txt").write_text(texto + "\n", encoding="utf-8")
 
-    print(f"Salidas en {salida}: fig_rtt_cdf (.pdf/.png, CDF de L), tabla_latencia_percentiles.tex, "
+    print(f"Salidas en {salida}: fig_l_cdf (.pdf/.png), tabla_latencia_percentiles.tex, "
          f"recuperacion_plan.txt")
     print(texto)
 

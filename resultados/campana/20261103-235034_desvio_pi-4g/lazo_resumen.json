@@ -1,0 +1,223 @@
+{
+  "cota_reloj_pi_ms": 26.2514085,
+  "nota_reloj": "Cota de error de reloj (lado Pi, chrony): preferentemente Root dispersion + Root delay/2 de 'chronyc tracking' (la distancia de sincronización NTP estándar); si la corrida es anterior a que scripts/pi.sh clock capturara 'tracking', se usa el campo 'estimated error' (+/- zzzz) de 'chronyc sources -v' para esa referencia -- AMBOS son cotas declaradas por chrony, no un offset puntual exacto. La laptop sincroniza por w32time, cuya precisión NO está caracterizada: esta cota cubre SOLO el lado de la Pi. [REVISAR con asesor].",
+  "n_misiones": 17,
+  "n_paradas": 17,
+  "resultados": {
+    "concedida": 17,
+    "rechazada": 0,
+    "sin_verde": 0,
+    "sin_respuesta": 0
+  },
+  "sin_respuesta_por_etapa": {},
+  "cola_despeje": 6,
+  "t_OBU_srv_ms": {
+    "n": 1493,
+    "media": 0.6729866041527126,
+    "mediana": 0.6486,
+    "p95": 0.8557,
+    "max": 13.2362,
+    "min": 0.4401
+  },
+  "t_RSU_ms": {
+    "n": 17,
+    "media": 0.983251294117647,
+    "mediana": 1.027378,
+    "p95": 1.085045,
+    "max": 1.085045,
+    "min": 0.829432
+  },
+  "RTT_srv_ms": {
+    "n": 17,
+    "media": 213.98263529411764,
+    "mediana": 187.3568,
+    "p95": 395.2973,
+    "max": 395.2973,
+    "min": 90.1169
+  },
+  "L_ms": {
+    "n": 17,
+    "media": 53.369799,
+    "mediana": 20.018857,
+    "p95": 228.128941,
+    "max": 228.128941,
+    "min": -49.903898
+  },
+  "t_verde_ms": {
+    "n": 17,
+    "media": 521.431138,
+    "mediana": 68.918898,
+    "p95": 2256.577997,
+    "max": 2256.577997,
+    "min": -49.386079
+  },
+  "T_desp_ms": {
+    "n": 6,
+    "media": 1325.3236178333334,
+    "mediana": 989.315424,
+    "p95": 2030.946491,
+    "max": 2030.946491,
+    "min": 531.828475
+  },
+  "anticipacion_real_s": {
+    "n": 17,
+    "media": 14.008399762,
+    "mediana": 14.048287792,
+    "p95": 15.044474651,
+    "max": 15.044474651,
+    "min": 12.267353583
+  },
+  "anticipacion_minima_s_rf8": 8.0,
+  "condicion_llegada_conteo": {
+    "ambar_todo_rojo": 6,
+    "verde": 7,
+    "rojo_general": 4
+  },
+  "por_condicion_llegada": {
+    "verde": {
+      "t_RSU_ms": {
+        "n": 7,
+        "media": 0.914208,
+        "mediana": 0.859655,
+        "p95": 1.040785,
+        "max": 1.040785,
+        "min": 0.829432
+      },
+      "RTT_srv_ms": {
+        "n": 7,
+        "media": 193.90205714285713,
+        "mediana": 173.8175,
+        "p95": 394.4865,
+        "max": 394.4865,
+        "min": 103.6522
+      },
+      "L_ms": {
+        "n": 7,
+        "media": 33.97724828571428,
+        "mediana": 20.018857,
+        "p95": 228.128941,
+        "max": 228.128941,
+        "min": -44.319251
+      },
+      "t_verde_ms": {
+        "n": 7,
+        "media": 33.97724828571428,
+        "mediana": 20.018857,
+        "p95": 228.128941,
+        "max": 228.128941,
+        "min": -44.319251
+      },
+      "T_desp_ms": {
+        "n": 0
+      },
+      "anticipacion_real_s": {
+        "n": 7,
+        "media": 14.537801051714284,
+        "mediana": 14.931227702,
+        "p95": 15.044474651,
+        "max": 15.044474651,
+        "min": 13.772039759
+      }
+    },
+    "ambar_todo_rojo": {
+      "t_RSU_ms": {
+        "n": 6,
+        "media": 1.0491311666666665,
+        "mediana": 1.030267,
+        "p95": 1.085045,
+        "max": 1.085045,
+        "min": 1.024452
+      },
+      "RTT_srv_ms": {
+        "n": 6,
+        "media": 248.26238333333333,
+        "mediana": 187.3568,
+        "p95": 395.2973,
+        "max": 395.2973,
+        "min": 114.6524
+      },
+      "L_ms": {
+        "n": 6,
+        "media": 88.0086965,
+        "mediana": 31.512487,
+        "p95": 225.09378,
+        "max": 225.09378,
+        "min": -34.041623
+      },
+      "t_verde_ms": {
+        "n": 6,
+        "media": 1413.828287,
+        "mediana": 972.38807,
+        "p95": 2256.577997,
+        "max": 2256.577997,
+        "min": 733.012217
+      },
+      "T_desp_ms": {
+        "n": 6,
+        "media": 1325.3236178333334,
+        "mediana": 989.315424,
+        "p95": 2030.946491,
+        "max": 2030.946491,
+        "min": 531.828475
+      },
+      "anticipacion_real_s": {
+        "n": 6,
+        "media": 13.086565413,
+        "mediana": 12.978002304,
+        "p95": 14.064554849,
+        "max": 14.064554849,
+        "min": 12.267353583
+      }
+    },
+    "rojo_general": {
+      "t_RSU_ms": {
+        "n": 4,
+        "media": 1.0052572499999999,
+        "mediana": 1.051915,
+        "p95": 1.081248,
+        "max": 1.081248,
+        "min": 0.833692
+      },
+      "RTT_srv_ms": {
+        "n": 4,
+        "media": 197.704025,
+        "mediana": 113.2606,
+        "p95": 388.2802,
+        "max": 388.2802,
+        "min": 90.1169
+      },
+      "L_ms": {
+        "n": 4,
+        "media": 35.3484165,
+        "mediana": -48.391611,
+        "p95": 219.69249,
+        "max": 219.69249,
+        "min": -49.903898
+      },
+      "t_verde_ms": {
+        "n": 4,
+        "media": 35.8797215,
+        "mediana": -47.810292,
+        "p95": 220.244661,
+        "max": 220.244661,
+        "min": -49.386079
+      },
+      "T_desp_ms": {
+        "n": 0
+      },
+      "anticipacion_real_s": {
+        "n": 4,
+        "media": 14.4646990285,
+        "mediana": 14.050030479,
+        "p95": 14.980439204,
+        "max": 14.980439204,
+        "min": 14.048287792
+      }
+    }
+  },
+  "rnf01_cumple_p95": true,
+  "reloj_pi_sincronizado": true,
+  "l_p95_peor_caso_ms": 254.3803495,
+  "rnf01_cumple_p95_peor_caso": true,
+  "rnf01_veredicto_peor_caso": "CUMPLE"
+}

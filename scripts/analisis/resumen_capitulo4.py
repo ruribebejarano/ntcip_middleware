@@ -97,7 +97,7 @@ def main() -> None:
     )
     tex = f"""\\begin{{table}}[H]
 \\centering
-\\caption{{Renovación de solicitudes (RF-10, 1 Hz) y caducidad (RNF-03, RF-09), {nota_factor}. Campaña 2026-10-29.}}
+\\caption{{Renovación de solicitudes (RNF-02) y caducidad (RNF-03, RF-09), {nota_factor}.}}
 \\label{{tab:renovacion_campana}}
 \\small
 \\begin{{tabular}}{{llrrrl}}
