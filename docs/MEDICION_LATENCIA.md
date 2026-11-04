@@ -467,6 +467,12 @@ peor caso = 62,81 ms ≪ 1000 ms → **CUMPLE** con amplio margen incluso así.
 referencia** para `config=pi-lan`/`pi-4g`: no dependen de sincronizar dos
 relojes y no llevan cota.
 
+**Campaña del 2026-11-04:** con la RSU física, las 36 paradas de `pi-lan` dan
+`L` negativa, así que `L`, `t_srv→RSU`, retorno y `t_verde` no se reportan en
+`pi-lan` ni en `pi-4g`. Se usa `RTT_srv` como cota superior de `L`, y el análisis lo
+indica en vez de imprimir un veredicto con `L`. Resultados en
+[RESULTADOS_CAMPANA.md](RESULTADOS_CAMPANA.md).
+
 ### 8.5 Cómo reproducir una medición (vigente)
 
 ```bash

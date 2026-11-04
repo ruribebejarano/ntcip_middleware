@@ -7,6 +7,7 @@ prioridad; una RSU (*Roadside Unit*) traduce esa solicitud al protocolo
 NTCIP del controlador de tránsito.
 
 [Guía de comandos](docs/GUIA_COMANDOS.md) — cómo levantar el sistema completo paso a paso.
+[Resultados de la campaña](docs/RESULTADOS_CAMPANA.md) — mediciones en local, por Wi-Fi y por 4G.
 
 ## Arquitectura
 
@@ -147,8 +148,21 @@ parte del flujo de la arquitectura centralizada — ver sus docstrings.
 llegada del semáforo (verde / ámbar-todo rojo / rojo), en local, contra
 una RSU por LAN, o contra una RSU por 4G; `--tls <carpeta_pki>` lo corre
 con TLS/mTLS activo. `scripts/analisis/lazo_centralizado.py` calcula la
-latencia del lazo y la anticipación real a partir de las corridas; los
+latencia del lazo y la anticipación real a partir de las corridas;
+`scripts/analisis/generar_cap4.sh` regenera todas las tablas y figuras. Los
 resultados curados están en `resultados/campana/` y `evidencia/`.
+
+Resultados vigentes, a 1 Hz y con TLS 1.3 + mTLS (99 misiones, sin solicitudes
+rechazadas ni caducadas; detalle en
+[docs/RESULTADOS_CAMPANA.md](docs/RESULTADOS_CAMPANA.md)):
+
+| Condición | RTT servidor–RSU, p95 / máx. | Anticipación real, mediana |
+|---|---|---|
+| Local | 65,51 / 72,84 ms | 14,00 s |
+| RSU real por Wi-Fi | 17,71 / 21,03 ms | 14,85 s |
+| RSU real por 4G | 395,30 / 418,77 ms | 14,04 s |
+
+La RSU por 4G consumió unos 0,19 MB por repetición.
 
 ## Estructura del proyecto
 
@@ -192,6 +206,20 @@ resultados/      Resultados de campañas de medición
   el impacto es bajo porque el servidor ignora cualquier mensaje que no
   corresponda a una solicitud que esté siguiendo — ver
   `tests/test_seguridad_broker.py` (T10).
+- **Latencia `L` con la RSU física**: no se reporta como valor puntual, porque
+  el desfase entre los relojes de la laptop y de la Pi supera al tramo medido. Se
+  usa el RTT servidor–RSU como cota superior — ver
+  [docs/RESULTADOS_CAMPANA.md](docs/RESULTADOS_CAMPANA.md).
+- **Alcance de la medición por 4G**: cubre solo el tramo servidor–RSU, con la OBU
+  emulada en la laptop, durante cerca de una hora de la noche y desde el lugar del
+  banco de pruebas.
+- **App Android**: implementada, pero todavía sin verificar en la tableta ni con
+  mTLS.
+- **Plazo de retención de los datos de posición**: sin definir, y el prototipo no
+  elimina los registros de forma automática.
+- **Broker local de la RSU**: el `mosquitto` instalado en la Pi sigue escuchando
+  en el puerto 1883 sin TLS. El agente no lo usa: se conecta al broker central por
+  8883.
 - **Enlace I2I entre RSU vecinas**: no implementado. Si se agrega, sería
   sobre el mismo broker MQTT, sin una malla dedicada.
 - **Controlador de tránsito físico**: la RSU se adapta hoy contra
