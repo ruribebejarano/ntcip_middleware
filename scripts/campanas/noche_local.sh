@@ -65,7 +65,7 @@ correr() {
   fi
 }
 
-TLS=(--broker-host localhost --broker-port 8883 --tls deploy/pki)
+TLS=(--broker-host 127.0.0.1 --broker-port 8883 --tls deploy/pki)
 correr lazo 1hz_con-tls "${TLS[@]}"
 correr desvio 1hz_con-tls "${TLS[@]}"
 correr lazo 1hz_sin-tls --broker-host 127.0.0.1 --broker-port 1883

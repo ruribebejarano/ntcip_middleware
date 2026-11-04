@@ -48,7 +48,11 @@ cd "$RAIZ"
 PY=".venv/Scripts/python.exe"
 [ -x "$PY" ] || PY="python"
 PKI="deploy/pki"
-BROKER_HOST="laptopricardoub"
+# 127.0.0.1, no el nombre Tailscale: en Windows resolver "laptopricardoub" hace
+# tardar la conexión ~8 s, justo el límite con que el runner espera al servidor.
+# Servidor, OBU emulada y broker comparten la laptop, y esta IP está en el SAN.
+BROKER_HOST="127.0.0.1"
+TAILSCALE_LAPTOP="laptopricardoub"
 BROKER_PORT=8883
 
 mkdir -p resultados/campana/_noche
@@ -97,7 +101,7 @@ ruta="$(ssh "$HOST" "ip route show default" | sort -t' ' -k1,1 | awk '{for(i=1;i
 grep -q "usb0" <<<"$ruta" || falla "la ruta por defecto de la Pi no es usb0 (métrica, interfaz: $ruta). Pasar a 4G: scripts/pi.sh red modo-campana $HOST"
 echo "OK ruta por defecto de la Pi por usb0 ($ruta)"
 
-camino="$(ssh "$HOST" "tailscale ping --c 1 $BROKER_HOST" 2>&1 | tail -1)"
+camino="$(ssh "$HOST" "tailscale ping --c 1 $TAILSCALE_LAPTOP" 2>&1 | tail -1)"
 echo "Camino Tailscale Pi -> laptop: $camino"
 grep -q "via 192\.168\." <<<"$camino" && falla "Tailscale sigue yendo por la LAN ($camino): no sería una medición 4G"
 
