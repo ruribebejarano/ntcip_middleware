@@ -54,6 +54,12 @@ python scripts/analisis/ruta_completa.py --dir resultados/ruta_completa/20261107
 
 Genera `analisis/por_parada.csv`, `por_repeticion.json` y `resumen.json`.
 
+## 4b. Estimación sin red con la geocerca corregida (no es medición)
+
+```
+python scripts/analisis/estimacion_geocerca_corregida.py   --salida resultados/ruta_completa/analisis/estimacion_geocerca_corregida.json
+```
+
 ## 5. Figuras
 
 ```

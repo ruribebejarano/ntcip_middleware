@@ -65,13 +65,17 @@ lo habría hecho en alrededor del 40~\% de los casos, con una demora evitada
 de 52 a \SI{58}{\second} por misión, entre el 8 y el 11~\% del tiempo de
 viaje. La mediana de la anticipación real fue de 13 a \SI{15}{\second}, pero
 el 6~\% de las llegadas quedó por debajo de los \SI{8}{\second} de
-anticipación mínima (Fig.~\ref{fig:ruta_anticipacion}). Hubo dos causas. En
-dos intersecciones, la geocerca no confirmó el acceso
-antes que el respaldo por ETA, que se evalúa una vez por segundo y emite la
-solicitud cuando el ETA ya es menor o igual a \SI{8}{\second}. En el perfil
-sintético, a velocidades cercanas a \SI{50}{\kilo\meter\per\hour}, el radio
-de \SI{150}{\meter} deja unos \SI{11}{\second}, de los cuales la transición
-desde ámbar o todo rojo consume parte antes de que el verde se active.
+anticipación mínima (Fig.~\ref{fig:ruta_anticipacion}). La mayoría se
+concentra en dos intersecciones precedidas por una curva. Ahí la geocerca
+tomó el cambio de orientación como un cruce anticipado y la solicitud quedó a
+cargo del respaldo por ETA, que la emite cuando faltan \SI{8}{\second} o
+menos. Una evaluación sin red sobre las mismas trayectorias indica que, si el
+cruce solo se declara después de entrar al radio de \SI{150}{\meter}, la
+geocerca abriría esas solicitudes con 14 y \SI{20}{\second} de antelación a
+velocidad constante. Los demás casos corresponden al perfil sintético a
+velocidades cercanas a \SI{50}{\kilo\meter\per\hour}: el radio de
+\SI{150}{\meter} deja unos \SI{11}{\second}, y la transición desde ámbar o
+todo rojo consume parte de ese margen.
 
 \begin{figure}[htbp]
 \centering
@@ -93,5 +97,7 @@ intersección que el vehículo estaba por abordar al girar recibió un verde de
 Estos resultados tienen límites que deben considerarse: los controladores
 son emulados y comparten un mismo ciclo fijo; la trayectoria es reproducida
 y no proviene de un vehículo en circulación; el perfil del escenario B es
-sintético; y toda la campaña se ejecutó en la condición local, sin el enlace
+sintético; la regla de cruce de la geocerca no se corrigió antes de la
+campaña, por lo que la mejora indicada para las intersecciones con curva es
+una estimación y no una medición; y toda la campaña se ejecutó en la condición local, sin el enlace
 4G, por lo que los tiempos de red no representan los de campo.

@@ -1,0 +1,1207 @@
+{
+ "nota": "ESTIMACIÓN SIN RED con geocerca corregida; no es una medición. Tiempo desde la apertura por geocerca hasta alcanzar la intersección en la trayectoria base.",
+ "casos_que_cambian": [
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": 8.0,
+   "geocerca_corregida_s_al_centro": 20.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": 8.0,
+   "geocerca_corregida_s_al_centro": 20.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 20.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": 8.0,
+   "geocerca_corregida_s_al_centro": 20.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 20.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 28.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 16.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 18.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": 27.0,
+   "geocerca_corregida_s_al_centro": 40.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 36.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 19.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 18.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 38.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 31.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 19.0
+  }
+ ],
+ "todas": [
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "102",
+   "geocerca_actual_s_al_centro": 12.0,
+   "geocerca_corregida_s_al_centro": 12.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "103",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": 8.0,
+   "geocerca_corregida_s_al_centro": 20.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "105",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "106",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "107",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "108",
+   "geocerca_actual_s_al_centro": 14.0,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "109",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "110",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "111",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "112",
+   "geocerca_actual_s_al_centro": 14.0,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_01",
+   "semilla": 101,
+   "rsu_id": "113",
+   "geocerca_actual_s_al_centro": 16.0,
+   "geocerca_corregida_s_al_centro": 16.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "102",
+   "geocerca_actual_s_al_centro": 12.0,
+   "geocerca_corregida_s_al_centro": 12.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "103",
+   "geocerca_actual_s_al_centro": 16.0,
+   "geocerca_corregida_s_al_centro": 16.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": 8.0,
+   "geocerca_corregida_s_al_centro": 20.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "105",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "106",
+   "geocerca_actual_s_al_centro": 16.0,
+   "geocerca_corregida_s_al_centro": 16.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "107",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "108",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "109",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "110",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "111",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "112",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_02",
+   "semilla": 102,
+   "rsu_id": "113",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "102",
+   "geocerca_actual_s_al_centro": 12.0,
+   "geocerca_corregida_s_al_centro": 12.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "103",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 20.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "105",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "106",
+   "geocerca_actual_s_al_centro": 16.0,
+   "geocerca_corregida_s_al_centro": 16.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "107",
+   "geocerca_actual_s_al_centro": 16.0,
+   "geocerca_corregida_s_al_centro": 16.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "108",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "109",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "110",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "111",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "112",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_03",
+   "semilla": 103,
+   "rsu_id": "113",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "102",
+   "geocerca_actual_s_al_centro": 12.0,
+   "geocerca_corregida_s_al_centro": 12.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "103",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": 8.0,
+   "geocerca_corregida_s_al_centro": 20.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "105",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "106",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "107",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "108",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "109",
+   "geocerca_actual_s_al_centro": 14.0,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "110",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "111",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "112",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_04",
+   "semilla": 104,
+   "rsu_id": "113",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "102",
+   "geocerca_actual_s_al_centro": 12.0,
+   "geocerca_corregida_s_al_centro": 12.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "103",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 20.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "105",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "106",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "107",
+   "geocerca_actual_s_al_centro": 16.0,
+   "geocerca_corregida_s_al_centro": 16.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "108",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "109",
+   "geocerca_actual_s_al_centro": 14.0,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "110",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "111",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "112",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "A",
+   "repeticion": "rep_05",
+   "semilla": 105,
+   "rsu_id": "113",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 28.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "102",
+   "geocerca_actual_s_al_centro": 16.0,
+   "geocerca_corregida_s_al_centro": 16.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "103",
+   "geocerca_actual_s_al_centro": 11.0,
+   "geocerca_corregida_s_al_centro": 11.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 16.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "105",
+   "geocerca_actual_s_al_centro": 32.0,
+   "geocerca_corregida_s_al_centro": 32.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "106",
+   "geocerca_actual_s_al_centro": 13.0,
+   "geocerca_corregida_s_al_centro": 13.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "107",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "108",
+   "geocerca_actual_s_al_centro": 13.0,
+   "geocerca_corregida_s_al_centro": 13.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "109",
+   "geocerca_actual_s_al_centro": 12.0,
+   "geocerca_corregida_s_al_centro": 12.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "110",
+   "geocerca_actual_s_al_centro": 19.0,
+   "geocerca_corregida_s_al_centro": 19.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "111",
+   "geocerca_actual_s_al_centro": 13.0,
+   "geocerca_corregida_s_al_centro": 13.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "112",
+   "geocerca_actual_s_al_centro": 13.0,
+   "geocerca_corregida_s_al_centro": 13.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_01",
+   "semilla": 201,
+   "rsu_id": "113",
+   "geocerca_actual_s_al_centro": 14.0,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 18.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "102",
+   "geocerca_actual_s_al_centro": 11.0,
+   "geocerca_corregida_s_al_centro": 11.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "103",
+   "geocerca_actual_s_al_centro": 14.0,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": 27.0,
+   "geocerca_corregida_s_al_centro": 40.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "105",
+   "geocerca_actual_s_al_centro": 12.0,
+   "geocerca_corregida_s_al_centro": 12.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "106",
+   "geocerca_actual_s_al_centro": 21.0,
+   "geocerca_corregida_s_al_centro": 21.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "107",
+   "geocerca_actual_s_al_centro": 21.0,
+   "geocerca_corregida_s_al_centro": 21.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "108",
+   "geocerca_actual_s_al_centro": 21.0,
+   "geocerca_corregida_s_al_centro": 21.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "109",
+   "geocerca_actual_s_al_centro": 19.0,
+   "geocerca_corregida_s_al_centro": 19.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "110",
+   "geocerca_actual_s_al_centro": 11.0,
+   "geocerca_corregida_s_al_centro": 11.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "111",
+   "geocerca_actual_s_al_centro": 12.0,
+   "geocerca_corregida_s_al_centro": 12.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "112",
+   "geocerca_actual_s_al_centro": 37.0,
+   "geocerca_corregida_s_al_centro": 37.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_02",
+   "semilla": 202,
+   "rsu_id": "113",
+   "geocerca_actual_s_al_centro": 19.0,
+   "geocerca_corregida_s_al_centro": 19.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 36.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "102",
+   "geocerca_actual_s_al_centro": 10.0,
+   "geocerca_corregida_s_al_centro": 10.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "103",
+   "geocerca_actual_s_al_centro": 18.0,
+   "geocerca_corregida_s_al_centro": 18.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 19.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "105",
+   "geocerca_actual_s_al_centro": 26.0,
+   "geocerca_corregida_s_al_centro": 26.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "106",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "107",
+   "geocerca_actual_s_al_centro": 18.0,
+   "geocerca_corregida_s_al_centro": 18.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "108",
+   "geocerca_actual_s_al_centro": 27.0,
+   "geocerca_corregida_s_al_centro": 27.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "109",
+   "geocerca_actual_s_al_centro": 18.0,
+   "geocerca_corregida_s_al_centro": 18.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "110",
+   "geocerca_actual_s_al_centro": 14.0,
+   "geocerca_corregida_s_al_centro": 14.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "111",
+   "geocerca_actual_s_al_centro": 20.0,
+   "geocerca_corregida_s_al_centro": 20.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "112",
+   "geocerca_actual_s_al_centro": 40.0,
+   "geocerca_corregida_s_al_centro": 40.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_03",
+   "semilla": 203,
+   "rsu_id": "113",
+   "geocerca_actual_s_al_centro": 22.0,
+   "geocerca_corregida_s_al_centro": 22.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 18.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "102",
+   "geocerca_actual_s_al_centro": 19.0,
+   "geocerca_corregida_s_al_centro": 19.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "103",
+   "geocerca_actual_s_al_centro": 19.0,
+   "geocerca_corregida_s_al_centro": 19.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 38.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "105",
+   "geocerca_actual_s_al_centro": 16.0,
+   "geocerca_corregida_s_al_centro": 16.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "106",
+   "geocerca_actual_s_al_centro": 12.0,
+   "geocerca_corregida_s_al_centro": 12.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "107",
+   "geocerca_actual_s_al_centro": 11.0,
+   "geocerca_corregida_s_al_centro": 11.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "108",
+   "geocerca_actual_s_al_centro": 23.0,
+   "geocerca_corregida_s_al_centro": 23.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "109",
+   "geocerca_actual_s_al_centro": 11.0,
+   "geocerca_corregida_s_al_centro": 11.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "110",
+   "geocerca_actual_s_al_centro": 28.0,
+   "geocerca_corregida_s_al_centro": 28.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "111",
+   "geocerca_actual_s_al_centro": 12.0,
+   "geocerca_corregida_s_al_centro": 12.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "112",
+   "geocerca_actual_s_al_centro": 11.0,
+   "geocerca_corregida_s_al_centro": 11.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_04",
+   "semilla": 204,
+   "rsu_id": "113",
+   "geocerca_actual_s_al_centro": 12.0,
+   "geocerca_corregida_s_al_centro": 12.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "101",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 31.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "102",
+   "geocerca_actual_s_al_centro": 9.0,
+   "geocerca_corregida_s_al_centro": 9.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "103",
+   "geocerca_actual_s_al_centro": 13.0,
+   "geocerca_corregida_s_al_centro": 13.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "104",
+   "geocerca_actual_s_al_centro": null,
+   "geocerca_corregida_s_al_centro": 19.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "105",
+   "geocerca_actual_s_al_centro": 11.0,
+   "geocerca_corregida_s_al_centro": 11.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "106",
+   "geocerca_actual_s_al_centro": 45.0,
+   "geocerca_corregida_s_al_centro": 45.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "107",
+   "geocerca_actual_s_al_centro": 21.0,
+   "geocerca_corregida_s_al_centro": 21.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "108",
+   "geocerca_actual_s_al_centro": 19.0,
+   "geocerca_corregida_s_al_centro": 19.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "109",
+   "geocerca_actual_s_al_centro": 18.0,
+   "geocerca_corregida_s_al_centro": 18.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "110",
+   "geocerca_actual_s_al_centro": 17.0,
+   "geocerca_corregida_s_al_centro": 17.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "111",
+   "geocerca_actual_s_al_centro": 20.0,
+   "geocerca_corregida_s_al_centro": 20.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "112",
+   "geocerca_actual_s_al_centro": 28.0,
+   "geocerca_corregida_s_al_centro": 28.0
+  },
+  {
+   "escenario": "B",
+   "repeticion": "rep_05",
+   "semilla": 205,
+   "rsu_id": "113",
+   "geocerca_actual_s_al_centro": 15.0,
+   "geocerca_corregida_s_al_centro": 15.0
+  }
+ ]
+}

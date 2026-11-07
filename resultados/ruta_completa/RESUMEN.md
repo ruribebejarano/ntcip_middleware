@@ -82,6 +82,22 @@ al recálculo (`resumen.json` → `ruta_C.desvio`).
 6. **Error del ETA en B.** Mediana de +0,8 s, pero el 95 % de los errores absolutos queda bajo
    20,6 s: el ETA usa la velocidad del momento y no anticipa las detenciones del perfil.
 
+## Estimación sin red para las RSU 101 y 104 (no es medición)
+
+Decisión del autor (2026-11-07): no se repite la campaña con la geocerca corregida.
+
+En lugar de rellenar las mediciones afectadas, `scripts/analisis/estimacion_geocerca_corregida.py`
+pasa las mismas trayectorias, con el mismo ruido, por la geocerca tal cual y por la corregida. El
+resultado está en `analisis/estimacion_geocerca_corregida.json`.
+
+- Solo cambian las RSU 101 y 104; las otras 11 quedan igual.
+- Tiempo desde la apertura por geocerca hasta llegar al centro, en A:
+  - 101: 14 s (hoy la geocerca no la abre).
+  - 104: 20 s (hoy 8 s o nada).
+- En B los valores son de 16 a 40 s, porque incluyen las detenciones del perfil.
+- Es tiempo hasta el centro, no anticipación real: falta la transición del controlador, que solo
+  se mide con la red. Las tablas medidas no se modificaron.
+
 ## Lo que no se pudo medir
 
 - **Controlador real y 4G.** Todo corrió en la condición local, con controladores emulados de
