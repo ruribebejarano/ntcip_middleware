@@ -1,0 +1,427 @@
+<title>Ruta Breña en vivo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sala de operaciones de tránsito. Mapa a la izquierda, estado y
+   registro de mensajes a la derecha, línea de tiempo abajo. */
+:root {
+  --bg: #eef1f3;
+  --surface: #ffffff;
+  --ink: #17212b;
+  --muted: #5d6b78;
+  --line: #d5dce2;
+  --street: #c9d1d8;
+  --route: #8796a4;
+  --accent: #1f5fbf;
+  --sig-green: #11915a;
+  --sig-amber: #d99a06;
+  --sig-red: #c8372d;
+  --sig-off: #9aa6b1;
+  --warn: #b35c00;
+  --font-display: "Barlow Semi Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-body: "Barlow", "Segoe UI", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f151b; --surface: #17202a; --ink: #e4eaef; --muted: #93a2b0; --line: #2a3643;
+    --street: #2a3642; --route: #5e7083; --accent: #6aa3ff; --sig-green: #2fd08a; --sig-amber: #ffbf2e;
+    --sig-red: #ff6a5c; --sig-off: #4d5b68; --warn: #ff9d47; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f151b; --surface: #17202a; --ink: #e4eaef; --muted: #93a2b0; --line: #2a3643;
+  --street: #2a3642; --route: #5e7083; --accent: #6aa3ff; --sig-green: #2fd08a; --sig-amber: #ffbf2e;
+  --sig-red: #ff6a5c; --sig-off: #4d5b68; --warn: #ff9d47; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 20px;
+}
+.wrap { max-width: 1400px; margin: 0 auto; display: grid; gap: 12px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 10px 20px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+.sub { color: var(--muted); font-size: .9rem; margin-top: 2px; max-width: 70ch; }
+.escenarios { display: flex; flex-wrap: wrap; gap: 6px; }
+button, select {
+  font: 600 .88rem var(--font-display); letter-spacing: .03em; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; cursor: pointer;
+}
+button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 12px; }
+@media (max-width: 960px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.mapa { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-height: 360px; overflow: hidden; }
+canvas#mapa { display: block; width: 100%; height: 100%; min-height: 360px; aspect-ratio: 16 / 9; max-width: 100%; }
+.mapa-ctrl { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; }
+.leyenda { position: absolute; bottom: 8px; left: 10px; right: 10px; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .78rem; color: var(--muted); pointer-events: none; }
+.leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+aside { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+.panel h2 { font: 600 .78rem var(--font-display); text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 0 0 8px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: .92rem; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.reloj { font: 500 2rem var(--font-mono); font-variant-numeric: tabular-nums; line-height: 1; }
+.reloj small { font-size: .9rem; color: var(--muted); }
+.estado { display: inline-block; font: 600 .78rem var(--font-display); letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.e-concedida { color: var(--sig-green); } .e-cola { color: var(--sig-amber); } .e-solicitada { color: var(--accent); }
+.e-cancelada, .e-pendiente { color: var(--muted); } .e-suspendida { color: var(--warn); }
+.log { list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; font-size: .86rem; display: grid; gap: 6px; }
+.log li { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 8px; }
+.log time { font-family: var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.log li.nuevo { animation: entra .6s ease-out; }
+@keyframes entra { from { background: color-mix(in srgb, var(--accent) 18%, transparent); } to { background: transparent; } }
+.tag { font: 600 .72rem var(--font-mono); padding: 0 5px; border-radius: 3px; border: 1px solid var(--line); margin-right: 4px; }
+.cruce h3 { font: 600 1rem var(--font-display); margin: 0 0 6px; }
+.vacio { color: var(--muted); font-size: .88rem; }
+.tiras { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 700px) { .tiras { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+.tira { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 4px; text-align: center; display: grid; gap: 4px; justify-items: center; }
+.tira b { font: 600 .82rem var(--font-mono); }
+.cabeza { display: grid; gap: 2px; background: #1b232b; padding: 3px; border-radius: 4px; }
+.cabeza i { width: 9px; height: 9px; border-radius: 50%; background: #39434d; display: block; }
+.tira small { font: 500 .66rem var(--font-display); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); min-height: 1em; }
+.transporte { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; display: grid; gap: 8px; }
+.fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.fila .esp { flex: 1; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.marcas { position: relative; height: 14px; }
+.marcas i { position: absolute; top: 2px; width: 2px; height: 10px; border-radius: 1px; }
+.nota { color: var(--muted); font-size: .8rem; max-width: 110ch; }
+@media (prefers-reduced-motion: reduce) { .log li.nuevo { animation: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Av. La Marina → Hospital del Niño, Breña</h1>
+      <div class="sub" id="sub">Reproducción de los registros medidos: 13 intersecciones, una RSU y un controlador emulado en cada una.</div>
+    </div>
+    <div class="escenarios" id="escenarios" role="group" aria-label="Repetición"></div>
+  </header>
+
+  <div class="main">
+    <div class="mapa">
+      <canvas id="mapa" aria-label="Mapa de la ruta con el vehículo y los semáforos"></canvas>
+      <div class="mapa-ctrl">
+        <button id="vista" aria-pressed="true">Seguir vehículo</button>
+      </div>
+      <div class="leyenda">
+        <span><i class="dot" style="background:var(--accent)"></i>Vehículo (posición enviada por la OBU)</span>
+        <span><i class="dot" style="background:var(--sig-green);box-shadow:0 0 0 3px color-mix(in srgb,var(--sig-green) 35%,transparent)"></i>Verde por prioridad</span>
+        <span><i class="dot" style="background:var(--sig-green)"></i>Verde del plan</span>
+        <span><i class="dot" style="background:var(--sig-amber)"></i>Ámbar</span>
+        <span><i class="dot" style="background:var(--sig-red)"></i>Rojo</span>
+        <span>– – Solicitud vigente</span>
+      </div>
+    </div>
+    <aside>
+      <section class="panel">
+        <h2>Ahora</h2>
+        <div class="reloj" id="reloj">0,0 <small>s</small></div>
+        <dl class="kv" id="ahora" style="margin-top:10px"></dl>
+      </section>
+      <section class="panel cruce">
+        <h2>Última solicitud cerrada: lo que se midió</h2>
+        <div id="cruce" class="vacio">El vehículo todavía no cruza ninguna intersección.</div>
+      </section>
+      <section class="panel">
+        <h2>Mensajes</h2>
+        <ol class="log" id="log" aria-live="polite"></ol>
+      </section>
+    </aside>
+  </div>
+
+  <div class="tiras" id="tiras" aria-label="Estado de cada semáforo"></div>
+
+  <div class="transporte">
+    <div class="fila">
+      <button id="play" aria-pressed="false">▶ Reproducir</button>
+      <span style="color:var(--muted);font-size:.85rem">Velocidad</span>
+      <span id="velocidades" class="escenarios" role="group" aria-label="Velocidad de reproducción"></span>
+      <span class="esp"></span>
+      <span style="font-family:var(--font-mono);font-size:.85rem;color:var(--muted)" id="dur"></span>
+    </div>
+    <input type="range" id="t" min="0" max="1" step="0.1" value="0" aria-label="Instante de la reproducción">
+    <div class="marcas" id="marcas" aria-hidden="true"></div>
+  </div>
+
+  <p class="nota" id="nota"></p>
+</div>
+
+<script>
+const D = /*__DATOS__*/null;
+const $ = (id) => document.getElementById(id);
+const fmt = (v, d = 1) => v == null ? "—" : Number(v).toLocaleString("es-PE", { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: false });
+const FASE_TXT = { verde: "verde", amarillo: "ámbar", todo_rojo: "todo rojo", rojo_general: "rojo general", prioridad: "verde por prioridad" };
+const MOTIVO_TXT = { cruce: "el vehículo cruzó", detenido: "vehículo detenido", destino: "llegó al destino", salida_acceso: "salió del acceso", rumbo_divergente: "cambió de rumbo", desvio: "desvío" };
+
+let R = null, t = 0, jugando = false, vel = 10, seguir = true, ultimo = -1;
+let camara = null;
+
+function css(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+function fasePlan(c, tt) {
+  const total = c.ciclo.reduce((a, [, d]) => a + d, 0);
+  let x = ((tt - c.epoca) % total + total) % total, acc = 0;
+  for (const [n, d] of c.ciclo) { acc += d; if (x < acc) return n; }
+  return c.ciclo[c.ciclo.length - 1][0];
+}
+function faseEn(rsu, tt) {
+  const c = R.controladores[rsu];
+  if (!c) return "rojo_general";
+  for (const [a, b] of c.prioridad) if (tt >= a && (b == null || tt < b)) return "prioridad";
+  return fasePlan(c, tt);
+}
+function colorFase(f) {
+  return f === "verde" || f === "prioridad" ? css("--sig-green") : f === "amarillo" ? css("--sig-amber") : css("--sig-red");
+}
+
+// Estado de la solicitud de cada RSU en el instante tt, a partir de los eventos.
+function estadoSolicitudes(tt) {
+  const s = {};
+  for (const e of R.eventos) {
+    if (e.t > tt) break;
+    if (!e.rsu) continue;
+    const x = s[e.rsu] || (s[e.rsu] = { estado: "pendiente" });
+    if (e.k === "M1") { x.estado = "solicitada"; x.desde = e.t; x.t_servicio = e.t_servicio; }
+    else if (e.k === "M2") x.estado = e.estado === "concedida" ? "concedida" : e.estado;
+    else if (e.k === "snmp" && /^en_cola/.test(e.accion)) x.cola = true;
+    else if (e.k === "snmp" && /^(request_priority|activar_cola)/.test(e.accion)) x.cola = false;
+    else if (e.k === "suspendida") x.estado = "suspendida";
+    else if (e.k === "M3") { x.estado = e.motivo === "detenido" ? "suspendida" : "cancelada"; x.motivo = e.motivo; x.fin = e.t; x.cola = false; }
+  }
+  return s;
+}
+
+function vehiculoEn(tt) {
+  const v = R.vehiculo;
+  if (!v.length) return null;
+  if (tt <= v[0][0]) return v[0];
+  if (tt >= v[v.length - 1][0]) return v[v.length - 1];
+  let lo = 0, hi = v.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (v[m][0] <= tt) lo = m; else hi = m; }
+  const a = v[lo], b = v[hi], u = (tt - a[0]) / (b[0] - a[0] || 1);
+  return [tt, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u, a[3] + (b[3] - a[3]) * u, b[4]];
+}
+
+const canvas = $("mapa"), ctx = canvas.getContext("2d");
+function ajustar() {
+  const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  dibujar();
+}
+function vistaCompleta(w, h) {
+  const xs = D.ruta.map(p => p[0]), ys = D.ruta.map(p => p[1]);
+  const x0 = Math.min(...xs) - 120, x1 = Math.max(...xs) + 120, y0 = Math.min(...ys) - 120, y1 = Math.max(...ys) + 120;
+  const s = Math.min(w / (x1 - x0), (h - 40) / (y1 - y0));
+  return { s, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 };
+}
+
+function dibujar() {
+  if (!R) return;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  const veh = vehiculoEn(t);
+  const completa = vistaCompleta(w, h);
+  const objetivo = seguir && veh ? { s: Math.max(completa.s, Math.min(w, h) / 520), cx: veh[1], cy: veh[2] } : completa;
+  camara = objetivo;
+  const P = ([x, y]) => [w / 2 + (x - camara.cx) * camara.s, h / 2 - 12 - (y - camara.cy) * camara.s];
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = css("--surface"); ctx.fillRect(0, 0, w, h);
+
+  ctx.strokeStyle = css("--street"); ctx.lineWidth = 1; ctx.beginPath();
+  for (const c of D.calles) { const a = P([c[0], c[1]]), b = P([c[2], c[3]]); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); }
+  ctx.stroke();
+
+  ctx.strokeStyle = css("--route"); ctx.lineWidth = 4; ctx.lineJoin = "round"; ctx.lineCap = "round";
+  if (R.escenario === "C") ctx.setLineDash([8, 6]);
+  ctx.beginPath(); D.ruta.forEach((p, i) => { const q = P(p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Trayectoria ya recorrida (posiciones enviadas, con su ruido GNSS).
+  ctx.strokeStyle = css("--accent"); ctx.globalAlpha = .55; ctx.lineWidth = 2.5; ctx.beginPath();
+  let primero = true;
+  for (const v of R.vehiculo) { if (v[0] > t) break; const q = P([v[1], v[2]]); primero ? ctx.moveTo(q[0], q[1]) : ctx.lineTo(q[0], q[1]); primero = false; }
+  if (veh) { const q = P([veh[1], veh[2]]); ctx.lineTo(q[0], q[1]); }
+  ctx.stroke(); ctx.globalAlpha = 1;
+
+  const est = estadoSolicitudes(t);
+  // Enlace vehículo → RSU con solicitud vigente.
+  for (const r of D.rsus) {
+    const e = est[r.id];
+    if (!veh || !e || !(e.estado === "solicitada" || e.estado === "concedida" || e.estado === "en_cola")) continue;
+    const a = P([veh[1], veh[2]]), b = P(r.xy);
+    ctx.strokeStyle = e.estado === "concedida" ? css("--sig-green") : css("--accent");
+    ctx.setLineDash([5, 5]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.setLineDash([]);
+  }
+  const radio = Math.max(6, Math.min(11, camara.s * 9));
+  for (const r of D.rsus) {
+    const f = faseEn(r.id, t), q = P(r.xy);
+    if (f === "prioridad") {
+      ctx.fillStyle = css("--sig-green"); ctx.globalAlpha = .28;
+      ctx.beginPath(); ctx.arc(q[0], q[1], radio + 7, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = colorFase(f); ctx.strokeStyle = css("--surface"); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(q[0], q[1], radio, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = css("--ink"); ctx.font = `600 ${radio > 8 ? 13 : 11}px ${css("--font-mono")}`;
+    ctx.textAlign = "center"; ctx.fillText(r.id, q[0], q[1] - radio - 6);
+  }
+  for (const [p, txt] of [[D.origen, "Origen"], [D.destino, "Hospital"]]) {
+    const q = P(p); ctx.fillStyle = css("--muted"); ctx.font = `600 12px ${css("--font-display")}`; ctx.textAlign = "center";
+    ctx.fillText(txt.toUpperCase(), q[0], q[1] + 22);
+  }
+  if (veh) {
+    const q = P([veh[1], veh[2]]), ang = (veh[4] || 0) * Math.PI / 180;
+    ctx.save(); ctx.translate(q[0], q[1]); ctx.rotate(ang);
+    ctx.fillStyle = css("--accent"); ctx.strokeStyle = css("--surface"); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(8, 9); ctx.lineTo(0, 5); ctx.lineTo(-8, 9); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+  // Escala.
+  const m = [50, 100, 200, 500, 1000, 2000].find(x => x * camara.s >= 70) || 2000, px = m * camara.s;
+  ctx.strokeStyle = css("--muted"); ctx.fillStyle = css("--muted"); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(w - 16 - px, 22); ctx.lineTo(w - 16, 22); ctx.stroke();
+  ctx.font = `500 11px ${css("--font-mono")}`; ctx.textAlign = "right"; ctx.fillText(`${m} m`, w - 16, 16);
+}
+
+function textoEvento(e) {
+  const r = e.rsu ? `<span class="tag">RSU ${e.rsu}</span>` : "";
+  switch (e.k) {
+    case "M1": return `${r}Servidor pide prioridad (M1), tiempo de servicio ${fmt(e.t_servicio)} s`;
+    case "M2": return `${r}La RSU responde <b>${e.estado}</b> (M2) ${e.rtt_ms != null ? fmt(e.rtt_ms, 0) + " ms después del M1" : ""}`;
+    case "M3": return `${r}Servidor cancela la solicitud (M3, motivo «${e.motivo}»)`;
+    case "snmp":
+      if (/^en_cola/.test(e.accion)) return `${r}La RSU espera que termine el ${FASE_TXT[e.fase] || e.fase} antes de dar verde`;
+      if (/^(request_priority|activar_cola)/.test(e.accion)) return `${r}RSU → controlador: verde por prioridad (SNMP SET)`;
+      if (/^clear_priority/.test(e.accion)) return `${r}RSU → controlador: libera la prioridad`;
+      return `${r}SNMP: ${e.accion}`;
+    case "ctrl_on": return `${r}Controlador en verde por prioridad`;
+    case "ctrl_off": return `${r}Controlador vuelve a su plan`;
+    case "recalculo": return `Vehículo fuera de ruta: el servidor recalcula (${e.antes} → ${e.despues} intersecciones pendientes)`;
+    case "detenido": return `El servidor detecta el vehículo detenido`;
+    case "suspendida": return `${r}Servidor suspende la solicitud: vehículo detenido ${fmt(e.seg)} s`;
+    case "fin": return `Misión terminada: ${MOTIVO_TXT[e.motivo] || e.motivo}`;
+  }
+  return e.k;
+}
+
+function actualizarPaneles() {
+  const veh = vehiculoEn(t), est = estadoSolicitudes(t);
+  $("reloj").innerHTML = `${fmt(t)} <small>s</small>`;
+  const eta = R.eta.filter(x => x[0] <= t).pop();
+  const activa = Object.entries(est).find(([, e]) => ["solicitada", "concedida", "en_cola"].includes(e.estado));
+  const filas = [
+    ["Velocidad", veh ? `${fmt(veh[3])} km/h` : "—"],
+    ["Próxima RSU (servidor)", eta && eta[0] > t - 1.5 ? `RSU ${eta[1]}` : "—"],
+    ["Distancia restante", eta && eta[0] > t - 1.5 ? `${fmt(eta[3], 0)} m` : "—"],
+    ["ETA del servidor", eta && eta[0] > t - 1.5 ? `${fmt(eta[2])} s` : "—"],
+    ["Solicitud vigente", activa ? `RSU ${activa[0]} · <span class="estado e-${activa[1].estado === "en_cola" ? "cola" : activa[1].estado}">${activa[1].cola ? "en cola de despeje" : activa[1].estado}</span>` : "ninguna"],
+  ];
+  $("ahora").innerHTML = filas.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+
+  // Último cruce con métricas medidas.
+  const cruces = R.eventos.filter(e => e.k === "M3" && e.t <= t && e.motivo !== "detenido");
+  const c = cruces[cruces.length - 1];
+  if (c) {
+    const m = R.medidas[c.rsu] || {};
+    const sinP = m.fase_sin_prioridad ? FASE_TXT[m.fase_sin_prioridad] || m.fase_sin_prioridad : "—";
+    $("cruce").className = "";
+    if (m.dist_min_centro_m != null && m.dist_min_centro_m > 30) {
+      $("cruce").innerHTML = `<h3>RSU ${c.rsu} · M3 «${c.motivo}», sin cruzar</h3><dl class="kv">
+        <dt>Distancia mínima al centro</dt><dd>${fmt(m.dist_min_centro_m, 0)} m</dd>
+        <dt>Tiempo M1 → M2 (ida y vuelta)</dt><dd>${fmt(m.rtt_ms, 0)} ms</dd>
+        <dt>Tiempo M1 en RSU → verde</dt><dd>${fmt(m.l_ms)} ms</dd></dl>
+        <p class="vacio" style="margin:8px 0 0">El vehículo dejó la ruta antes de esta intersección: no hay anticipación ni espera evitada que medir.</p>`;
+    } else
+    $("cruce").innerHTML = `<h3>RSU ${c.rsu} · M3 «${c.motivo}»</h3><dl class="kv">
+      <dt>Verde antes de llegar (anticipación real)</dt><dd>${fmt(m.anticipacion_real_s)} s</dd>
+      <dt>Tiempo M1 → M2 (ida y vuelta)</dt><dd>${fmt(m.rtt_ms, 0)} ms</dd>
+      <dt>Tiempo M1 en RSU → verde</dt><dd>${fmt(m.l_ms)} ms</dd>
+      <dt>Renovaciones del M1</dt><dd>${m.renovaciones ?? "—"}</dd>
+      <dt>Sin prioridad habría encontrado</dt><dd>${sinP}</dd>
+      <dt>Espera evitada</dt><dd>${fmt(m.demora_evitada_s)} s</dd></dl>`;
+  } else { $("cruce").className = "vacio"; $("cruce").textContent = "El vehículo todavía no cruza ninguna intersección."; }
+
+  // Registro de mensajes (más reciente arriba).
+  const vistos = R.eventosTodos.filter(e => e.t <= t);
+  if (vistos.length !== ultimo) {
+    const nuevos = vistos.length > ultimo && ultimo >= 0 ? vistos.length - ultimo : 0;
+    $("log").innerHTML = vistos.slice(-60).reverse().map((e, i) =>
+      `<li class="${i < nuevos && jugando ? "nuevo" : ""}"><time>${fmt(e.t)}</time><span>${textoEvento(e)}</span></li>`).join("")
+      || `<li><time>—</time><span class="vacio">Pulse Reproducir para empezar.</span></li>`;
+    ultimo = vistos.length;
+  }
+
+  // Tiras de semáforos.
+  $("tiras").innerHTML = D.rsus.map(r => {
+    const f = faseEn(r.id, t), e = est[r.id];
+    const luz = (n, on) => `<i style="background:${on ? colorFase(n) : ""}"></i>`;
+    const etiqueta = f === "prioridad" ? "prioridad" : e && e.cola && e.estado !== "cancelada" ? "en cola" : e ? (e.estado === "cancelada" ? "cancelada" : e.estado) : "";
+    return `<div class="tira"><b>${r.id}</b><span class="cabeza">${luz("rojo_general", f === "rojo_general" || f === "todo_rojo")}${luz("amarillo", f === "amarillo")}${luz("verde", f === "verde" || f === "prioridad")}</span><small>${etiqueta === "pendiente" ? "" : etiqueta}</small></div>`;
+  }).join("");
+  $("t").value = t;
+  $("dur").textContent = `${fmt(t)} / ${fmt(R.duracion)} s`;
+}
+
+function cargar(idx) {
+  R = D.repeticiones[idx];
+  const extra = [];
+  for (const [rid, c] of Object.entries(R.controladores)) for (const [a, b] of c.prioridad) {
+    extra.push({ t: a, k: "ctrl_on", rsu: rid });
+    if (b != null) extra.push({ t: b, k: "ctrl_off", rsu: rid });
+  }
+  R.eventosTodos = [...R.eventos, ...extra].sort((a, b) => a.t - b.t);
+  t = 0; ultimo = -1;
+  $("t").max = R.duracion;
+  [...$("escenarios").children].forEach((b, i) => b.setAttribute("aria-pressed", String(i === idx)));
+  const m1 = R.eventos.filter(e => e.k === "M1").length;
+  $("sub").textContent = `${R.nombre} · semilla ${R.semilla} · ${fmt(D.ruta_m / 1000, 2)} km · ${m1} solicitudes registradas.`;
+  $("marcas").innerHTML = R.eventos.filter(e => ["M1", "M3", "recalculo", "suspendida"].includes(e.k)).map(e => {
+    const col = e.k === "M1" ? "var(--accent)" : e.k === "M3" ? "var(--muted)" : "var(--warn)";
+    return `<i style="left:calc(${(100 * e.t / R.duracion).toFixed(2)}% - 1px);background:${col}"></i>`;
+  }).join("");
+  $("nota").textContent = "Todo lo que se ve sale de los registros de la corrida: posiciones que envió la OBU (con ruido GNSS), mensajes del servidor y de cada RSU, y el verde por prioridad que registró cada controlador. El color del plan normal se reconstruye desde el instante de inicio de ciclo que registró cada controlador. Controladores emulados, condición local." + (R.escenario === "B" ? " Escenario B: perfil de velocidad sintético." : "") + (R.escenario === "C" ? " Escenario C: la línea punteada es la ruta planificada originalmente; el trazo azul es el recorrido real con el desvío." : "");
+  actualizarPaneles(); dibujar();
+}
+
+let previo = null;
+function bucle(ts) {
+  if (jugando) {
+    if (previo != null) t = Math.min(R.duracion, t + (ts - previo) / 1000 * vel);
+    previo = ts;
+    if (t >= R.duracion) pausar();
+    actualizarPaneles(); dibujar();
+  }
+  requestAnimationFrame(bucle);
+}
+function pausar() { jugando = false; previo = null; $("play").textContent = "▶ Reproducir"; $("play").setAttribute("aria-pressed", "false"); }
+$("play").onclick = () => {
+  if (jugando) return pausar();
+  if (t >= R.duracion) t = 0;
+  jugando = true; previo = null; $("play").textContent = "❚❚ Pausa"; $("play").setAttribute("aria-pressed", "true");
+};
+$("t").oninput = (e) => { t = Number(e.target.value); ultimo = -1; actualizarPaneles(); dibujar(); };
+$("vista").onclick = () => { seguir = !seguir; $("vista").setAttribute("aria-pressed", String(seguir)); dibujar(); };
+[1, 5, 10, 30].forEach(v => {
+  const b = document.createElement("button"); b.textContent = `${v}×`; b.setAttribute("aria-pressed", String(v === vel));
+  b.onclick = () => { vel = v; [...$("velocidades").children].forEach(x => x.setAttribute("aria-pressed", String(x === b))); };
+  $("velocidades").appendChild(b);
+});
+D.repeticiones.forEach((r, i) => {
+  const b = document.createElement("button"); b.textContent = { A: "A · constante", B: "B · variable", C: "C · desvío" }[r.escenario] || r.id;
+  b.onclick = () => { pausar(); cargar(i); }; $("escenarios").appendChild(b);
+});
+new ResizeObserver(ajustar).observe(canvas);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { actualizarPaneles(); dibujar(); });
+new MutationObserver(() => { actualizarPaneles(); dibujar(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+cargar(0);
+requestAnimationFrame(bucle);
+</script>

@@ -75,3 +75,14 @@ python scripts/analisis/figuras_ruta_completa.py --analisis resultados/ruta_comp
 - **`borrador_seccion_tesis.tex`:** propuesta de texto para reemplazar la subsección de
   priorización sucesiva. No se editó `main.tex`.
 - **`PLAN.md`, `AVANCE.md`, `simulacion_previa.py`:** planificación y estimación previas.
+
+## 6. Reproducción animada (registros medidos, sin cálculos nuevos)
+
+```
+python scripts/analisis/reproduccion_ruta.py   --rep resultados/ruta_completa/20261107-123645_A/rep_01   --rep resultados/ruta_completa/20261107-132149_B/rep_01   --rep resultados/ruta_completa/20261107-141431_C/rep_01   --analisis resultados/ruta_completa/analisis   --salida resultados/ruta_completa/reproduccion/reproduccion_ruta.html
+```
+
+- Genera una página HTML autocontenida: se abre con doble clic, sin servidor.
+- Los tramos de verde por prioridad salen de las órdenes SNMP de la RSU al controlador. El
+  controlador solo registra cambios de fase visibles.
+- El plan normal se reconstruye desde `ctrl_inicio`.
