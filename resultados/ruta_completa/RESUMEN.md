@@ -49,9 +49,21 @@ al recálculo (`resumen.json` → `ruta_C.desvio`).
    - En A (RSU 101 y 104, las 5 repeticiones) la solicitud siempre la abrió el respaldo por ETA
      (`t_servicio` de 6,6–7,8 s), no la geocerca. El ETA se evalúa a 1 Hz y dispara con ETA ≤ 8 s,
      así que llega por debajo.
-   - Hipótesis (no verificada para la 101): el rumbo del vehículo en los 150 m previos no cae
-     dentro de la tolerancia de 30° del acceso, porque hay un giro cerca. Para la 104 se vio en la
-     prueba que la solicitud sale justo después de un giro.
+   - **Causa (verificada sobre la trayectoria A sin ruido):** el seguidor de la geocerca
+     (`gateway/geometria.py`, `SeguidorAcceso`) declara "cruce" en cuanto la intersección deja de
+     estar "por delante" (cono de ±45°), aunque el vehículo todavía esté lejos. Al declarar
+     "cruce", además la excluye hasta que el vehículo se aleje más de 350 m.
+     - RSU 101: la ruta la tiene por delante a 299–199 m (s = 140–240 m) y luego gira al sur.
+       Queda excluida y el vehículo nunca se aleja 350 m, así que la geocerca no la vuelve a
+       asignar.
+     - RSU 104: hay una "S" (rumbo 130° → 39° → 129°) en los últimos 200 m. A 155 m queda de
+       lado (47° > 45°) y se excluye. Solo se libera a 61 m, porque otra RSU ocupa el único hueco
+       de exclusión.
+     - Lo mismo explica el motivo "cruce" de la RSU 108 al desviarse en C.
+     - Prueba fuera del repo: declarar "cruce" solo si el vehículo ya estuvo dentro de R_g (150 m)
+       y, si no, perder la asignación sin excluir. Con eso, las 13 RSU de A abren por geocerca; la
+       101 a 137 m de recorrido y la 104 a 192 m. No se aplicó: cambia el criterio de emisión y
+       cancelación de la tesis.
    - En B, 3 casos los abrió la geocerca a 150 m (`t_servicio` = 8) con el vehículo rápido y la
      fase en ámbar o todo rojo.
 2. **Verde con el vehículo detenido.** En B, 11 solicitudes mantuvieron prioridad con el vehículo
