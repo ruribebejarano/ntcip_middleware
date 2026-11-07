@@ -613,3 +613,28 @@ def test_sin_dato_reutiliza_la_ultima_velocidad_en_movimiento_si_es_reciente():
     reloj.avanzar(10.0)
     gestor.procesar_mp("obu-1", lat, lon, None, rumbo_deg=0.0, fuente_velocidad="respaldo")
     assert mision.ultima_velocidad_kmh == gestor.velocidad_respaldo_kmh
+
+
+class _Eventos:
+    def __init__(self) -> None:
+        self.lista: list[tuple[str, str, dict]] = []
+
+    def log(self, tipo: str, id_ref: str, **extra) -> None:
+        self.lista.append((tipo, id_ref, extra))
+
+
+def test_registra_el_eta_a_la_siguiente_parada_con_cada_mp():
+    """eta_estimado sirve para medir el error del ETA en campo; no cambia decisiones."""
+    eventos = _Eventos()
+    gestor, reg = _gestor(eventos=eventos)
+    mision = gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    lat, lon = desplazar(*NODOS_RUTA["A"], 0.0, 50.0)
+    gestor.procesar_mp("obu-1", lat, lon, VELOCIDAD_KMH, rumbo_deg=0.0, seq=1)
+    etas = [e for e in eventos.lista if e[0] == "eta_estimado"]
+    assert len(etas) == 1
+    tipo, id_ref, extra = etas[0]
+    assert id_ref == mision.mision_id
+    primera = mision.ruta.paradas[0]
+    assert extra["rsu_id"] == primera.rsu_id
+    esperado = (primera.distancia_llegada_m - mision.distancia_recorrida_m) / (mision.ultima_velocidad_kmh / 3.6)
+    assert abs(extra["eta_s"] - esperado) < 0.05

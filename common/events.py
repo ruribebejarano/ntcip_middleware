@@ -97,6 +97,7 @@ EVT_MI_REPETIDO = "MI_repetido"                 # servidor recibe un MI para un 
 EVT_MP_DESCARTADO = "MP_descartado"             # servidor descarta un MP con seq <= el ultimo procesado (reordenamiento/duplicado, docs/CONTRATO_OBU.md); extra: seq, ultimo_seq
 EVT_VEHICULO_DETENIDO = "vehiculo_detenido"     # servidor/gestor_mision.py clasifica el MP como "detenido, medido" (transicion, no cada MP); extra: velocidad_kmh
 EVT_SOLICITUD_SUSPENDIDA_DETENIDO = "solicitud_suspendida_detenido"  # servidor deja de renovar por ETA una solicitud vigente tras T_DETENIDO_MAX_S detenido sin cruzar (vuelve a "pendiente", se re-solicita sola si el vehiculo retoma movimiento); extra: interseccion_id, segundos_detenido
+EVT_ETA_ESTIMADO = "eta_estimado"               # servidor estima, con cada MP, el ETA a la siguiente parada pendiente (no cambia ninguna decision; sirve para medir el error del ETA); extra: rsu_id, interseccion_id, eta_s, distancia_restante_m, velocidad_kmh
 
 EVT_BROKER_RX = "broker_rx"      # scripts/testigo_broker.py: un suscriptor mas
                                   # corriendo en la MISMA maquina que el broker,

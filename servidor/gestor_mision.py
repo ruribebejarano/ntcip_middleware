@@ -61,6 +61,7 @@ from servidor.rutas import ParadaRsu, Ruta
 try:
     from common.events import (
         EVT_CONFLICTO_ARBITRADO,
+        EVT_ETA_ESTIMADO,
         EVT_M1_TX,
         EVT_M2_RX,
         EVT_M3_TX,
@@ -347,6 +348,11 @@ class GestorMision:
             distancia_restante = siguiente.parada.distancia_llegada_m - mision.distancia_recorrida_m
             eta_s = self._eta(distancia_restante, mision.ultima_velocidad_kmh)
             siguiente.eta_s = eta_s
+            if eta_s is not None:
+                self._log(EVT_ETA_ESTIMADO, mision.mision_id, rsu_id=siguiente.parada.rsu_id,
+                          interseccion_id=siguiente.parada.interseccion_id, eta_s=round(eta_s, 2),
+                          distancia_restante_m=round(distancia_restante, 1),
+                          velocidad_kmh=round(mision.ultima_velocidad_kmh, 2))
             if eta_s is not None and eta_s <= self.anticipacion_min_s:
                 self._intentar_solicitar(mision, siguiente, eta_s)
 
