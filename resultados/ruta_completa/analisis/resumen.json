@@ -1,0 +1,223 @@
+{
+ "ruta_A": {
+  "repeticiones": 5,
+  "solicitudes": 65,
+  "concedidas": 65,
+  "con_cruce": 63,
+  "condicion_llegada": {
+   "verde": 21,
+   "ambar_todo_rojo": 18,
+   "rojo_general": 26
+  },
+  "anticipacion_real_s": {
+   "min": 4.9970857,
+   "mediana": 12.9800826,
+   "p95": 14.9824026,
+   "max": 14.9952297,
+   "menores_a_8s": 4,
+   "n": 63
+  },
+  "anticipacion_centro_s": {
+   "min": 4.149310208,
+   "mediana": 13.956765952,
+   "negativas": 0,
+   "n": 65
+  },
+  "RTT_srv_ms": {
+   "mediana": 37.2654,
+   "p95": 63.8916,
+   "max": 94.162
+  },
+  "t_RSU_ms": {
+   "mediana": 3.3275,
+   "p95": 25.3494
+  },
+  "L_ms": {
+   "mediana": 4.5339,
+   "p95": 26.1556,
+   "max": 31.9916
+  },
+  "T_desp_ms": {
+   "n": 18,
+   "mediana": 2485.71,
+   "max": 5431.9296
+  },
+  "renovaciones_por_solicitud_mediana": 13,
+  "caducidades": 0,
+  "mayor_hueco_m1_s": 1.029071,
+  "max_simultaneas": 1,
+  "contrafactual_tesis": {
+   "n": 63,
+   "pct_verde_con_prioridad": 100.0,
+   "pct_verde_sin_prioridad_est": 38.095238095238095,
+   "demora_evitada_total_s": 288.5,
+   "demora_evitada_por_mision_s": 57.7
+  },
+  "contrafactual_exacto": {
+   "n": 63,
+   "pct_verde_sin_prioridad": 39.682539682539684,
+   "demora_evitada_por_mision_s": 51.31625058000003
+  }
+ },
+ "ruta_B": {
+  "repeticiones": 5,
+  "solicitudes": 65,
+  "concedidas": 65,
+  "con_cruce": 64,
+  "condicion_llegada": {
+   "ambar_todo_rojo": 18,
+   "rojo_general": 26,
+   "verde": 21
+  },
+  "anticipacion_real_s": {
+   "min": 6.4201064,
+   "mediana": 14.9949483,
+   "p95": 30.9905587,
+   "max": 40.9690694,
+   "menores_a_8s": 4,
+   "n": 64
+  },
+  "anticipacion_centro_s": {
+   "min": 4.587164416,
+   "mediana": 16.621467648,
+   "negativas": 0,
+   "n": 65
+  },
+  "RTT_srv_ms": {
+   "mediana": 31.0506,
+   "p95": 70.0919,
+   "max": 72.8429
+  },
+  "t_RSU_ms": {
+   "mediana": 2.4552,
+   "p95": 21.7161
+  },
+  "L_ms": {
+   "mediana": 3.218,
+   "p95": 22.3705,
+   "max": 24.8058
+  },
+  "T_desp_ms": {
+   "n": 18,
+   "mediana": 2146.866,
+   "max": 4668.373
+  },
+  "renovaciones_por_solicitud_mediana": 14,
+  "caducidades": 0,
+  "mayor_hueco_m1_s": 15.0009433,
+  "max_simultaneas": 1,
+  "contrafactual_tesis": {
+   "n": 64,
+   "pct_verde_con_prioridad": 100.0,
+   "pct_verde_sin_prioridad_est": 40.625,
+   "demora_evitada_total_s": 259.5,
+   "demora_evitada_por_mision_s": 51.9
+  },
+  "contrafactual_exacto": {
+   "n": 64,
+   "pct_verde_sin_prioridad": 40.625,
+   "demora_evitada_por_mision_s": 52.491925540400004
+  },
+  "eta": {
+   "n": 65,
+   "error_mediana_s": 0.8184770999999991,
+   "error_abs_p95_s": 20.5590852,
+   "error_min_s": -13.821346300000002,
+   "error_max_s": 25.2585998
+  },
+  "detenido": {
+   "suspensiones": 4,
+   "solicitudes_con_verde_y_vehiculo_detenido": 11,
+   "verde_con_vehiculo_detenido_total_s": 123.0,
+   "verde_con_vehiculo_detenido_max_s": 20.0
+  }
+ },
+ "ruta_C": {
+  "repeticiones": 1,
+  "solicitudes": 12,
+  "concedidas": 12,
+  "con_cruce": 12,
+  "condicion_llegada": {
+   "rojo_general": 2,
+   "verde": 7,
+   "ambar_todo_rojo": 3
+  },
+  "anticipacion_real_s": {
+   "min": 0.9862982,
+   "mediana": 11.7160453,
+   "p95": 13.9973609,
+   "max": 13.9973609,
+   "menores_a_8s": 2,
+   "n": 12
+  },
+  "anticipacion_centro_s": {
+   "min": 1.9668032,
+   "mediana": 12.000877568,
+   "negativas": 0,
+   "n": 12
+  },
+  "RTT_srv_ms": {
+   "mediana": 33.9588,
+   "p95": 105.6855,
+   "max": 105.6855
+  },
+  "t_RSU_ms": {
+   "mediana": 2.2961,
+   "p95": 24.3665
+  },
+  "L_ms": {
+   "mediana": 3.0679,
+   "p95": 25.125,
+   "max": 25.125
+  },
+  "T_desp_ms": {
+   "n": 3,
+   "mediana": 2979.2089,
+   "max": 4304.4003
+  },
+  "renovaciones_por_solicitud_mediana": 13,
+  "caducidades": 0,
+  "mayor_hueco_m1_s": 1.0023662,
+  "max_simultaneas": 2,
+  "contrafactual_tesis": {
+   "n": 12,
+   "pct_verde_con_prioridad": 100.0,
+   "pct_verde_sin_prioridad_est": 33.333333333333336,
+   "demora_evitada_total_s": 44.5,
+   "demora_evitada_por_mision_s": 44.5
+  },
+  "contrafactual_exacto": {
+   "n": 12,
+   "pct_verde_sin_prioridad": 33.333333333333336,
+   "demora_evitada_por_mision_s": 42.41334039999994
+  },
+  "desvio": [
+   {
+    "salida_de_ruta_s_m": 4140.0,
+    "recalculos": [
+     {
+      "desde_salida_de_ruta_s": 6.0073927,
+      "mp_rx_a_recalculo_ms": 6.0847,
+      "recalculo_a_mr_en_obu_ms": 0.75,
+      "paradas_antes": 13,
+      "paradas_despues": 6
+     },
+     {
+      "desde_salida_de_ruta_s": 7.0073749,
+      "mp_rx_a_recalculo_ms": 6.2826,
+      "recalculo_a_mr_en_obu_ms": 0.7434,
+      "paradas_antes": 6,
+      "paradas_despues": 4
+     }
+    ],
+    "cancelaciones": [
+     {
+      "id_solicitud": "mis-082e71f6-RUTA-08",
+      "motivo": "cruce",
+      "desde_salida_de_ruta_s": 0.0011052
+     }
+    ]
+   }
+  ]
+ }
+}

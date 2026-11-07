@@ -1,0 +1,165 @@
+{
+  "fecha_inicio": "2026-11-07T13:21:49",
+  "commit": "fea7c6a-con-cambios-sin-commit",
+  "escenario": "ruta_B",
+  "config": "local",
+  "factor": 1.0,
+  "broker": "127.0.0.1:8883",
+  "tls": true,
+  "registro": "scripts\\campanas\\fixtures\\registro_ruta_hospital_nino.json",
+  "rsus": [
+    {
+      "rsu_id": "101",
+      "interseccion_id": "RUTA-01",
+      "acum_m": 550.4
+    },
+    {
+      "rsu_id": "102",
+      "interseccion_id": "RUTA-02",
+      "acum_m": 775.4
+    },
+    {
+      "rsu_id": "103",
+      "interseccion_id": "RUTA-03",
+      "acum_m": 2153.1
+    },
+    {
+      "rsu_id": "104",
+      "interseccion_id": "RUTA-04",
+      "acum_m": 3052.1
+    },
+    {
+      "rsu_id": "105",
+      "interseccion_id": "RUTA-05",
+      "acum_m": 3351.9
+    },
+    {
+      "rsu_id": "106",
+      "interseccion_id": "RUTA-06",
+      "acum_m": 3850.6
+    },
+    {
+      "rsu_id": "107",
+      "interseccion_id": "RUTA-07",
+      "acum_m": 3994.4
+    },
+    {
+      "rsu_id": "108",
+      "interseccion_id": "RUTA-08",
+      "acum_m": 4278.1
+    },
+    {
+      "rsu_id": "109",
+      "interseccion_id": "RUTA-09",
+      "acum_m": 4417.3
+    },
+    {
+      "rsu_id": "110",
+      "interseccion_id": "RUTA-10",
+      "acum_m": 4696.5
+    },
+    {
+      "rsu_id": "111",
+      "interseccion_id": "RUTA-11",
+      "acum_m": 4838.1
+    },
+    {
+      "rsu_id": "112",
+      "interseccion_id": "RUTA-12",
+      "acum_m": 4977.6
+    },
+    {
+      "rsu_id": "113",
+      "interseccion_id": "RUTA-13",
+      "acum_m": 5283.7
+    }
+  ],
+  "semillas": [
+    201,
+    202,
+    203,
+    204,
+    205
+  ],
+  "sigma_pos_m": 5.0,
+  "plan_controlador_s": {
+    "verde": 8,
+    "amarillo": 3,
+    "todo_rojo": 2,
+    "rojo_general": 8
+  },
+  "memoria_libre_mb_inicio": 4300.26171875,
+  "repeticiones": {
+    "rep_01": {
+      "semilla": 201,
+      "obu_id": "obu-ruta-b-s201",
+      "trayectoria_base": "trayectoria_B_s201.csv",
+      "t_ini_ns": 1794075709377588300,
+      "t_fin_ns": 1794076322336984700,
+      "arranque_s": 3.7,
+      "duracion_s": 613.0,
+      "memoria_libre_min_mb": 3591.8,
+      "solicitudes": 13,
+      "con_m2": 13,
+      "paradas_ruta": 13,
+      "problemas": []
+    },
+    "rep_02": {
+      "semilla": 202,
+      "obu_id": "obu-ruta-b-s202",
+      "trayectoria_base": "trayectoria_B_s202.csv",
+      "t_ini_ns": 1794076322642563000,
+      "t_fin_ns": 1794076975742111300,
+      "arranque_s": 3.8,
+      "duracion_s": 653.1,
+      "memoria_libre_min_mb": 3773.1,
+      "solicitudes": 13,
+      "con_m2": 13,
+      "paradas_ruta": 13,
+      "problemas": []
+    },
+    "rep_03": {
+      "semilla": 203,
+      "obu_id": "obu-ruta-b-s203",
+      "trayectoria_base": "trayectoria_B_s203.csv",
+      "t_ini_ns": 1794076976035164600,
+      "t_fin_ns": 1794077634857959300,
+      "arranque_s": 3.5,
+      "duracion_s": 658.8,
+      "memoria_libre_min_mb": 2830.0,
+      "solicitudes": 13,
+      "con_m2": 13,
+      "paradas_ruta": 13,
+      "problemas": []
+    },
+    "rep_04": {
+      "semilla": 204,
+      "obu_id": "obu-ruta-b-s204",
+      "trayectoria_base": "trayectoria_B_s204.csv",
+      "t_ini_ns": 1794077635165005300,
+      "t_fin_ns": 1794078240922495800,
+      "arranque_s": 3.4,
+      "duracion_s": 605.8,
+      "memoria_libre_min_mb": 3647.1,
+      "solicitudes": 13,
+      "con_m2": 13,
+      "paradas_ruta": 13,
+      "problemas": []
+    },
+    "rep_05": {
+      "semilla": 205,
+      "obu_id": "obu-ruta-b-s205",
+      "trayectoria_base": "trayectoria_B_s205.csv",
+      "t_ini_ns": 1794078241233878100,
+      "t_fin_ns": 1794078871306944900,
+      "arranque_s": 4.5,
+      "duracion_s": 630.1,
+      "memoria_libre_min_mb": 3796.5,
+      "solicitudes": 13,
+      "con_m2": 13,
+      "paradas_ruta": 13,
+      "problemas": []
+    }
+  },
+  "fecha_fin": "2026-11-07T14:14:31"
+}

@@ -1,0 +1,6 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794074088157995200,ctrl_103,ctrl_inicio,-,"{""desfase_s"":12.323,""epoch_wall_ns"":1794074075834978100,""verde_s"":8,""amarillo_ds"":30,""todo_rojo_ds"":20,""rojo_general_s"":8}"
+1794074293905133800,ctrl_103,ctrl_fase_cambio,-,"{""fase"":""amarillo"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794074296917797300,ctrl_103,ctrl_fase_cambio,-,"{""fase"":""todo_rojo"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794074298904638400,ctrl_103,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794074299355080800,ctrl_103,ctrl_fase_cambio,mis-e00ae137-RUTA-03,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""obu-ruta-a-s103"",""eta_seg"":8}"

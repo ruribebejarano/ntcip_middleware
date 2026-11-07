@@ -1,0 +1,105 @@
+{
+  "fecha_inicio": "2026-11-07T14:14:31",
+  "commit": "fea7c6a-con-cambios-sin-commit",
+  "escenario": "ruta_C",
+  "config": "local",
+  "factor": 1.0,
+  "broker": "127.0.0.1:8883",
+  "tls": true,
+  "registro": "scripts\\campanas\\fixtures\\registro_ruta_hospital_nino.json",
+  "rsus": [
+    {
+      "rsu_id": "101",
+      "interseccion_id": "RUTA-01",
+      "acum_m": 550.4
+    },
+    {
+      "rsu_id": "102",
+      "interseccion_id": "RUTA-02",
+      "acum_m": 775.4
+    },
+    {
+      "rsu_id": "103",
+      "interseccion_id": "RUTA-03",
+      "acum_m": 2153.1
+    },
+    {
+      "rsu_id": "104",
+      "interseccion_id": "RUTA-04",
+      "acum_m": 3052.1
+    },
+    {
+      "rsu_id": "105",
+      "interseccion_id": "RUTA-05",
+      "acum_m": 3351.9
+    },
+    {
+      "rsu_id": "106",
+      "interseccion_id": "RUTA-06",
+      "acum_m": 3850.6
+    },
+    {
+      "rsu_id": "107",
+      "interseccion_id": "RUTA-07",
+      "acum_m": 3994.4
+    },
+    {
+      "rsu_id": "108",
+      "interseccion_id": "RUTA-08",
+      "acum_m": 4278.1
+    },
+    {
+      "rsu_id": "109",
+      "interseccion_id": "RUTA-09",
+      "acum_m": 4417.3
+    },
+    {
+      "rsu_id": "110",
+      "interseccion_id": "RUTA-10",
+      "acum_m": 4696.5
+    },
+    {
+      "rsu_id": "111",
+      "interseccion_id": "RUTA-11",
+      "acum_m": 4838.1
+    },
+    {
+      "rsu_id": "112",
+      "interseccion_id": "RUTA-12",
+      "acum_m": 4977.6
+    },
+    {
+      "rsu_id": "113",
+      "interseccion_id": "RUTA-13",
+      "acum_m": 5283.7
+    }
+  ],
+  "semillas": [
+    301
+  ],
+  "sigma_pos_m": 5.0,
+  "plan_controlador_s": {
+    "verde": 8,
+    "amarillo": 3,
+    "todo_rojo": 2,
+    "rojo_general": 8
+  },
+  "memoria_libre_mb_inicio": 4757.77734375,
+  "repeticiones": {
+    "rep_01": {
+      "semilla": 301,
+      "obu_id": "obu-ruta-c-s301",
+      "trayectoria_base": "trayectoria_C.csv",
+      "t_ini_ns": 1794078872089222700,
+      "t_fin_ns": 1794079439852194200,
+      "arranque_s": 3.5,
+      "duracion_s": 567.8,
+      "memoria_libre_min_mb": 3719.6,
+      "solicitudes": 12,
+      "con_m2": 12,
+      "paradas_ruta": 13,
+      "problemas": []
+    }
+  },
+  "fecha_fin": "2026-11-07T14:24:00"
+}

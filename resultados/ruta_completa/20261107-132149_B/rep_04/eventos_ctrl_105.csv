@@ -1,0 +1,4 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794077635399013100,ctrl_105,ctrl_inicio,-,"{""desfase_s"":8.421,""epoch_wall_ns"":1794077626977992701,""verde_s"":8,""amarillo_ds"":30,""todo_rojo_ds"":20,""rojo_general_s"":8}"
+1794078029874477200,ctrl_105,ctrl_fase_cambio,-,"{""fase"":""verde"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794078044864403300,ctrl_105,ctrl_fase_cambio,mis-870777a4-RUTA-05,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""liberacion_manual""}"

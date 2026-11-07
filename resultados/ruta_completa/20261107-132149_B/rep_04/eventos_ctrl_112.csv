@@ -1,0 +1,4 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794077635514751200,ctrl_112,ctrl_inicio,-,"{""desfase_s"":18.837,""epoch_wall_ns"":1794077616677741000,""verde_s"":8,""amarillo_ds"":30,""todo_rojo_ds"":20,""rojo_general_s"":8}"
+1794078198859727800,ctrl_112,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794078198868124000,ctrl_112,ctrl_fase_cambio,mis-870777a4-RUTA-12,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""obu-ruta-b-s204"",""eta_seg"":8}"

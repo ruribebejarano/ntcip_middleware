@@ -1,0 +1,7 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794078241454603800,ctrl_101,ctrl_inicio,-,"{""desfase_s"":10.146,""epoch_wall_ns"":1794078231308585400,""verde_s"":8,""amarillo_ds"":30,""todo_rojo_ds"":20,""rojo_general_s"":8}"
+1794078303252898000,ctrl_101,ctrl_fase_cambio,-,"{""fase"":""amarillo"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794078305322717600,ctrl_101,ctrl_fase_cambio,-,"{""fase"":""todo_rojo"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794078307373081200,ctrl_101,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794078307389204200,ctrl_101,ctrl_fase_cambio,mis-5d9efc09-RUTA-01,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""obu-ruta-b-s205"",""eta_seg"":7}"
+1794078314262208200,ctrl_101,ctrl_fase_cambio,mis-5d9efc09-RUTA-01,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""liberacion_manual""}"

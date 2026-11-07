@@ -140,3 +140,15 @@ def test_prioridad_deja_el_ciclo_de_fondo_coherente_al_liberar():
             f"tras liberar la prioridad a los 13 s de reloj real, se esperaba 'rojo_general' "
             f"(el ciclo de fondo siguio corriendo); salio {estado['fase']!r}."
         )
+
+
+def test_desfase_inicial_adelanta_el_ciclo():
+    """Campaña de ruta completa: --desfase-s arranca el ciclo ya avanzado;
+    con 0 (por defecto) arranca en verde, como siempre."""
+    from controller.controller_emulator import Controller
+
+    assert Controller().status()["fase"] == "verde"
+    assert Controller(desfase_s=9.0).status()["fase"] == "amarillo"   # 8 s verde + 1 s
+    assert Controller(desfase_s=12.0).status()["fase"] == "todo_rojo"  # 8 + 3 + 1
+    assert Controller(desfase_s=15.0).status()["fase"] == "rojo_general"
+    assert Controller(desfase_s=21.5).status()["fase"] == "verde"      # vuelta completa

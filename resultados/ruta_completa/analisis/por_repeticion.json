@@ -1,0 +1,138 @@
+[
+ {
+  "repeticion": "rep_01",
+  "escenario": "ruta_A",
+  "n_solicitudes": 13,
+  "max_simultaneas": 1,
+  "suspensiones": 0,
+  "recalculos": 0,
+  "corrida": "20261107-123645_A",
+  "semilla": 101
+ },
+ {
+  "repeticion": "rep_02",
+  "escenario": "ruta_A",
+  "n_solicitudes": 13,
+  "max_simultaneas": 1,
+  "suspensiones": 0,
+  "recalculos": 0,
+  "corrida": "20261107-123645_A",
+  "semilla": 102
+ },
+ {
+  "repeticion": "rep_03",
+  "escenario": "ruta_A",
+  "n_solicitudes": 13,
+  "max_simultaneas": 1,
+  "suspensiones": 0,
+  "recalculos": 0,
+  "corrida": "20261107-123645_A",
+  "semilla": 103
+ },
+ {
+  "repeticion": "rep_04",
+  "escenario": "ruta_A",
+  "n_solicitudes": 13,
+  "max_simultaneas": 1,
+  "suspensiones": 0,
+  "recalculos": 0,
+  "corrida": "20261107-123645_A",
+  "semilla": 104
+ },
+ {
+  "repeticion": "rep_05",
+  "escenario": "ruta_A",
+  "n_solicitudes": 13,
+  "max_simultaneas": 1,
+  "suspensiones": 0,
+  "recalculos": 0,
+  "corrida": "20261107-123645_A",
+  "semilla": 105
+ },
+ {
+  "repeticion": "rep_01",
+  "escenario": "ruta_B",
+  "n_solicitudes": 13,
+  "max_simultaneas": 1,
+  "suspensiones": 1,
+  "recalculos": 0,
+  "corrida": "20261107-132149_B",
+  "semilla": 201
+ },
+ {
+  "repeticion": "rep_02",
+  "escenario": "ruta_B",
+  "n_solicitudes": 13,
+  "max_simultaneas": 1,
+  "suspensiones": 0,
+  "recalculos": 0,
+  "corrida": "20261107-132149_B",
+  "semilla": 202
+ },
+ {
+  "repeticion": "rep_03",
+  "escenario": "ruta_B",
+  "n_solicitudes": 13,
+  "max_simultaneas": 1,
+  "suspensiones": 1,
+  "recalculos": 0,
+  "corrida": "20261107-132149_B",
+  "semilla": 203
+ },
+ {
+  "repeticion": "rep_04",
+  "escenario": "ruta_B",
+  "n_solicitudes": 13,
+  "max_simultaneas": 1,
+  "suspensiones": 1,
+  "recalculos": 0,
+  "corrida": "20261107-132149_B",
+  "semilla": 204
+ },
+ {
+  "repeticion": "rep_05",
+  "escenario": "ruta_B",
+  "n_solicitudes": 13,
+  "max_simultaneas": 1,
+  "suspensiones": 1,
+  "recalculos": 0,
+  "corrida": "20261107-132149_B",
+  "semilla": 205
+ },
+ {
+  "repeticion": "rep_01",
+  "escenario": "ruta_C",
+  "n_solicitudes": 12,
+  "max_simultaneas": 2,
+  "suspensiones": 0,
+  "recalculos": 2,
+  "desvio": {
+   "salida_de_ruta_s_m": 4140.0,
+   "recalculos": [
+    {
+     "desde_salida_de_ruta_s": 6.0073927,
+     "mp_rx_a_recalculo_ms": 6.0847,
+     "recalculo_a_mr_en_obu_ms": 0.75,
+     "paradas_antes": 13,
+     "paradas_despues": 6
+    },
+    {
+     "desde_salida_de_ruta_s": 7.0073749,
+     "mp_rx_a_recalculo_ms": 6.2826,
+     "recalculo_a_mr_en_obu_ms": 0.7434,
+     "paradas_antes": 6,
+     "paradas_despues": 4
+    }
+   ],
+   "cancelaciones": [
+    {
+     "id_solicitud": "mis-082e71f6-RUTA-08",
+     "motivo": "cruce",
+     "desde_salida_de_ruta_s": 0.0011052
+    }
+   ]
+  },
+  "corrida": "20261107-141431_C",
+  "semilla": 301
+ }
+]

@@ -1,0 +1,483 @@
+{
+  "version": "ruta-completa-hospital-nino-brena",
+  "descripcion": "Registro de RSU de la campaña de ruta completa (resultados/ruta_completa/): una RSU por interseccion semaforizada de OSM a menos de 25 m de la ruta (-12.074664, -77.082933) -> (-12.0649978, -77.0464372) (destino: Instituto Nacional de Salud del Nino, Brena, OSM way/194898813). Generado por scripts/datos/registro_ruta.py.",
+  "origen": {
+    "ruta": "servidor/rutas.py::calcular_ruta sobre grafo_san_miguel_real.graphml: 5301.5 m, 59 nodos",
+    "semaforos": "semaforos_nodos.geojson, agrupados por enlace simple a 40 m",
+    "accesos": "rumbo_llegada_deg REAL desde el grafo (vecinos del nodo de la ruta mas cercano al centro)",
+    "grupo_semaforico": "Valor de relleno (1 = colineal con la ruta, 2 = transversal); el plan real lo entrega el CCGT.",
+    "rsu_id": "101 en adelante: no chocan con el agente real de la Raspberry Pi (rsu_id 1) ni con los registros de demostracion (2 a 6).",
+    "codigo_mml": "Sin cruzar con el inventario de la MML."
+  },
+  "rsu": [
+    {
+      "rsu_id": "101",
+      "interseccion_id": "RUTA-01",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0748098,
+        "lon": -77.0795977
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 93.1,
+          "grupo_semaforico": 1,
+          "nota": "acceso de la ruta (nodo 589642572 -> 589642633)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 32.2,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 4332507067 hacia 589642633"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 221.2,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 589642608 hacia 589642633"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 282.9,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 650000841 hacia 589642633"
+        }
+      ],
+      "acum_m": 550.4,
+      "n_nodos_osm": 4
+    },
+    {
+      "rsu_id": "102",
+      "interseccion_id": "RUTA-02",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0753241,
+        "lon": -77.077597
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 102.0,
+          "grupo_semaforico": 1,
+          "nota": "acceso de la ruta (nodo 650000841 -> 2054187184)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 190.8,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 2054187182 hacia 2054187184"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 281.7,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 650000927 hacia 2054187184"
+        }
+      ],
+      "acum_m": 775.4,
+      "n_nodos_osm": 2
+    },
+    {
+      "rsu_id": "103",
+      "interseccion_id": "RUTA-03",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0787968,
+        "lon": -77.0654475
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 106.6,
+          "grupo_semaforico": 1,
+          "nota": "acceso de la ruta (nodo 2059583644 -> 638356991)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 22.6,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 316809680 hacia 638356991"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 277.6,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 638356992 hacia 638356991"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 207.8,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 638356999 hacia 638356991"
+        }
+      ],
+      "acum_m": 2153.1,
+      "n_nodos_osm": 3
+    },
+    {
+      "rsu_id": "104",
+      "interseccion_id": "RUTA-04",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0806291,
+        "lon": -77.0583713
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 130.0,
+          "grupo_semaforico": 1,
+          "nota": "acceso de la ruta (nodo 2055741710 -> 263389679)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 39.1,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 2060102887 hacia 263389679"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 309.4,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 263389680 hacia 263389679"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 219.1,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 263389742 hacia 263389679"
+        }
+      ],
+      "acum_m": 3052.1,
+      "n_nodos_osm": 8
+    },
+    {
+      "rsu_id": "105",
+      "interseccion_id": "RUTA-05",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0786036,
+        "lon": -77.0567021
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 38.8,
+          "grupo_semaforico": 1,
+          "nota": "acceso de la ruta (nodo 263389984 -> 263394495)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 80.5,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 2057539437 hacia 263394495"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 261.1,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 263390313 hacia 263394495"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 218.8,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 263390314 hacia 263394495"
+        }
+      ],
+      "acum_m": 3351.9,
+      "n_nodos_osm": 8
+    },
+    {
+      "rsu_id": "106",
+      "interseccion_id": "RUTA-06",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0750722,
+        "lon": -77.0538754
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 38.8,
+          "grupo_semaforico": 1,
+          "nota": "acceso de la ruta (nodo 10700234402 -> 263393294)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 309.2,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 263389391 hacia 263393294"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 218.3,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 263392919 hacia 263393294"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 96.7,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 316803105 hacia 263393294"
+        }
+      ],
+      "acum_m": 3850.6,
+      "n_nodos_osm": 6
+    },
+    {
+      "rsu_id": "107",
+      "interseccion_id": "RUTA-07",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.074103,
+        "lon": -77.0529983
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 38.3,
+          "grupo_semaforico": 1,
+          "nota": "acceso de la ruta (nodo 263393294 -> 263392919)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 309.3,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 263389392 hacia 263392919"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 219.1,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 263395368 hacia 263392919"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 117.4,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 309999004 hacia 263392919"
+        }
+      ],
+      "acum_m": 3994.4,
+      "n_nodos_osm": 4
+    },
+    {
+      "rsu_id": "108",
+      "interseccion_id": "RUTA-08",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0721173,
+        "lon": -77.0513588
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 38.7,
+          "grupo_semaforico": 1,
+          "nota": "acceso de la ruta (nodo 263395368 -> 263396343)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 127.6,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 1399076796 hacia 263396343"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 309.3,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 2068555267 hacia 263396343"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 219.0,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 263400734 hacia 263396343"
+        }
+      ],
+      "acum_m": 4278.1,
+      "n_nodos_osm": 4
+    },
+    {
+      "rsu_id": "109",
+      "interseccion_id": "RUTA-09",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0711416,
+        "lon": -77.0505556
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 39.0,
+          "grupo_semaforico": 1,
+          "nota": "acceso de la ruta (nodo 263396343 -> 263400734)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 309.1,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 263400735 hacia 263400734"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 127.3,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 817654996 hacia 263400734"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 219.6,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 817655015 hacia 263400734"
+        }
+      ],
+      "acum_m": 4417.3,
+      "n_nodos_osm": 4
+    },
+    {
+      "rsu_id": "110",
+      "interseccion_id": "RUTA-10",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0691702,
+        "lon": -77.0489672
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 38.8,
+          "grupo_semaforico": 1,
+          "nota": "acceso de la ruta (nodo 817655015 -> 263401823)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 308.3,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 263389397 hacia 263401823"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 217.7,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 263402345 hacia 263401823"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 129.5,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 817654869 hacia 263401823"
+        }
+      ],
+      "acum_m": 4696.5,
+      "n_nodos_osm": 5
+    },
+    {
+      "rsu_id": "111",
+      "interseccion_id": "RUTA-11",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0681974,
+        "lon": -77.0481283
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 37.7,
+          "grupo_semaforico": 1,
+          "nota": "acceso de la ruta (nodo 263401823 -> 263402345)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 309.3,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 263389398 hacia 263402345"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 218.8,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 791159858 hacia 263402345"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 127.9,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 819211122 hacia 263402345"
+        }
+      ],
+      "acum_m": 4838.1,
+      "n_nodos_osm": 4
+    },
+    {
+      "rsu_id": "112",
+      "interseccion_id": "RUTA-12",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0672189,
+        "lon": -77.0473229
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 38.8,
+          "grupo_semaforico": 1,
+          "nota": "acceso de la ruta (nodo 263402345 -> 791159858)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 308.8,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 263389399 hacia 791159858"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 219.5,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 263403252 hacia 791159858"
+        },
+        {
+          "acceso_id": "D",
+          "rumbo_llegada_deg": 127.3,
+          "grupo_semaforico": 2,
+          "nota": "llegada real desde el nodo 528023636 hacia 791159858"
+        }
+      ],
+      "acum_m": 4977.6,
+      "n_nodos_osm": 4
+    },
+    {
+      "rsu_id": "113",
+      "interseccion_id": "RUTA-13",
+      "codigo_mml": null,
+      "centro": {
+        "lat": -12.0653243,
+        "lon": -77.0456969
+      },
+      "accesos": [
+        {
+          "acceso_id": "A",
+          "rumbo_llegada_deg": 39.5,
+          "grupo_semaforico": 1,
+          "nota": "acceso de la ruta (nodo 263403252 -> 263403171)"
+        },
+        {
+          "acceso_id": "B",
+          "rumbo_llegada_deg": 261.4,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 10991371808 hacia 263403171"
+        },
+        {
+          "acceso_id": "C",
+          "rumbo_llegada_deg": 217.5,
+          "grupo_semaforico": 1,
+          "nota": "llegada real desde el nodo 9419683092 hacia 263403171"
+        }
+      ],
+      "acum_m": 5283.7,
+      "n_nodos_osm": 6
+    }
+  ]
+}

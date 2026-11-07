@@ -1,0 +1,5 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794074628762392000,ctrl_111,ctrl_inicio,-,"{""desfase_s"":8.411,""epoch_wall_ns"":1794074620351371900,""verde_s"":8,""amarillo_ds"":30,""todo_rojo_ds"":20,""rojo_general_s"":8}"
+1794075102608683500,ctrl_111,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794075102610269500,ctrl_111,ctrl_fase_cambio,mis-1ce2f9ab-RUTA-11,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""obu-ruta-a-s104"",""eta_seg"":8}"
+1794075116611760900,ctrl_111,ctrl_fase_cambio,mis-1ce2f9ab-RUTA-11,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""liberacion_manual""}"

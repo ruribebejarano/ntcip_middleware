@@ -114,6 +114,7 @@ class Controller:
         phase_yellow_change_ds: int = DEFAULT_PHASE_YELLOW_CHANGE_DS,
         phase_red_clear_ds: int = DEFAULT_PHASE_RED_CLEAR_DS,
         rojo_general_s: int = DEFAULT_ROJO_GENERAL_S,
+        desfase_s: float = 0.0,
     ) -> None:
         self._lock = threading.Lock()
         self._phase_minimum_green_s = phase_minimum_green_s
@@ -128,7 +129,16 @@ class Controller:
         # segun el tiempo transcurrido, no una congelada desde antes de
         # la prioridad (ver docs/bitacora, defecto de banco de pruebas
         # corregido 2026-10-29).
-        self._epoch = time.monotonic()
+        # desfase_s (campaña de ruta completa): arranca el ciclo como si
+        # ya hubieran pasado desfase_s segundos desde el inicio del verde,
+        # para que varios controladores lanzados juntos no queden en fase.
+        # Con 0 (por defecto) el comportamiento es el de siempre.
+        self._desfase_s = float(desfase_s)
+        self._epoch = time.monotonic() - self._desfase_s
+        # Mismo instante en reloj de pared (ns): inicio de un verde del plan.
+        # Con esto el análisis puede saber la fase del plan en cualquier
+        # instante sin depender de los polls.
+        self._epoch_wall_ns = time.time_ns() - int(self._desfase_s * 1e9)
         self._priority_vehicle: str | None = None
         self._priority_request_id = "-"
         self._priority_until = 0.0
@@ -360,6 +370,8 @@ def main() -> None:
                          help="decimas de segundo (NTCIP phaseRedClear, rango 0-255)")
     parser.add_argument("--rojo-general", type=int, default=DEFAULT_ROJO_GENERAL_S,
                          help="segundos (sin equivalente NTCIP, ver docstring del modulo)")
+    parser.add_argument("--desfase-s", type=float, default=0.0,
+                         help="segundos ya transcurridos del ciclo al arrancar (0 = arranca en verde)")
     args = parser.parse_args()
 
     eventos = EventLogger(f"ctrl_{RSU_ID}")
@@ -369,7 +381,12 @@ def main() -> None:
         phase_yellow_change_ds=args.phase_yellow_change,
         phase_red_clear_ds=args.phase_red_clear,
         rojo_general_s=args.rojo_general,
+        desfase_s=args.desfase_s,
     )
+    t0 = controller.timing()
+    eventos.log("ctrl_inicio", "-", desfase_s=args.desfase_s, epoch_wall_ns=controller._epoch_wall_ns,
+                verde_s=t0["phase_minimum_green"], amarillo_ds=t0["phase_yellow_change"],
+                todo_rojo_ds=t0["phase_red_clear"], rojo_general_s=t0["rojo_general_seg"])
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind((LISTEN_HOST, args.port))
@@ -378,6 +395,7 @@ def main() -> None:
     print(f"Emulador de controlador de transito escuchando en {LISTEN_HOST}:{args.port}")
     print("(protocolo propietario simulado, JSON Lines -- ver cabecera del modulo)")
     print(f"RSU_ID={RSU_ID} -- registro de eventos en {eventos.path}")
+    print(f"Desfase inicial del ciclo: {args.desfase_s:.2f} s")
     t = controller.timing()
     print(f"Tiempos: verde={t['phase_minimum_green']}s "
           f"amarillo={t['phase_yellow_change']/10:.1f}s "

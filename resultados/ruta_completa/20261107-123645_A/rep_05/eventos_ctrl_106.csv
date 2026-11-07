@@ -1,0 +1,4 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794075169309505400,ctrl_106,ctrl_inicio,-,"{""desfase_s"":18.173,""epoch_wall_ns"":1794075151136494400,""verde_s"":8,""amarillo_ds"":30,""todo_rojo_ds"":20,""rojo_general_s"":8}"
+1794075544635293700,ctrl_106,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794075544636559500,ctrl_106,ctrl_fase_cambio,mis-d7df21b0-RUTA-06,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""obu-ruta-a-s105"",""eta_seg"":8}"

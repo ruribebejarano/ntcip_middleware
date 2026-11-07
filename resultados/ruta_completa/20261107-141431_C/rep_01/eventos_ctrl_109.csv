@@ -1,0 +1,2 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794078872448475900,ctrl_109,ctrl_inicio,-,"{""desfase_s"":10.301,""epoch_wall_ns"":1794078862147454800,""verde_s"":8,""amarillo_ds"":30,""todo_rojo_ds"":20,""rojo_general_s"":8}"

@@ -1,0 +1,3 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794076976276261400,ctrl_103,ctrl_inicio,-,"{""desfase_s"":20.54,""epoch_wall_ns"":1794076955736246200,""verde_s"":8,""amarillo_ds"":30,""todo_rojo_ds"":20,""rojo_general_s"":8}"
+1794077213792167400,ctrl_103,ctrl_fase_cambio,-,"{""fase"":""verde"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
