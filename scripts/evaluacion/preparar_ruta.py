@@ -2,8 +2,8 @@
 """Genera el registro de RSU y la trayectoria de una ruta de rutas.json.
 
 Calcula la ruta con servidor/rutas.py (la misma que usará el servidor), elige
-las intersecciones semaforizadas de OSM que hay sobre ella y escribe en
-resultados/evaluacion/rutas/:
+las intersecciones semaforizadas de OSM que hay sobre ella (o las que lista
+"rsu_manual" en rutas.json) y escribe en resultados/evaluacion/rutas/:
 
     registro_rsu_<ruta>.json   RSU emuladas que levanta evaluar.ps1
     trayectoria_<ruta>.csv     recorrido a 1 Hz para la OBU emulada
@@ -49,6 +49,29 @@ def elegir_separadas(candidatas: list[dict], maximo: int, separacion_m: float) -
     return elegidas
 
 
+RADIO_MANUAL_M = 40.0   # distancia máxima entre un punto de "rsu_manual" y el nodo de la ruta
+
+
+def candidatas_manuales(ruta, puntos: list, radio_m: float = RADIO_MANUAL_M) -> list[dict]:
+    """RSU puestas a mano: cada punto [lat, lon] se asocia al nodo de la ruta más
+    cercano (sin contar el origen). Los puntos lejos de la ruta se omiten con aviso.
+    Devuelve las candidatas en el orden de la ruta, sin repetir nodos."""
+    geo = ruta.geometria
+    elegidas: dict[int, dict] = {}
+    for k, punto in enumerate(puntos, start=1):
+        lat, lon = (punto["lat"], punto["lon"]) if isinstance(punto, dict) else (punto[0], punto[1])
+        indice = min(range(1, len(geo)), key=lambda i: casa._dist(lat, lon, geo[i].lat, geo[i].lon))
+        d = casa._dist(lat, lon, geo[indice].lat, geo[indice].lon)
+        if d > radio_m:
+            print(f"  Se omite el punto {k} ({lat},{lon}): queda a {d:.0f} m de la ruta (máximo {radio_m:.0f} m).")
+            continue
+        if indice in elegidas:
+            print(f"  Se omite el punto {k} ({lat},{lon}): cae en el mismo nodo que otro punto.")
+            continue
+        elegidas[indice] = {"indice": indice, "nodo": geo[indice], "distancia_m": d}
+    return [elegidas[i] for i in sorted(elegidas)]
+
+
 def fuera_de_radio_inicial(candidatas: list[dict], origen: tuple[float, float]) -> list[dict]:
     """Quita las RSU demasiado cerca del origen en línea recta. Si la misión empieza
     dentro de R_i + margen, el seguidor de acceso da la RSU por cruzada casi de inmediato."""
@@ -86,11 +109,46 @@ def armar_registro(nombre: str, conf: dict, G, ruta, elegidas: list[dict]) -> di
     }
 
 
+MARGEN_GRAFO_DEG = 0.006   # margen de la caja sugerida para un grafo propio (~650 m)
+
+
+def ruta_grafo(conf: dict) -> Path:
+    """Grafo vial de la ruta: el campo opcional "grafo" de rutas.json (ruta
+    relativa a la raíz del repo) o, sin él, el grafo de siempre. Una zona
+    alejada usa su propio grafo para no volver a descargar ni agrandar el
+    compartido, que es el de las campañas ya medidas."""
+    return RAIZ / conf["grafo"] if conf.get("grafo") else rutas_mod.GRAFO_REAL_DEFAULT
+
+
+def comando_grafo_propio(conf: dict, destino: Path) -> str:
+    """Comando para descargar un grafo que cubra origen, destino y RSU a mano."""
+    puntos = [conf["origen"], conf["destino"], *conf.get("rsu_manual", [])]
+    lats = [p[0] for p in puntos]
+    lons = [p[1] for p in puntos]
+    m = MARGEN_GRAFO_DEG
+    rel = destino.relative_to(RAIZ).as_posix() if destino.is_relative_to(RAIZ) else str(destino)
+    return (f"python scripts/datos/regenerar_grafo.py --norte {max(lats) + m:.5f} --sur {min(lats) - m:.5f} "
+            f"--este {max(lons) + m:.5f} --oeste {min(lons) - m:.5f} --salida {rel}")
+
+
 def preparar(nombre: str, conf: dict, salida: Path = SALIDA) -> int:
     origen, destino = tuple(conf["origen"]), tuple(conf["destino"])
-    G = rutas_mod.cargar_grafo(rutas_mod.GRAFO_REAL_DEFAULT)
+    archivo_grafo = ruta_grafo(conf)
+    if not archivo_grafo.exists():
+        print(f"No existe el grafo '{conf['grafo']}' de esta ruta. Para descargarlo (requiere osmnx e internet):")
+        print(f"    {comando_grafo_propio(conf, archivo_grafo)}")
+        return 2
+    print(f"Grafo: {archivo_grafo.relative_to(RAIZ).as_posix()}")
+    G = rutas_mod.cargar_grafo(archivo_grafo)
     if not casa.verificar_cobertura(G, {"origen": origen, "destino": destino}):
-        print("La ruta queda fuera del grafo vial. Ejecuta el comando indicado arriba y vuelve a preparar.")
+        if not conf.get("grafo"):
+            print()
+            print("Si la zona está lejos de las otras rutas, conviene un grafo propio en vez de agrandar el"
+                  " compartido (el de las campañas ya medidas). Agrega a la ruta en rutas.json:")
+            print(f'    "grafo": "data/grafo_{nombre}.graphml"')
+            print("y descárgalo con:")
+            print(f"    {comando_grafo_propio(conf, RAIZ / 'data' / f'grafo_{nombre}.graphml')}")
+        print("La ruta queda fuera del grafo vial. Ejecuta uno de los comandos indicados arriba y vuelve a preparar.")
         return 2
 
     ruta = rutas_mod.calcular_ruta(G, origen, destino)
@@ -98,11 +156,15 @@ def preparar(nombre: str, conf: dict, salida: Path = SALIDA) -> int:
     print(f"Ruta '{nombre}': {ruta.longitud_total_m:.0f} m, "
           f"unos {ruta.longitud_total_m / (velocidad / 3.6) / 60:.1f} min a {velocidad:g} km/h")
 
-    candidatas = casa.candidatas_semaforo(G, ruta, float(conf.get("min_desde_origen_m", 200)))
-    candidatas = fuera_de_radio_inicial(candidatas, origen)
-    elegidas = elegir_separadas(candidatas, int(conf.get("max_rsu", 3)), float(conf.get("separacion_min_m", 300)))
+    if conf.get("rsu_manual"):
+        print(f"RSU a mano: {len(conf['rsu_manual'])} puntos (se ignoran max_rsu y separacion_min_m)")
+        elegidas = fuera_de_radio_inicial(candidatas_manuales(ruta, conf["rsu_manual"]), origen)
+    else:
+        candidatas = casa.candidatas_semaforo(G, ruta, float(conf.get("min_desde_origen_m", 200)))
+        candidatas = fuera_de_radio_inicial(candidatas, origen)
+        elegidas = elegir_separadas(candidatas, int(conf.get("max_rsu", 3)), float(conf.get("separacion_min_m", 300)))
     if not elegidas:
-        print("No hay semáforos de OSM sobre esta ruta. Cambia origen o destino, o baja min_desde_origen_m.")
+        print("No hay RSU sobre esta ruta. Cambia origen o destino, revisa rsu_manual o baja min_desde_origen_m.")
         return 3
 
     salida.mkdir(parents=True, exist_ok=True)

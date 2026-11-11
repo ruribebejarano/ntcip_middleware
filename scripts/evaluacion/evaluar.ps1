@@ -65,6 +65,9 @@ function Verificar-Broker($puerto) {
 }
 
 function Levantar-Banco($puerto) {
+    # Grafo propio de la ruta (campo "grafo" de rutas.json): el servidor lo lee de GRAFO_PATH.
+    $grafo = (Get-Content (Join-Path $Raiz "scripts\evaluacion\rutas.json") -Raw -Encoding UTF8 | ConvertFrom-Json).$Ruta.grafo
+    if ($grafo) { $env:GRAFO_PATH = (Join-Path $Raiz $grafo) } else { Remove-Item Env:GRAFO_PATH -ErrorAction SilentlyContinue }
     $argumentos = @{ Registro = (Join-Path $DirRutas "registro_rsu_$Ruta.json"); ConServidor = $true; Broker = "127.0.0.1"; BrokerPort = $puerto }
     if (-not $SinTls) { $argumentos.TlsPki = $Pki }
     & $Lanzar @argumentos | Out-Host
