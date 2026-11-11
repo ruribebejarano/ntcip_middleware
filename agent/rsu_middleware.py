@@ -274,19 +274,58 @@ def _id_numerico_para(vehiculo_id: str) -> int:
     return _id_numerico_por_vehiculo[vehiculo_id]
 
 
+# Conexion persistente hacia el controlador (JSON Lines, un pedido -> una
+# linea de respuesta). Antes se abria una conexion TCP nueva por pedido: en
+# Linux (la Pi) cuesta decimas de ms, pero en Windows cada conexion por
+# loopback cuesta ~15 ms, y con 2-3 pedidos por M1 inflaba la retencion de
+# la RSU en el banco local (~30 ms frente a 1,9 ms en la Pi). La
+# semantica de cada pedido no cambia. El candado serializa los pedidos del
+# hilo MQTT y del watchdog de caducidad sobre el mismo socket.
+_CTRL_LOCK = threading.Lock()
+_CTRL_SOCK: socket.socket | None = None
+_CTRL_RFILE = None
+
+
+def _cerrar_conexion_controlador() -> None:
+    global _CTRL_SOCK, _CTRL_RFILE
+    for obj in (_CTRL_RFILE, _CTRL_SOCK):
+        try:
+            if obj is not None:
+                obj.close()
+        except OSError:
+            pass
+    _CTRL_SOCK = None
+    _CTRL_RFILE = None
+
+
 def controller_request(payload: dict, timeout: float = 2.0) -> dict:
-    """Un pedido, una respuesta. Conexion TCP nueva cada vez -- trafico bajo,
-    no hace falta mantener una conexion persistente para esta maqueta."""
-    with socket.create_connection((CONTROLLER_HOST, CONTROLLER_PORT), timeout=timeout) as sock:
-        sock.sendall((json.dumps(payload) + "\n").encode("utf-8"))
-        sock.settimeout(timeout)
-        buf = b""
-        while not buf.endswith(b"\n"):
-            chunk = sock.recv(4096)
-            if not chunk:
-                break
-            buf += chunk
-    return json.loads(buf.decode("utf-8"))
+    """Un pedido, una respuesta, sobre una conexion TCP persistente que se
+    reabre si el controlador la cerro (p. ej. tras reiniciarse). Un solo
+    reintento, y solo si la conexion venia reutilizada: los pedidos son
+    idempotentes (get_status/get_timing, o request/clear_priority sobre el
+    mismo id), asi que repetirlo tras una conexion vieja no cambia el
+    estado del controlador."""
+    global _CTRL_SOCK, _CTRL_RFILE
+    linea = (json.dumps(payload) + "\n").encode("utf-8")
+    with _CTRL_LOCK:
+        for intento in (1, 2):
+            reutilizada = _CTRL_SOCK is not None
+            try:
+                if _CTRL_SOCK is None:
+                    _CTRL_SOCK = socket.create_connection((CONTROLLER_HOST, CONTROLLER_PORT), timeout=timeout)
+                    _CTRL_SOCK.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                    _CTRL_RFILE = _CTRL_SOCK.makefile("rb")
+                _CTRL_SOCK.settimeout(timeout)
+                _CTRL_SOCK.sendall(linea)
+                respuesta = _CTRL_RFILE.readline()
+                if not respuesta:
+                    raise ConnectionError("el controlador cerro la conexion")
+                return json.loads(respuesta.decode("utf-8"))
+            except OSError:
+                _cerrar_conexion_controlador()
+                if intento == 2 or not reutilizada:
+                    raise
+    raise ConnectionError("inalcanzable")  # pragma: no cover
 
 
 def _reenviar_request_priority(
