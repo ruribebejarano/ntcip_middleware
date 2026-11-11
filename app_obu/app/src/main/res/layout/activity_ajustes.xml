@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Ajustes en el orden en que se usan: conexión (lo que hay que dejar bien
+     una vez y comprobar), misión, y al final lo de demo y mantenimiento.
+     Se guardan solos al salir; "Listo" solo cierra. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -8,6 +11,12 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="20dp">
+
+        <!-- ===== Conexión ===== -->
+        <TextView
+            style="@style/TituloSeccion"
+            android:layout_marginTop="0dp"
+            android:text="@string/conexion_titulo" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -52,13 +61,98 @@
             android:id="@+id/campoPuerto"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="1883"
+            android:hint="8883"
             android:inputType="number" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/ajustes_tls_titulo"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ajustes_tls_resumen"
+            android:textSize="13sp" />
+
+        <Switch
+            android:id="@+id/interruptorTls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/ajustes_tls_activar" />
+
+        <LinearLayout
+            android:id="@+id/panelTls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/textoTlsEstado"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/ajustes_tls_sin_archivos"
+                android:textSize="15sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/botonElegirTlsCa"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/ajustes_tls_elegir_ca" />
+
+                <Button
+                    android:id="@+id/botonElegirTlsCert"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="4dp"
+                    android:text="@string/ajustes_tls_elegir_cert" />
+
+                <Button
+                    android:id="@+id/botonElegirTlsKey"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="4dp"
+                    android:text="@string/ajustes_tls_elegir_key" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/botonProbarConexion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:text="@string/tls_probar" />
+        <TextView
+            android:id="@+id/textoPruebaConexion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="15sp"
+            android:visibility="gone" />
+
+        <!-- ===== Misión ===== -->
+        <TextView
+            style="@style/TituloSeccion"
+            android:text="@string/seccion_mision_ajustes" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:text="@string/ajustes_clase" />
         <EditText
             android:id="@+id/campoClase"
@@ -67,29 +161,35 @@
             android:hint="1"
             android:inputType="number" />
 
+        <LinearLayout
+            android:id="@+id/panelObuId"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/ajustes_obu_id" />
+            <EditText
+                android:id="@+id/campoObuId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="obu-tab-01"
+                android:inputType="textNoSuggestions" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/ajustes_obu_id_ayuda"
+                android:textSize="12sp" />
+        </LinearLayout>
         <TextView
-            android:layout_width="wrap_content"
+            android:id="@+id/textoObuIdTls"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="@string/ajustes_obu_id" />
-        <EditText
-            android:id="@+id/campoObuId"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="obu-tab-01"
-            android:inputType="textNoSuggestions" />
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/ajustes_obu_id_ayuda"
-            android:textSize="12sp" />
-
-        <Switch
-            android:id="@+id/interruptorModoSimulado"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/ajustes_modo_simulado" />
+            android:textSize="14sp"
+            android:visibility="gone" />
 
         <Switch
             android:id="@+id/interruptorVibrar"
@@ -98,12 +198,22 @@
             android:layout_marginTop="12dp"
             android:text="@string/ajustes_vibrar" />
 
+        <!-- ===== Demo ===== -->
+        <TextView
+            style="@style/TituloSeccion"
+            android:text="@string/seccion_demo_ajustes" />
+
+        <Switch
+            android:id="@+id/interruptorModoSimulado"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ajustes_modo_simulado" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/ajustes_avanzado"
-            android:textStyle="bold" />
+            android:layout_marginTop="12dp"
+            android:text="@string/ajustes_avanzado" />
         <TextView
             android:id="@+id/textoTrayectoriaElegida"
             android:layout_width="match_parent"
@@ -119,6 +229,7 @@
 
             <Button
                 android:id="@+id/botonElegirTrayectoria"
+                style="?attr/materialButtonOutlinedStyle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -126,67 +237,38 @@
 
             <Button
                 android:id="@+id/botonUsarIntegrada"
+                style="?attr/materialButtonOutlinedStyle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:layout_marginStart="4dp"
                 android:text="@string/ajustes_quitar_archivo" />
         </LinearLayout>
 
+        <!-- ===== Registro y batería ===== -->
         <TextView
+            style="@style/TituloSeccion"
+            android:text="@string/seccion_registro_ajustes" />
+
+        <Button
+            android:id="@+id/botonExportarEventos"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ajustes_exportar_eventos" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/ajustes_bateria_resumen" />
+        <Button
+            android:id="@+id/botonRevisarBateria"
+            style="?attr/materialButtonOutlinedStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/ajustes_tls_titulo"
-            android:textStyle="bold" />
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/ajustes_tls_resumen" />
-
-        <Switch
-            android:id="@+id/interruptorTls"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/ajustes_tls_activar" />
-
-        <TextView
-            android:id="@+id/textoTlsEstado"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="@string/ajustes_tls_sin_archivos"
-            android:textStyle="italic" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/botonElegirTlsCa"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/ajustes_tls_elegir_ca" />
-
-            <Button
-                android:id="@+id/botonElegirTlsCert"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:text="@string/ajustes_tls_elegir_cert" />
-
-            <Button
-                android:id="@+id/botonElegirTlsKey"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:text="@string/ajustes_tls_elegir_key" />
-        </LinearLayout>
+            android:text="@string/ajustes_bateria_boton" />
 
         <Button
             android:id="@+id/botonGuardar"
@@ -194,30 +276,6 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="@string/ajustes_guardar" />
-
-        <Button
-            android:id="@+id/botonExportarEventos"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/ajustes_exportar_eventos" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/ajustes_bateria_titulo"
-            android:textStyle="bold" />
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/ajustes_bateria_resumen" />
-        <Button
-            android:id="@+id/botonRevisarBateria"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/ajustes_bateria_boton" />
 
     </LinearLayout>
 </ScrollView>

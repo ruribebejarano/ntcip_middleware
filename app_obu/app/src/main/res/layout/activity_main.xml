@@ -89,8 +89,60 @@
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/textoConexion"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:padding="8dp"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/textoEstadoGnss"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center"
+                        android:padding="8dp"
+                        android:textColor="@android:color/white"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/textoGnssDetalle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textSize="13sp"
+                        android:visibility="gone" />
+
+                    <TextView
                         style="@style/TituloSeccion"
-                        android:text="@string/seccion_posicion" />
+                        android:text="@string/seccion_destino" />
+
+                    <TextView
+                        android:id="@+id/textoDestino"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="16sp" />
+
+                    <Button
+                        android:id="@+id/botonDestinos"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/destinos_predefinidos" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/ayuda_mapa"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        style="@style/TituloSeccion"
+                        android:text="@string/seccion_modo" />
 
                     <com.google.android.material.button.MaterialButtonToggleGroup
                         android:id="@+id/selectorFuente"
@@ -185,50 +237,6 @@
                             android:text="@string/aviso_demo"
                             android:textSize="12sp" />
                     </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/textoEstadoGnss"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:gravity="center"
-                        android:padding="8dp"
-                        android:textColor="@android:color/white"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/textoGnssDetalle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textSize="13sp"
-                        android:visibility="gone" />
-
-                    <TextView
-                        style="@style/TituloSeccion"
-                        android:text="@string/seccion_destino" />
-
-                    <TextView
-                        android:id="@+id/textoDestino"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textSize="16sp" />
-
-                    <Button
-                        android:id="@+id/botonDestinos"
-                        style="?attr/materialButtonOutlinedStyle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/destinos_predefinidos" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/ayuda_mapa"
-                        android:textSize="12sp" />
                 </LinearLayout>
 
                 <!-- ===== Con misión ===== -->
@@ -322,6 +330,16 @@
                 </LinearLayout>
             </LinearLayout>
         </ScrollView>
+
+        <TextView
+            android:id="@+id/textoFalta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:textSize="14sp"
+            android:visibility="gone" />
 
         <Button
             android:id="@+id/botonAccion"

@@ -108,6 +108,23 @@ class TlsConfigTest {
     }
 
     @Test
+    fun `acepta texto legible antes del bloque PEM y fin de linea CRLF (salida de openssl ca)`() {
+        val conTexto = ("Certificate:\n    Data:\n        Version: 3 (0x2)\n        Subject: CN=ses-test01\n" +
+            String(clientCertPem)).replace("\n", "\r\n").toByteArray()
+        val llaveCrlf = String(clientKeyPem).replace("\n", "\r\n").toByteArray()
+        val config = TlsConfig(caCertPem, conTexto, llaveCrlf)
+        config.validar()
+        assertEquals("ses-test01", config.commonNameCliente())
+    }
+
+    @Test
+    fun `validar falla con un mensaje si el archivo no tiene el bloque esperado`() {
+        val r = runCatching { TlsConfig(caCertPem, clientKeyPem, clientKeyPem).validar() }
+        assertTrue(r.isFailure)
+        assertTrue(r.exceptionOrNull()!!.message!!.contains("CERTIFICATE"))
+    }
+
+    @Test
     fun `el certificado de cliente tiene el CN esperado (obu_id de prueba)`() {
         // El CN debe ser EXACTAMENTE el obu_id (docs/CONTRATO_OBU.md §1,
         // ACL por use_identity_as_username) -- esta fixture se emitio con

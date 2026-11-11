@@ -71,18 +71,43 @@ data class TlsConfig(
         }
     }
 
+    /** Fin de validez del certificado de cliente (para mostrarlo en Ajustes). */
+    fun venceCliente(): java.util.Date = parseCert(clientCertPem).notAfter
+
+    /** Verifica los tres archivos de una vez (CN, llave y CA), para fallar
+     * al iniciar la misión con un mensaje claro y no dentro de la conexión. */
+    fun validar() {
+        commonNameCliente()
+        keyManagerFactory()
+        trustManagerFactory()
+    }
+
     private fun parseCert(pem: ByteArray): X509Certificate =
         CertificateFactory.getInstance("X.509")
-            .generateCertificate(ByteArrayInputStream(pem)) as X509Certificate
+            .generateCertificate(ByteArrayInputStream(bloquePem(pem, "CERTIFICATE").toByteArray(Charsets.US_ASCII)))
+            as X509Certificate
 
-    private fun parseKeyPkcs8(pem: ByteArray) = String(pem, Charsets.US_ASCII)
+    private fun parseKeyPkcs8(pem: ByteArray) = bloquePem(pem, "PRIVATE KEY")
         .lines()
         .filterNot { it.startsWith("-----") }
-        .joinToString("")
+        .joinToString("") { it.trim() }
         .let { Base64.getDecoder().decode(it) }
         .let { der -> KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(der)) }
 
     companion object {
+        /** Solo el bloque PEM `-----BEGIN <tipo>----- ... -----END <tipo>-----`.
+         * `openssl ca` deja por defecto el certificado en texto legible
+         * ("Certificate: Data: ...") antes del bloque, y el lector de
+         * certificados de Android puede rechazar ese texto. Acepta CRLF. */
+        fun bloquePem(pem: ByteArray, tipo: String): String {
+            val texto = String(pem, Charsets.US_ASCII).replace("\r", "")
+            val inicio = texto.indexOf("-----BEGIN $tipo-----")
+            val marcaFin = "-----END $tipo-----"
+            val fin = texto.indexOf(marcaFin, startIndex = maxOf(inicio, 0))
+            require(inicio >= 0 && fin > inicio) { "No hay un bloque «$tipo» en el archivo" }
+            return texto.substring(inicio, fin + marcaFin.length) + "\n"
+        }
+
         // KeyStore en memoria, nunca persistido a disco: la "contraseña"
         // solo protege el acceso en RAM dentro de este proceso, no hace
         // falta que sea secreta.

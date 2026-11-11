@@ -87,23 +87,31 @@ sobre la raíz del repositorio) y dejar que sincronice.
 ## Ajustes de la app (nada hardcodeado)
 
 Pantalla de Ajustes (ícono de llave, arriba a la derecha del mapa -- solo
-visible cuando no hay misión activa, ver §6 del contrato):
+visible cuando no hay misión activa, ver §6 del contrato). **Se guarda sola
+al salir** (atrás o "Listo"); los archivos, al elegirlos. En el orden de la
+pantalla:
 
-- **Host del broker MQTT**, con hosts predefinidos: **Tailscale**
-  `100.121.77.97` (la laptop en el tailnet; es el valor por defecto en una
-  instalación nueva), **Emulador** `10.0.2.2` (la laptop vista desde el
-  emulador de Android) y **Manual** (habilita el campo). Puerto `1883`,
-  **sin TLS** -- permitido por §1 del contrato solo para desarrollo; nunca
-  el broker de producción sin cifrar.
-- **Clase NTCIP 1211** (por defecto 1 -- la única reconocida hoy por
-  `agent/ntcip1211.py::CLASES_EMERGENCIA_RECONOCIDAS`).
-- **Ruta emulada (sin GNSS)**: misma preferencia que el selector de la
-  pantalla principal.
-- **Vibrar al conceder el verde** (activado por defecto).
-- **Avanzado: trayectoria propia**: "Elegir archivo…" carga un CSV propio
-  (aparece como un escenario más, "Archivo: x.csv"); "Quitar archivo propio"
-  vuelve a los escenarios incluidos.
-- Exportar CSV de eventos y revisar la optimización de batería.
+- **Conexión con el servidor**
+  - **Host del broker MQTT**, con hosts predefinidos: **Tailscale**
+    `100.121.77.97` (la laptop en el tailnet; valor por defecto), **Emulador**
+    `10.0.2.2` y **Manual**.
+  - **Puerto**: 8883 con TLS; 1883 es el broker de desarrollo sin cifrar
+    (solo ensayos, §1 del contrato). Al activar o desactivar TLS el puerto
+    cambia solo entre 1883 y 8883 si no se había puesto otro.
+  - **Conexión segura (TLS 1.3 + mTLS)**: interruptor y los tres archivos
+    (CA, Certificado, Llave). Se verifican al elegirlos: "✓ obu-tab-01,
+    válido hasta el …" o qué falta o está mal.
+  - **Probar conexión**: conecta un momento al broker (Client ID
+    `obu-<id>-prueba`, sin publicar nada) y dice si respondió, rechazó el
+    puerto o rechazó el certificado.
+- **Misión**: Clase NTCIP 1211 (por defecto 1, la única reconocida hoy por
+  `agent/ntcip1211.py::CLASES_EMERGENCIA_RECONOCIDAS`), `obu_id` (solo sin
+  TLS; con TLS se muestra el CN del certificado) y vibrar al conceder el verde.
+- **Demo (sin GPS)**: Ruta emulada y trayectoria propia. "Elegir archivo…"
+  **solo acepta `.csv`** (en la tablet llegó a quedar la llave TLS cargada
+  como trayectoria); un archivo que no es CSV se descarta solo.
+- **Registro y batería**: exportar CSV de eventos y revisar la
+  optimización de batería.
 
 ## Pantalla principal
 
@@ -120,7 +128,26 @@ PUCP (ver "Zona PUCP"). Las fuentes emulan posiciones a ~5 Hz (el MP sigue a
 
 ### Sin misión
 
-- **Posición: Ruta emulada / GPS real** (misma preferencia que en Ajustes).
+Arriba, lo que hace falta para salir; abajo, el modo de prueba:
+
+- **Conexión con el servidor**: al abrir la app (y al volver de Ajustes) se
+  prueba el broker y se muestra "✓ Conectado a host:puerto con TLS, como
+  obu-tab-01" o el motivo del error. Tocar la línea vuelve a probar. Antes,
+  un puerto o certificado equivocado solo se notaba como un "Conectando con
+  el servidor…" eterno ya iniciada la misión.
+- **Estado del GNSS** (solo con GPS real), **destino** y hospitales.
+- **El destino se recuerda** (GPS real y Ruta libre): al abrir la app o al
+  terminar una misión queda puesto, y repetir la prueba es un solo toque.
+- Sobre el botón, **qué falta para iniciar** ("elegir el destino", "esperar
+  «GNSS listo»"...), en vez de un botón gris sin explicación.
+- Si la misión no puede arrancar (por ejemplo, TLS activado con un archivo
+  que falta o no sirve), un aviso dice por qué, con un botón a Ajustes. La
+  app ya no se cierra (antes: `ForegroundServiceDidNotStartInTimeException`,
+  porque el servicio salía antes de `startForeground()`).
+
+**Modo de prueba:**
+
+- **Ruta emulada / GPS real** (misma preferencia que en Ajustes).
 - Con **Ruta emulada**, chips de escenario:
   - **Ruta libre** (por defecto): eliges **origen y destino en el mapa**
     (pulsación larga → "Destino aquí" / "Origen aquí"; origen por defecto:
@@ -941,10 +968,10 @@ la app lee los tres archivos directamente, vía selector del sistema
    (por USB, o subirlos a una carpeta de Drive/almacenamiento propio del
    dispositivo -- **nunca** a un servicio en la nube fuera del control del
    proyecto, son credenciales).
-2. En Ajustes de la app, sección "Etapa 3: TLS 1.3 + mTLS": botones "CA",
+2. En Ajustes de la app, sección "Conexión segura (TLS 1.3 + mTLS)": botones "CA",
    "Certificado" y "Llave" abren el selector de archivos del sistema, uno
    por archivo.
-3. Activar el interruptor "Usar TLS/mTLS con el broker" y Guardar. El
+3. Activar el interruptor "Usar TLS/mTLS con el broker" (se guarda solo; debe aparecer "✓ obu-tab-01, válido hasta…"). El
    campo "Identidad del dispositivo (obu_id)" de Ajustes **se ignora**
    mientras TLS esté activado: la app usa el Common Name del certificado
    de cliente que acabas de cargar (ver la sección siguiente) -- no hace

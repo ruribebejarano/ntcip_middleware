@@ -42,6 +42,7 @@ import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 import pe.pucp.ntcip.obu.databinding.ActivityMainBinding
 import pe.pucp.ntcip.obu.obu.BateriaUtils
+import pe.pucp.ntcip.obu.obu.Conexion
 import pe.pucp.ntcip.obu.obu.Destino
 import pe.pucp.ntcip.obu.obu.Escenarios
 import pe.pucp.ntcip.obu.obu.EstadoSesion
@@ -119,6 +120,7 @@ class MainActivity : AppCompatActivity() {
         binding.botonAccion.setOnClickListener { onBotonAccion() }
         binding.botonCentrar.setOnClickListener { volverASeguir() }
         binding.botonDestinos.setOnClickListener { elegirDestinoPredefinido() }
+        binding.textoConexion.setOnClickListener { comprobarConexion() }
         binding.selectorFuente.addOnButtonCheckedListener { _, id, marcado ->
             if (marcado) cambiarFuente(simulado = id == R.id.opcionEmulada)
         }
@@ -149,8 +151,12 @@ class MainActivity : AppCompatActivity() {
         binding.selectorFactor.check(when (prefs.factorDemo) { 2 -> R.id.factor2; 4 -> R.id.factor4; else -> R.id.factor1 })
         construirChipsEscenario()
         if (prefs.modoSimulado && destinoElegido == null) Escenarios.actual(this, prefs)?.let { fijarDestino(it.destino) }
+        restaurarUltimoDestino()
         actualizarTextoOrigen()
-        if (!ObuSessionRepository.estado.value.misionActiva) iniciarSeguimientoIdle()
+        if (!ObuSessionRepository.estado.value.misionActiva) {
+            iniciarSeguimientoIdle()
+            comprobarConexion() // también al volver de Ajustes, con lo recién cambiado
+        }
     }
 
     override fun onPause() {
@@ -189,6 +195,14 @@ class MainActivity : AppCompatActivity() {
         val grupo = binding.grupoEscenarios
         grupo.setOnCheckedStateChangeListener(null)
         grupo.removeAllViews()
+        // Un archivo propio que no es CSV (p. ej. la llave TLS elegida por
+        // error en el selector de trayectoria) no es un escenario: se descarta.
+        prefs.trayectoriaUri?.let { uri ->
+            if (!FuenteSimulada.nombreVisible(this, Uri.parse(uri)).endsWith(".csv", ignoreCase = true)) {
+                prefs.trayectoriaUri = null
+                if (prefs.escenarioId == Escenarios.ID_ARCHIVO) prefs.escenarioId = Escenarios.ID_POR_DEFECTO
+            }
+        }
         val actual = Escenarios.idActual(this, prefs)
         val opciones = (listOf(Escenarios.ID_RUTA_LIBRE to getString(R.string.escenario_ruta_libre)) +
             Escenarios.lista(this).map { it.id to it.nombre }).toMutableList()
@@ -458,6 +472,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun fijarDestino(d: Destino) {
         destinoElegido = d
+        // Se recuerda para la próxima misión (no los destinos fijos de una
+        // trayectoria grabada, que vienen con su escenario).
+        if (!prefs.modoSimulado || Escenarios.esRutaLibre(prefs)) prefs.ultimoDestino = d
         destinoMarker?.let { binding.mapa.overlays.remove(it) }
         val marcador = Marker(binding.mapa).apply {
             position = GeoPoint(d.lat, d.lon)
@@ -470,6 +487,14 @@ class MainActivity : AppCompatActivity() {
         actualizarBotonAccion()
     }
 
+    /** GPS real o Ruta libre sin destino puesto: el último usado, para que
+     * repetir una prueba sea un solo toque. */
+    private fun restaurarUltimoDestino() {
+        if (destinoElegido != null) return
+        if (prefs.modoSimulado && !Escenarios.esRutaLibre(prefs)) return
+        prefs.ultimoDestino?.let { fijarDestino(it) }
+    }
+
     private fun quitarDestino() {
         destinoElegido = null
         destinoMarker?.let { binding.mapa.overlays.remove(it) }
@@ -480,6 +505,19 @@ class MainActivity : AppCompatActivity() {
     // --- Estado -> pantalla ----------------------------------------------
 
     private fun aplicarEstado(estado: EstadoSesion) {
+        estado.errorInicio?.let { mensaje ->
+            ObuSessionRepository.actualizar { it.copy(errorInicio = null) }
+            // onBotonAccion() detuvo la posición de la pantalla de inicio al
+            // lanzar el servicio; la misión no arrancó, así que se retoma
+            // (el destino elegido se conserva).
+            iniciarSeguimientoIdle()
+            AlertDialog.Builder(this)
+                .setTitle(R.string.error_inicio_titulo)
+                .setMessage(mensaje)
+                .setPositiveButton(R.string.error_inicio_ir_ajustes) { _, _ -> startActivity(Intent(this, AjustesActivity::class.java)) }
+                .setNegativeButton(android.R.string.ok, null)
+                .show()
+        }
         if (misionActivaAntes && !estado.misionActiva) alTerminarMision(estado)
         if (!misionActivaAntes && estado.misionActiva) {
             verdesAvisados.clear()
@@ -545,9 +583,7 @@ class MainActivity : AppCompatActivity() {
         if (prefs.modoSimulado && !Escenarios.esRutaLibre(prefs)) {
             quitarDestino()
             Escenarios.actual(this, prefs)?.let { fijarDestino(it.destino) }
-        } else if (!prefs.modoSimulado) {
-            quitarDestino()
-        } // ruta libre: se conservan origen y destino, listo para repetir
+        } // GPS real y ruta libre: se conserva el destino, listo para repetir con un toque
         siguiendo = true
         binding.botonCentrar.visibility = View.GONE
         iniciarSeguimientoIdle()
@@ -755,6 +791,39 @@ class MainActivity : AppCompatActivity() {
             binding.botonAccion.text = getString(R.string.boton_iniciar)
             binding.botonAccion.setBackgroundColor(color(if (habilitado) R.color.boton_iniciar else R.color.estado_desconocido))
             binding.botonAccion.isEnabled = habilitado
+            // El botón gris solo no dice por qué: se nombra lo que falta.
+            val falta = buildList {
+                if (!permisosOk()) add(getString(R.string.falta_permiso))
+                else if (!fuenteLista) add(getString(R.string.falta_gnss))
+                else if (estado.ultimaPosicion == null) add(getString(R.string.falta_posicion))
+                if (destinoElegido == null) add(getString(R.string.falta_destino))
+            }
+            binding.textoFalta.text = getString(R.string.falta_para_iniciar, falta.joinToString(" y "))
+            binding.textoFalta.visibility = if (falta.isEmpty()) View.GONE else View.VISIBLE
+        }
+        if (estado.misionActiva) binding.textoFalta.visibility = View.GONE
+    }
+
+    // --- Conexión con el servidor (antes de iniciar) ----------------------
+
+    private var jobConexion: Job? = null
+
+    /** Prueba el broker con los ajustes actuales y lo muestra arriba del
+     * panel: el error de puerto o de certificado se ve antes de iniciar,
+     * no como un "Conectando…" eterno. Tocar la línea vuelve a probar. */
+    private fun comprobarConexion() {
+        if (ObuSessionRepository.estado.value.misionActiva) return
+        jobConexion?.cancel()
+        binding.textoConexion.text = getString(R.string.conexion_comprobando)
+        binding.textoConexion.setTextColor(color(R.color.gnss_buscando))
+        jobConexion = lifecycleScope.launch {
+            val r = Conexion.probar(this@MainActivity, prefs)
+            val (texto, c) = when (r) {
+                is Conexion.Prueba.Ok -> r.detalle to R.color.gnss_listo
+                is Conexion.Prueba.Error -> (r.mensaje + "\n" + getString(R.string.conexion_reintentar)) to R.color.estado_cancelada
+            }
+            binding.textoConexion.text = texto
+            binding.textoConexion.setTextColor(color(c))
         }
     }
 

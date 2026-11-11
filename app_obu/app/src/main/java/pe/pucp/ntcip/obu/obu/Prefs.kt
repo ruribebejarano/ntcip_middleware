@@ -50,6 +50,13 @@ class Prefs(context: Context) {
         get() = sp.getString(CLAVE_ORIGEN_LIBRE, null)?.let { runCatching { jsonObu.decodeFromString(Destino.serializer(), it) }.getOrNull() }
         set(v) = sp.edit().putString(CLAVE_ORIGEN_LIBRE, v?.let { jsonObu.encodeToString(Destino.serializer(), it) }).apply()
 
+    /** Último destino elegido con GPS real o Ruta libre: al abrir la app (o
+     * al terminar una misión) queda puesto, y repetir la prueba es un solo
+     * toque en "Iniciar emergencia". null = pedirlo en el mapa. */
+    var ultimoDestino: Destino?
+        get() = sp.getString(CLAVE_ULTIMO_DESTINO, null)?.let { runCatching { jsonObu.decodeFromString(Destino.serializer(), it) }.getOrNull() }
+        set(v) = sp.edit().putString(CLAVE_ULTIMO_DESTINO, v?.let { jsonObu.encodeToString(Destino.serializer(), it) }).apply()
+
     var vibrarAlVerde: Boolean
         get() = sp.getBoolean(CLAVE_VIBRAR, true)
         set(v) = sp.edit().putBoolean(CLAVE_VIBRAR, v).apply()
@@ -93,6 +100,7 @@ class Prefs(context: Context) {
         private const val CLAVE_FACTOR_DEMO = "factor_demo"
         private const val CLAVE_VIBRAR = "vibrar_al_verde"
         private const val CLAVE_ORIGEN_LIBRE = "origen_libre"
+        private const val CLAVE_ULTIMO_DESTINO = "ultimo_destino"
         private const val CLAVE_TLS_ACTIVADO = "tls_activado"
         private const val CLAVE_TLS_CA_URI = "tls_ca_uri"
         private const val CLAVE_TLS_CERT_URI = "tls_cert_uri"

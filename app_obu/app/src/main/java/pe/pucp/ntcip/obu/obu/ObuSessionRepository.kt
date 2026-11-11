@@ -27,6 +27,9 @@ data class EstadoSesion(
     val satelitesGnss: Pair<Int, Int>? = null,
     val sinConexionServidor: Boolean = false,
     val motivoFinReciente: String? = null,
+    // La misión no pudo arrancar (TLS mal configurado, datos faltantes):
+    // la pantalla lo muestra una vez y lo borra.
+    val errorInicio: String? = null,
 )
 
 object ObuSessionRepository {

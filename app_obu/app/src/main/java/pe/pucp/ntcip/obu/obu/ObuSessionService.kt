@@ -68,26 +68,36 @@ class ObuSessionService : LifecycleService() {
     // --- Inicio ------------------------------------------------------------
 
     private fun iniciarMision(intent: Intent) {
+        // Lo primero, antes de cualquier validación: un servicio lanzado con
+        // startForegroundService() que no llama a startForeground() en unos
+        // segundos hace que Android cierre la app
+        // (ForegroundServiceDidNotStartInTimeException). Si algo falla más
+        // abajo, abortarInicio() quita la notificación y explica el motivo.
+        iniciarNotificacionPrimerPlano()
+
         val destinoLat = intent.getDoubleExtra(EXTRA_DESTINO_LAT, Double.NaN)
         val destinoLon = intent.getDoubleExtra(EXTRA_DESTINO_LON, Double.NaN)
         val origenLat = intent.getDoubleExtra(EXTRA_ORIGEN_LAT, Double.NaN)
         val origenLon = intent.getDoubleExtra(EXTRA_ORIGEN_LON, Double.NaN)
         if (destinoLat.isNaN() || destinoLon.isNaN() || origenLat.isNaN() || origenLon.isNaN()) {
-            stopSelf()
+            abortarInicio(null, getString(R.string.error_inicio_sin_origen_destino))
             return
         }
 
         val prefs = Prefs(this)
 
         // Etapa 3 (TLS 1.3 + mTLS, docs/CONTRATO_OBU.md §1): si está
-        // activado en Ajustes pero algún PEM no se pudo cargar, no se
+        // activado en Ajustes pero algún PEM falta o no se puede usar, no se
         // arranca la misión sin cifrar por un error de configuración.
-        val tls = cargarTlsConfig(prefs)
-        if (prefs.tlsActivado && tls == null) {
-            EventoLogger(this, prefs.obuId).log(EventosObu.CONEXION_MQTT, "-", mapOf("estado" to "error_tls_config"))
-            stopSelf()
-            return
-        }
+        val tls: TlsConfig? = if (prefs.tlsActivado) {
+            when (val r = Conexion.cargarTls(this, prefs)) {
+                is CargaTls.Ok -> r.config
+                is CargaTls.Error -> {
+                    abortarInicio(prefs, r.mensaje)
+                    return
+                }
+            }
+        } else null
 
         // obu_id: identidad FIJA del dispositivo (item 2b,
         // prompt_integracion_app_obu.md), igual al CN del certificado de
@@ -95,15 +105,7 @@ class ObuSessionService : LifecycleService() {
         // fijo del certificado mTLS (ACL del broker por
         // use_identity_as_username, ver scripts/seguridad/mosquitto_acl.conf).
         // Sin TLS (broker de desarrollo), se usa el valor fijo de Ajustes.
-        val nuevoObuId = if (tls != null) {
-            runCatching { tls.commonNameCliente() }.getOrElse {
-                EventoLogger(this, prefs.obuId).log(EventosObu.CONEXION_MQTT, "-", mapOf("estado" to "error_tls_config"))
-                stopSelf()
-                return
-            }
-        } else {
-            prefs.obuId
-        }
+        val nuevoObuId = tls?.commonNameCliente() ?: prefs.obuId
         obuId = nuevoObuId
         terminando = false
         misionId = null
@@ -116,8 +118,6 @@ class ObuSessionService : LifecycleService() {
 
         val eventoLogger = EventoLogger(this, nuevoObuId)
         eventos = eventoLogger
-
-        iniciarNotificacionPrimerPlano()
 
         ObuSessionRepository.reiniciar()
         ObuSessionRepository.actualizar { it.copy(misionActiva = true, obuId = nuevoObuId, ultimaPosicion = origenLat to origenLon) }
@@ -194,24 +194,14 @@ class ObuSessionService : LifecycleService() {
         }
     }
 
-    /** Lee los tres PEM elegidos en Ajustes (SAF). null si TLS está
-     * apagado, o si falta alguno de los tres o no se pudo leer. */
-    private fun cargarTlsConfig(prefs: Prefs): TlsConfig? {
-        if (!prefs.tlsActivado) return null
-        val caUri = prefs.tlsCaUri ?: return null
-        val certUri = prefs.tlsCertUri ?: return null
-        val keyUri = prefs.tlsKeyUri ?: return null
-        return runCatching {
-            TlsConfig(
-                caCertPem = leerUri(caUri),
-                clientCertPem = leerUri(certUri),
-                clientKeyPem = leerUri(keyUri),
-            )
-        }.getOrNull()
+    /** La misión no puede arrancar: deja constancia, avisa a la pantalla y
+     * cierra el servicio limpiamente (ya está en primer plano). */
+    private fun abortarInicio(prefs: Prefs?, mensaje: String) {
+        prefs?.let { EventoLogger(this, it.obuId).log(EventosObu.CONEXION_MQTT, "-", mapOf("estado" to "error_tls_config", "detalle" to mensaje)) }
+        ObuSessionRepository.actualizar { it.copy(misionActiva = false, errorInicio = mensaje) }
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
-
-    private fun leerUri(uri: String): ByteArray =
-        contentResolver.openInputStream(Uri.parse(uri))!!.use { it.readBytes() }
 
     private fun iniciarFuentePosicion(prefs: Prefs) {
         val fuente: FuentePosicion = if (prefs.modoSimulado) {
