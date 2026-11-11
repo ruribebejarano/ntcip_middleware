@@ -290,7 +290,7 @@ def tabla_condicion_latex(resultados: dict[str, dict], salida: Path, nota: str):
     docs/bitacora/2026-10-29_fase-controlador-emulado.md)."""
     metricas = [("RTT\\_srv", "RTT_srv_ms", "ms"), ("$t_{RSU}$", "t_RSU_ms", "ms"),
                 ("$L$ (RNF-01)", "L_ms", "ms"), ("$t_{verde}$", "t_verde_ms", "ms"),
-                ("$T_{desp}$ (RF-05)", "T_desp_ms", "ms"), ("Anticipación real (RF-13)", "anticipacion_real_s", "s")]
+                ("$T_{desp}$ (RF-04)", "T_desp_ms", "ms"), ("Anticipación real (RF-11)", "anticipacion_real_s", "s")]
     lineas = ["\\begin{table}[H]", "\\centering",
               "\\caption{Latencia del lazo por condición de llegada: la fase del controlador en el "
               "momento de la decisión (verde, ámbar/todo rojo --tratadas juntas por ser ambas no "

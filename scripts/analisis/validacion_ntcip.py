@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""M4 (prompt_figuras_cap4.md, OE3): validación del middleware NTCIP --
+"""M4 (prompt_figuras_cap4.md, OE2): validación del middleware NTCIP --
 traducción y rechazo correctos.
 
 Parte A (traducción correcta): sobre las 4 campañas válidas (y,
@@ -14,7 +14,7 @@ Además, cuando los eventos lo permiten: tiempo M1 recibido -> SET NTCIP
 (ctrl_fase_cambio correspondiente - snmp_set_tx), como columnas aparte.
 
 Parte B (rechazo correcto): NO duplica pruebas. Corre con pytest las que ya
-verifican RF-05 (límites/cola de despeje), RF-08 (caducidad 3s) y mensajes
+verifican RF-04 (límites/cola de despeje), RF-07 (caducidad 3s) y mensajes
 inválidos/duplicados (tests/test_ntcip1211.py, tests/test_controller_emulator.py,
 tests/test_modo_seguro.py, tests/test_rsu_middleware_validacion.py -- este
 último se agregó en esta misma sesión porque "M1 repetido"/"M1 inválido" no
@@ -55,29 +55,29 @@ ACCION_CANCELACION = "clear_priority_m3"
 
 TESTS_RECHAZO = [
     ("tests/test_ntcip1211.py::TestRF05ClaseNoReconocida::test_clase_reconocida_se_acepta",
-     "M1 con clase reconocida (CLASES_EMERGENCIA_RECONOCIDAS)", "se acepta (RF-04)"),
+     "M1 con clase reconocida (CLASES_EMERGENCIA_RECONOCIDAS)", "se acepta (RF-03)"),
     ("tests/test_ntcip1211.py::TestRF05ClaseNoReconocida::test_clase_no_reconocida_se_rechaza",
-     "M1 con clase NO reconocida", "se rechaza (RF-04)"),
+     "M1 con clase NO reconocida", "se rechaza (RF-03)"),
     ("tests/test_ntcip1211.py::TestRF06LimitesOperacionales::test_se_encola_durante_amarillo",
-     "M1 durante amarillo (fase no interrumpible)", "se encola, no se rechaza directo (RF-05)"),
+     "M1 durante amarillo (fase no interrumpible)", "se encola, no se rechaza directo (RF-04)"),
     ("tests/test_ntcip1211.py::TestRF06LimitesOperacionales::test_se_encola_durante_todo_rojo",
-     "M1 durante todo_rojo (fase no interrumpible)", "se encola, no se rechaza directo (RF-05)"),
+     "M1 durante todo_rojo (fase no interrumpible)", "se encola, no se rechaza directo (RF-04)"),
     ("tests/test_ntcip1211.py::TestRF06LimitesOperacionales::test_se_acepta_durante_verde_o_rojo_general",
-     "M1 durante verde o rojo_general (fase interrumpible)", "se activa de inmediato (RF-05)"),
+     "M1 durante verde o rojo_general (fase interrumpible)", "se activa de inmediato (RF-04)"),
     ("tests/test_ntcip1211.py::TestRF06LimitesOperacionales::test_se_activa_al_terminar_el_despeje_dentro_del_ttl",
-     "M1 encolado, despeje termina dentro del TTL", "se activa al terminar el despeje (RF-05)"),
+     "M1 encolado, despeje termina dentro del TTL", "se activa al terminar el despeje (RF-04)"),
     ("tests/test_ntcip1211.py::TestRF06LimitesOperacionales::test_caduca_en_cola_si_el_despeje_tarda_mas_que_el_ttl",
-     "M1 encolado, despeje tarda más que el TTL", "caduca en cola, no se activa (RF-05/RF-08)"),
+     "M1 encolado, despeje tarda más que el TTL", "caduca en cola, no se activa (RF-04/RF-07)"),
     ("tests/test_ntcip1211.py::TestRF09Caducidad::test_no_caduca_si_se_refresca_a_tiempo",
-     "Solicitud activa renovada antes de T_CAD=3s", "no caduca (RF-08)"),
+     "Solicitud activa renovada antes de T_CAD=3s", "no caduca (RF-07)"),
     ("tests/test_ntcip1211.py::TestRF09Caducidad::test_caduca_pasado_t_cad_sin_actualizar",
-     "Solicitud activa sin renovar, pasado T_CAD=3s", "caduca sola (RF-08/RNF-03)"),
+     "Solicitud activa sin renovar, pasado T_CAD=3s", "caduca sola (RF-07/RNF-03)"),
     ("tests/test_ntcip1211.py::TestRF09Caducidad::test_verificar_caducidad_es_no_op_sin_solicitud_activa",
-     "Verificación de caducidad sin ninguna solicitud activa", "no-op, no falla (RF-08)"),
+     "Verificación de caducidad sin ninguna solicitud activa", "no-op, no falla (RF-07)"),
     ("tests/test_ntcip1211.py::TestRF04CancelacionM3::test_cancela_solicitud_activa",
-     "M3 sobre una solicitud activa (en verde forzado)", "se cancela (RF-03)"),
+     "M3 sobre una solicitud activa (en verde forzado)", "se cancela (RF-05)"),
     ("tests/test_ntcip1211.py::TestRF04CancelacionM3::test_cancela_solicitud_en_cola",
-     "M3 sobre una solicitud encolada (RF-05)", "se cancela, sale de la cola (RF-03)"),
+     "M3 sobre una solicitud encolada (RF-04)", "se cancela, sale de la cola (RF-05)"),
     ("tests/test_ntcip1211.py::TestCodecOER::test_rechaza_longitud_distinta_de_29_al_decodificar",
      "OCTET STRING NTCIP 1211 con longitud != 29 bytes", "se rechaza al decodificar (mensaje inválido)"),
     ("tests/test_ntcip1211.py::TestCodecOER::test_rechaza_campo_fuera_de_rango_al_codificar",
@@ -132,7 +132,7 @@ def correr_tests_rechazo() -> dict[str, bool]:
 def tabla_rechazo_latex(resultados: dict[str, bool], salida: Path) -> None:
     lineas = [
         "\\begin{table}[H]", "\\centering",
-        "\\caption{Casos de rechazo/aceptación correctos del middleware NTCIP (OE3), a partir del "
+        "\\caption{Casos de rechazo/aceptación correctos del middleware NTCIP (OE2), a partir del "
         "resultado real de las pruebas automatizadas existentes (no se repite su lógica, solo se "
         "recoge pass/fail). Los últimos cuatro casos se agregaron en esta sesión "
         "(tests/test\\_rsu\\_middleware\\_validacion.py) porque no tenían prueba a nivel de la lógica "
@@ -208,7 +208,7 @@ def tabla_traduccion_latex(r: dict, salida: Path) -> None:
 
     lineas = [
         "\\begin{table}[H]", "\\centering",
-        "\\caption{Traducción correcta del middleware NTCIP (OE3), sobre las 4 campañas válidas del "
+        "\\caption{Traducción correcta del middleware NTCIP (OE2), sobre las 4 campañas válidas del "
         "29/10 más la corrida multi-RSU del 2026-11-02 (ver M1). "
         "`M1 → SET' cuenta cada M1 inicial (seq=1) recibido por la RSU frente a si se tradujo en una "
         "escritura NTCIP 1211 (request\\_priority o en\\_cola\\_despeje); `SET → fase' cuenta, de esos, "

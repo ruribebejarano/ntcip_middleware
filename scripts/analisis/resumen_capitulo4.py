@@ -5,7 +5,7 @@ de scripts/analisis/lazo_centralizado.py (RTT_srv, t_RSU, L, anticipación
 real: ya están en tabla_latencia.tex / tabla_condicion.tex de cada
 carpeta `_figuras_*`) -- calcula lo que falta para el Capítulo 4:
 
-  1. Renovación de solicitudes (RF-10, 1 Hz) y caducidad (RNF-03, RF-09):
+  1. Renovación de solicitudes (RNF-02, 1 Hz) y caducidad (RNF-03, RF-07):
      cuenta M1_tx (primeras vs. renovaciones, por el campo "renovacion"
      de servidor/gestor_mision.py::_renovar) y eventos "caducidad"
      (EVT_CADUCIDAD, agent/rsu_middleware.py) por repetición -- si la
@@ -97,12 +97,12 @@ def main() -> None:
     )
     tex = f"""\\begin{{table}}[H]
 \\centering
-\\caption{{Renovación de solicitudes (RNF-02) y caducidad (RNF-03, RF-08), {nota_factor}.}}
+\\caption{{Renovación de solicitudes (RNF-02) y caducidad (RNF-03, RF-07), {nota_factor}.}}
 \\label{{tab:renovacion_campana}}
 \\small
 \\begin{{tabular}}{{llrrrl}}
 \\toprule
-\\textbf{{Escenario}} & \\textbf{{Config.}} & \\textbf{{Repet.}} & \\textbf{{Solicitudes}} & \\textbf{{Renovaciones}} & \\textbf{{Caducidad (RF-09)}} \\\\
+\\textbf{{Escenario}} & \\textbf{{Config.}} & \\textbf{{Repet.}} & \\textbf{{Solicitudes}} & \\textbf{{Renovaciones}} & \\textbf{{Caducidad (RF-07)}} \\\\
 \\midrule
 {filas}
 \\bottomrule
