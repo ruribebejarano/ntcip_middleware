@@ -230,16 +230,28 @@ class ObuSessionService : LifecycleService() {
         }.launchIn(lifecycleScope)
     }
 
+    /**
+     * MP a 1 Hz (RNF-02) con plazos fijos: el siguiente envío se programa
+     * en inicio + n·1000 ms, no "1 s después de terminar el anterior". Antes,
+     * el tiempo de enviar (esperando el PUBACK por 4G) se sumaba al segundo
+     * y el intervalo real quedaba en ~1,13 s (prueba con GPS real del
+     * 2026-11-11). Si el ticker se atrasa más de un periodo (app en pausa),
+     * se resincroniza en vez de enviar una ráfaga de MP atrasados.
+     */
     private fun iniciarTickerPublicacion() {
         jobTicker = lifecycleScope.launch {
+            var siguiente = SystemClock.elapsedRealtime()
             while (isActive) {
                 publicarMpSiHayFix()
-                delay(1000)
+                siguiente += PERIODO_MP_MS
+                val ahora = SystemClock.elapsedRealtime()
+                if (ahora - siguiente > PERIODO_MP_MS) siguiente = ahora + PERIODO_MP_MS
+                delay((siguiente - ahora).coerceAtLeast(0))
             }
         }
     }
 
-    private suspend fun publicarMpSiHayFix() {
+    private fun publicarMpSiHayFix() {
         val muestra = ultimaMuestra
         val vigente = muestra != null && (SystemClock.elapsedRealtime() - ultimaMuestraEnMs) <= UMBRAL_FIX_MS
         ObuSessionRepository.actualizar { it.copy(sinFixGnss = !vigente) }
@@ -252,7 +264,8 @@ class ObuSessionService : LifecycleService() {
             velocidad_kmh = muestra.velocidadKmh, rumbo_deg = muestra.rumboDeg,
             fuente_velocidad = muestra.fuenteVelocidad, ts_ms = System.currentTimeMillis(), seq = seq,
         )
-        mqtt?.enviarMP(mp)
+        // Sin esperar el PUBACK: el envío no frena el ticker (ver arriba).
+        mqtt?.enviarMPSinEsperar(mp)
         eventos?.log(
             EventosObu.MP_TX, "-",
             mapOf(
@@ -432,6 +445,7 @@ class ObuSessionService : LifecycleService() {
         const val EXTRA_ORIGEN_LON = "origen_lon"
 
         private const val NOTIFICACION_ID = 1
+        private const val PERIODO_MP_MS = 1000L // RNF-02: 1 Hz
         private const val UMBRAL_FIX_MS = 2500L
         private const val UMBRAL_SIN_CONEXION_MS = 5000L
         private const val ESPERA_FIN_TRAYECTORIA_MS = 2000L

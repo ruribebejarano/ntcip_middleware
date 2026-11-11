@@ -87,6 +87,23 @@ class MqttObuClient(
 
     suspend fun enviarMI(mi: MensajeMI) = publicar("obu/$obuId/mision", json.encodeToString(mi))
     suspend fun enviarMP(mp: MensajeMP) = publicar("obu/$obuId/posicion", json.encodeToString(mp))
+
+    /**
+     * MP sin esperar el PUBACK (QoS 1 igual): el cliente asíncrono de HiveMQ
+     * lo encola y lo envía en orden por la misma conexión, así el ticker de
+     * 1 Hz no se frena con la latencia del 4G. Con la conexión caída falla
+     * en silencio, como publicar(): perder un MP es preferible a cerrar la app.
+     */
+    fun enviarMPSinEsperar(mp: MensajeMP) {
+        val c = cliente ?: return
+        runCatching {
+            c.toAsync().publishWith()
+                .topic("obu/$obuId/posicion")
+                .qos(MqttQos.AT_LEAST_ONCE)
+                .payload(json.encodeToString(mp).toByteArray(StandardCharsets.UTF_8))
+                .send()
+        }
+    }
     suspend fun enviarMF(mf: MensajeMF) = publicar("obu/$obuId/mision", json.encodeToString(mf))
 
     private suspend fun publicar(topico: String, cuerpoJson: String) = withContext(Dispatchers.IO) {
