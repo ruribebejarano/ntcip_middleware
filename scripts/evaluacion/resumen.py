@@ -111,6 +111,49 @@ def error_eta(eventos: list[dict], centros: dict[str, tuple[float, float]]) -> l
     return filas
 
 
+def error_eta_al_solicitar(eventos: list[dict], centros: dict[str, tuple[float, float]]) -> list[dict]:
+    """Error del ETA en el momento de pedir prioridad, una fila por solicitud.
+
+    El servidor deja de registrar eta_estimado de una RSU en cuanto le envía
+    el M1. Si la geocerca abre la solicitud a ~150 m (lo normal), nunca hay
+    un ETA cercano a 8 s y error_eta() queda sin datos (prueba con GPS real
+    del 2026-11-11). Aquí se toma el último ETA antes del primer M1, que es
+    el que el servidor tenía al decidir, y se compara con el tiempo real
+    hasta pasar por el centro de la RSU. Solo reloj del servidor."""
+    mps: dict[str, list[tuple[float, float, float, object]]] = defaultdict(list)
+    etas: dict[tuple[str, str], list[tuple[float, float, object, object]]] = defaultdict(list)
+    primer_m1: dict[str, dict] = {}
+    for e in eventos:
+        x = e["extra"]
+        if e["tipo_evento"] == "MP_rx" and x.get("lat") is not None:
+            mps[e["id_solicitud"]].append((e["ts_ns"] / 1e9, float(x["lat"]), float(x["lon"]), x.get("velocidad_kmh")))
+        elif e["tipo_evento"] == "eta_estimado" and x.get("eta_s") is not None:
+            etas[(e["id_solicitud"], str(x.get("rsu_id")))].append(
+                (e["ts_ns"] / 1e9, float(x["eta_s"]), x.get("distancia_restante_m"), x.get("velocidad_kmh")))
+        elif e["tipo_evento"] == "M1_tx" and not x.get("renovacion") and e["id_solicitud"] not in primer_m1:
+            primer_m1[e["id_solicitud"]] = {"ts": e["ts_ns"] / 1e9, "mision_id": x.get("mision_id"),
+                                           "rsu_id": str(x.get("rsu_id")), "t_servicio": x.get("t_servicio")}
+    filas = []
+    for id_sol, m1 in primer_m1.items():
+        centro = centros.get(m1["rsu_id"])
+        previas = [p for p in sorted(etas.get((m1["mision_id"], m1["rsu_id"]), [])) if p[0] <= m1["ts"]]
+        if centro is None or not previas:
+            continue
+        t_est, eta, distancia, velocidad = previas[-1]
+        tramo = sorted(m for m in mps.get(m1["mision_id"], []) if t_est - 2 <= m[0] <= t_est + 600)
+        paso = paso_por_centro([(t, la, lo) for t, la, lo, _ in tramo], centro)
+        if paso is None or paso[1] > RADIO_PASO_M:
+            continue
+        real = paso[0] - t_est
+        detenido = any(v is not None and float(v) < UMBRAL_DETENIDO_KMH for t, _, _, v in tramo if t_est <= t <= paso[0])
+        filas.append({"id_solicitud": id_sol, "mision_id": m1["mision_id"], "rsu_id": m1["rsu_id"],
+                      "abierta_por": "geocerca" if m1["t_servicio"] == ANTICIPACION_MIN_S else "eta",
+                      "eta_al_solicitar_s": round(eta, 2), "distancia_al_solicitar_m": distancia,
+                      "velocidad_al_solicitar_kmh": velocidad, "t_real_hasta_centro_al_solicitar_s": round(real, 2),
+                      "error_eta_al_solicitar_s": round(real - eta, 2), "con_detencion_al_solicitar": detenido})
+    return filas
+
+
 def intervalos_mp(eventos: list[dict]) -> list[float]:
     """Intervalos entre MP recibidos por el servidor, misión por misión."""
     por_mision: dict[str, list[int]] = defaultdict(list)
@@ -199,13 +242,35 @@ def texto_resumen(eventos: list[dict], centros: dict[str, tuple[float, float]] |
                           and f["rsu_id"] == str(fila.get("rsu_id"))), {})
             for k in ("eta_s", "t_real_hasta_centro_s", "error_eta_s", "con_detencion"):
                 fila[k] = extra.get(k)
-    elif centros and not any(e["tipo_evento"] == "eta_estimado" for e in eventos):
+    filas_sol = error_eta_al_solicitar(eventos, centros or {})
+    if filas_sol:
         salida("")
-        salida("Error del ETA: sin datos (el servidor de esta corrida no registraba eta_estimado).")
-    elif centros:
+        salida("Error del ETA al pedir prioridad (último ETA antes del M1; real - estimado; positivo = llegó más tarde):")
+        for nombre, grupo in (("todas", filas_sol),
+                              ("sin detención", [f for f in filas_sol if not f["con_detencion_al_solicitar"]]),
+                              ("con detención", [f for f in filas_sol if f["con_detencion_al_solicitar"]])):
+            errores = [f["error_eta_al_solicitar_s"] for f in grupo]
+            if errores:
+                salida(f"  {nombre}: n={len(errores)}, mediana {percentil(errores, 50):+.2f} s, "
+                       f"p95 del error absoluto {percentil([abs(v) for v in errores], 95):.2f} s, "
+                       f"ETA al pedir mediana {percentil([f['eta_al_solicitar_s'] for f in grupo], 50):.1f} s")
+        abiertas = Counter(f["abierta_por"] for f in filas_sol)
+        salida("  Solicitudes abiertas por: " + ", ".join(f"{k} {v}" for k, v in abiertas.items())
+               + " (geocerca = t_servicio de 8 s)")
+        por_id = {f["id_solicitud"]: f for f in filas_sol}
+        for fila in paradas:
+            extra = por_id.get(fila.get("id_solicitud"), {})
+            for k in ("abierta_por", "eta_al_solicitar_s", "distancia_al_solicitar_m", "velocidad_al_solicitar_kmh",
+                      "t_real_hasta_centro_al_solicitar_s", "error_eta_al_solicitar_s", "con_detencion_al_solicitar"):
+                fila[k] = extra.get(k)
+    if not filas_eta and centros:
         salida("")
-        salida(f"Error del ETA: sin datos (ningún paso a menos de {RADIO_PASO_M:.0f} m del centro de una RSU "
-               f"con una estimación cercana a {HORIZONTE_ETA_S:.0f} s).")
+        if not any(e["tipo_evento"] == "eta_estimado" for e in eventos):
+            salida("Error del ETA: sin datos (el servidor de esta corrida no registraba eta_estimado).")
+        else:
+            salida(f"Error del ETA a ~{HORIZONTE_ETA_S:.0f} s: sin datos (ningún ETA cercano a {HORIZONTE_ETA_S:.0f} s "
+                   f"antes de pasar a menos de {RADIO_PASO_M:.0f} m del centro: la geocerca pidió prioridad antes; "
+                   "ver el error al pedir prioridad).")
     return "\n".join(lineas) + "\n", paradas
 
 

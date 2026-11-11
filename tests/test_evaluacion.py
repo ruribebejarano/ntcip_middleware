@@ -131,3 +131,30 @@ def test_grafo_propio_por_ruta_y_comando_de_descarga():
     assert "--norte -12.04400" in cmd and "--sur -12.06600" in cmd
     assert "--este -76.94400" in cmd and "--oeste -76.98600" in cmd
     assert cmd.endswith("--salida data/x.graphml")
+
+
+def test_error_eta_al_solicitar_usa_el_ultimo_eta_antes_del_m1():
+    """La geocerca pide prioridad a ~150 m: no hay ETA cercano a 8 s, pero sí el
+    último antes del M1. Vehículo a 10 m/s hacia la RSU; el servidor estimaba
+    12 s cuando faltaban 15 s de verdad -> error +3 s."""
+    from gateway.geometria import desplazar
+    centro = (-12.05, -76.96)
+    ns = 1_000_000_000
+    eventos = []
+    for k in range(0, 31):  # de 300 m al sur hasta pasar el centro
+        lat, lon = desplazar(*centro, 180.0, 300.0 - 10.0 * k)
+        eventos.append({"tipo_evento": "MP_rx", "id_solicitud": "mis-1", "ts_ns": k * ns,
+                        "extra": {"lat": lat, "lon": lon, "velocidad_kmh": 36.0}})
+    for k, eta in ((14, 17.0), (15, 12.0)):
+        eventos.append({"tipo_evento": "eta_estimado", "id_solicitud": "mis-1", "ts_ns": k * ns,
+                        "extra": {"rsu_id": "2", "eta_s": eta, "distancia_restante_m": 300.0 - 10.0 * k}})
+    eventos.append({"tipo_evento": "M1_tx", "id_solicitud": "mis-1-OSM-1", "ts_ns": 15 * ns + 1,
+                    "extra": {"mision_id": "mis-1", "rsu_id": "2", "t_servicio": 8.0, "seq": 1}})
+    filas = resumen.error_eta_al_solicitar(eventos, {"2": centro})
+    assert len(filas) == 1
+    f = filas[0]
+    assert f["abierta_por"] == "geocerca"
+    assert f["eta_al_solicitar_s"] == 12.0
+    assert abs(f["t_real_hasta_centro_al_solicitar_s"] - 15.0) < 0.1
+    assert abs(f["error_eta_al_solicitar_s"] - 3.0) < 0.1
+    assert f["con_detencion_al_solicitar"] is False
