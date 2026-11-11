@@ -113,24 +113,28 @@ try {
 Write-Host "Broker MQTT $Broker`:$BrokerPort responde." -ForegroundColor Green
 
 # --- RSU_ID repetidos ya corriendo -----------------------------------------
+# Windows reutiliza los PID: el de una corrida vieja puede ser hoy otro
+# programa (visto el 2026-11-11: una pestaña de Chrome bloqueaba el arranque
+# con "RSU_ID ya corre"). Solo cuenta si es Python ejecutando ese script.
+function Vive-Script([object]$id, [string]$patron) {
+    if (-not $id) { return $false }
+    $p = Get-CimInstance Win32_Process -Filter "ProcessId = $([int]$id)" -ErrorAction SilentlyContinue
+    return ($p -and $p.Name -match '^pythonw?\.exe$' -and $p.CommandLine -match $patron)
+}
 $pidsConocidos = @()
 $choques = @()
 if (Test-Path $DirDemo) {
     foreach ($f in Get-ChildItem $DirDemo -Directory | ForEach-Object { Join-Path $_.FullName "estado.json" } | Where-Object { Test-Path $_ }) {
         $prev = [System.IO.File]::ReadAllText($f) | ConvertFrom-Json
         foreach ($r in @($prev.rsu)) {
-            foreach ($p in @($r.pid_middleware, $r.pid_controlador)) {
-                if ($p -and (Get-Process -Id $p -ErrorAction SilentlyContinue)) {
-                    $pidsConocidos += [int]$p
-                    if ($p -eq $r.pid_middleware -and $ids -contains [string]$r.rsu_id) {
-                        $choques += "RSU_ID=$($r.rsu_id) ya corre (PID $p, $f)"
-                    }
-                }
+            if (Vive-Script $r.pid_middleware "rsu_middleware\.py") {
+                $pidsConocidos += [int]$r.pid_middleware
+                if ($ids -contains [string]$r.rsu_id) { $choques += "RSU_ID=$($r.rsu_id) ya corre (PID $($r.pid_middleware), $f)" }
             }
+            if (Vive-Script $r.pid_controlador "controller_emulator\.py") { $pidsConocidos += [int]$r.pid_controlador }
         }
-        foreach ($p in @($prev.servidor.pid, $prev.consola.pid)) {
-            if ($p -and (Get-Process -Id $p -ErrorAction SilentlyContinue)) { $pidsConocidos += [int]$p }
-        }
+        if (Vive-Script $prev.servidor.pid "servidor[\\/]main\.py") { $pidsConocidos += [int]$prev.servidor.pid }
+        if (Vive-Script $prev.consola.pid "consola") { $pidsConocidos += [int]$prev.consola.pid }
     }
 }
 if ($choques.Count -gt 0) {

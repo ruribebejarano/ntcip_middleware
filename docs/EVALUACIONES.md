@@ -59,6 +59,28 @@ El script levanta las RSU y el servidor, muestra los datos para la app y espera.
 El origen real es donde está la tablet al iniciar. La ruta debe seguir la red vial
 de vehículos, también si la pruebas caminando.
 
+### Dejar la prueba sola, sin estar en la laptop
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\evaluacion\evaluar.ps1 gnss -Ruta ruta_casa_nogales -ConBroker -FinTrasInactividadMin 30 -DuracionMaxMin 240 -Suspender
+```
+
+| Opción | Qué hace |
+|---|---|
+| `-ConBroker` | Abre el broker TLS oculto si no está abierto, y lo cierra al final. Basta una sola ventana |
+| `-FinTrasInactividadMin N` | Termina solo cuando todas las misiones iniciadas ya terminaron y el servidor lleva N minutos sin recibir nada. Si una misión quedó abierta, espera el doble. No termina antes de la primera misión |
+| `-DuracionMaxMin N` | Tope de duración total, pase lo que pase |
+| `-Suspender` | Al terminar, guardar el resumen y cerrar todo, suspende la laptop (con 30 s para cancelar con Ctrl+C) |
+
+Enter sigue terminando la prueba en cualquier momento. Mientras corre, el script
+mantiene la laptop despierta sin cambiar la configuración de energía de Windows; al
+terminar, vuelve a su comportamiento normal. **Cerrar la tapa puede suspenderla
+igual**: déjala abierta o cambia en Windows qué hace la tapa con corriente.
+
+Elige N mayor que el tiempo que tardas entre una misión y la siguiente (volver al
+origen): entre misiones el servidor no recibe nada. El motivo del cierre queda en
+`fin.txt`, junto al resumen.
+
 ## Cambiar o agregar rutas
 
 Todo se ajusta en `scripts/evaluacion/rutas.json`, sin tocar código. Cada entrada es

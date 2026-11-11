@@ -23,9 +23,16 @@ $Raiz = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $DirDemo = Join-Path $Raiz "resultados\demo"
 $Actual = Join-Path $DirDemo "actual.json"
 
-function Detener-Arbol([int]$id, [string]$rol) {
-    $p = Get-Process -Id $id -ErrorAction SilentlyContinue
-    if (-not $p) { Write-Host "  PID $id ($rol) ya no existe." -ForegroundColor DarkGray; return }
+# Windows reutiliza los PID: el de una corrida vieja puede ser hoy otro
+# programa (visto el 2026-11-11: una pestaña de Chrome). Solo es "nuestro" si
+# es Python ejecutando el script que el lanzador registro para ese rol.
+function Es-Nuestro([int]$id, [string]$patron) {
+    $p = Get-CimInstance Win32_Process -Filter "ProcessId = $id" -ErrorAction SilentlyContinue
+    return ($p -and $p.Name -match '^pythonw?\.exe$' -and $p.CommandLine -match $patron)
+}
+
+function Detener-Arbol([int]$id, [string]$rol, [string]$patron) {
+    if (-not (Es-Nuestro $id $patron)) { Write-Host "  PID $id ($rol) ya no existe." -ForegroundColor DarkGray; return }
     # El python.exe de un venv es un lanzador: el interprete real es su hijo.
     Get-CimInstance Win32_Process -Filter "ParentProcessId = $id" -ErrorAction SilentlyContinue |
         ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
@@ -51,11 +58,11 @@ if ($archivos.Count -eq 0) {
 foreach ($f in $archivos) {
     $e = [System.IO.File]::ReadAllText($f) | ConvertFrom-Json
     Write-Host "=== $($e.dir) ===" -ForegroundColor Cyan
-    if ($e.consola -and -not $SinConsola) { Detener-Arbol $e.consola.pid "consola" }
-    if ($e.servidor) { Detener-Arbol $e.servidor.pid "servidor central" }
+    if ($e.consola -and -not $SinConsola) { Detener-Arbol $e.consola.pid "consola" "consola" }
+    if ($e.servidor) { Detener-Arbol $e.servidor.pid "servidor central" "servidor[\\/]main\.py" }
     foreach ($r in @($e.rsu)) {
-        Detener-Arbol $r.pid_middleware "middleware RSU $($r.rsu_id)"
-        Detener-Arbol $r.pid_controlador "controlador RSU $($r.rsu_id)"
+        Detener-Arbol $r.pid_middleware "middleware RSU $($r.rsu_id)" "rsu_middleware\.py"
+        Detener-Arbol $r.pid_controlador "controlador RSU $($r.rsu_id)" "controller_emulator\.py"
     }
 }
 Write-Host "Listo. Los logs quedan en resultados\demo\<fecha>\."
