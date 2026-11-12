@@ -1,0 +1,35 @@
+Misiones: 20  Paradas: 20 (concedidas 16, sin verde 4, rechazadas 0, sin respuesta 0; en cola de despeje: 8)
+
+*** Escenario 'conflicto': la mision perdedora en espera es el comportamiento CORRECTO del arbitraje, no una falla -- ver docs/MEDICION_LATENCIA.md sección 8 ***
+Arbitraje consistente con la política (servidor/conflictos.py): 10/10
+Ganadores: 10 (obtuvieron verde: 10)
+Perdedores: 10 (atendidos después de esperar: 6, cancelados correctamente al cruzar: 4, sin resolver al cierre de la corrida: 0)
+Tasa de éxito del arbitraje (NO es concedidas/total): 100.00%
+RTT_srv (ms, un reloj):     n=20, mediana=11.55, p95=42.05, max=42.69
+t_RSU (ms, un reloj):       n=20, mediana=1.73, p95=7.22, max=25.60
+L -- RNF-01 (ms):           n=20, mediana=7.64, p95=37.22, max=39.67  [peor caso p95+cota=37.22 ms vs 1000 ms -> CUMPLE]
+t_OBU_srv (ms):             n=550, mediana=0.70, p95=0.96, max=2.96
+Anticipacion real (s, RF8=8.0 s): n=16, mediana=13.99, p95=14.96, max=14.96
+t_verde (ms, espera hasta el verde):  n=16, mediana=36.95, p95=4260.61, max=4260.61
+T_desp (ms, espera de despeje RF-06): n=4, mediana=2638.57, p95=4255.34, max=4255.34
+
+Condición de llegada (fase de la RSU al decidir): {'rojo_general': 4, 'verde': 8, 'ambar_todo_rojo': 8}
+  [verde] RTT_srv: n=8, mediana=29.72, p95=42.69, max=42.69
+  [verde] t_RSU:   n=8, mediana=0.77, p95=25.60, max=25.60
+  [verde] L:       n=8, mediana=26.81, p95=39.67, max=39.67
+  [verde] t_verde: n=8, mediana=36.95, p95=283.28, max=283.28
+  [verde] Anticipación real: n=8, mediana=14.68, p95=14.96, max=14.96
+  [ambar_todo_rojo] RTT_srv: n=8, mediana=10.05, p95=38.96, max=38.96
+  [ambar_todo_rojo] t_RSU:   n=8, mediana=3.72, p95=7.22, max=7.22
+  [ambar_todo_rojo] L:       n=8, mediana=7.40, p95=36.68, max=36.68
+  [ambar_todo_rojo] t_verde: n=4, mediana=2674.42, p95=4260.61, max=4260.61
+  [ambar_todo_rojo] T_desp:  n=4, mediana=2638.57, p95=4255.34, max=4255.34
+  [ambar_todo_rojo] Anticipación real: n=4, mediana=11.03, p95=13.33, max=13.33
+  [rojo_general] RTT_srv: n=4, mediana=10.75, p95=37.83, max=37.83
+  [rojo_general] t_RSU:   n=4, mediana=3.03, p95=5.52, max=5.52
+  [rojo_general] L:       n=4, mediana=5.58, p95=35.19, max=35.19
+  [rojo_general] t_verde: n=4, mediana=6.34, p95=35.67, max=35.67
+  [rojo_general] Anticipación real: n=4, mediana=13.72, p95=14.76, max=14.76
+
+Detalle: resultados\campana\20261112-014850_conflicto_local\lazo_por_parada.csv, resultados\campana\20261112-014850_conflicto_local\lazo_por_mision.csv
+Resumen: resultados\campana\20261112-014850_conflicto_local\lazo_resumen.json

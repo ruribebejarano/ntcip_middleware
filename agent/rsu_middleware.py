@@ -910,14 +910,60 @@ def start_mqtt_listener() -> mqtt.Client:
     return client
 
 
+def _instrumentar_transporte_snmp(ruta_csv: str) -> None:
+    """Solo para la prueba de costo por nivel de seguridad
+    (scripts/evaluacion/snmp_niveles.py), con RSU_SNMP_MEDIR_PROC=<csv>:
+    marca el instante en que el datagrama UDP llega al agente y el instante
+    en que sale la respuesta, de modo que la diferencia incluye todo el
+    procesamiento SNMPv3 (decodificación, autenticación, descifrado, la
+    operación sobre la MIB, cifrado y codificación de la respuesta). El
+    gestor envía una solicitud a la vez, así que entrada y salida se
+    emparejan por orden. Sin la variable, el agente no cambia."""
+    from pysnmp.carrier.asyncio.dgram.base import DgramAsyncioProtocol
+
+    fh = open(ruta_csv, "a", encoding="utf-8", buffering=1)
+    if fh.tell() == 0:
+        fh.write("t_in_ns,t_out_ns,bytes_in,bytes_out\n")
+    pendiente: list = []
+    recibir_orig, enviar_orig = DgramAsyncioProtocol.datagram_received, DgramAsyncioProtocol.sendMessage
+
+    def recibir(self, datagram, direccion):
+        pendiente[:] = [time.perf_counter_ns(), len(datagram)]
+        return recibir_orig(self, datagram, direccion)
+
+    def enviar(self, mensaje, direccion):
+        t_out = time.perf_counter_ns()
+        if pendiente:
+            fh.write(f"{pendiente[0]},{t_out},{pendiente[1]},{len(mensaje)}\n")
+            pendiente.clear()
+        return enviar_orig(self, mensaje, direccion)
+
+    DgramAsyncioProtocol.datagram_received = recibir
+    DgramAsyncioProtocol.sendMessage = enviar
+
+
 def build_snmp_engine() -> engine.SnmpEngine:
     snmp_engine = engine.SnmpEngine()
+
+    if os.environ.get("RSU_SNMP_MEDIR_PROC"):
+        _instrumentar_transporte_snmp(os.environ["RSU_SNMP_MEDIR_PROC"])
 
     config.addTransport(
         snmp_engine,
         config.udp.domainName,
         config.udp.UdpAsyncioTransport().openServerMode(SNMP_LISTEN_ADDRESS),
     )
+
+    if os.environ.get("RSU_SNMP_USUARIOS_LAB") == "1":
+        # Solo para medir el costo de cada nivel de seguridad: dos usuarios de
+        # laboratorio con niveles más bajos que el de operación (authPriv).
+        # Desactivados por defecto; nunca en un despliegue.
+        config.addV3User(snmp_engine, "lab-noauth")
+        config.addV3User(snmp_engine, "lab-auth", config.usmHMAC192SHA256AuthProtocol, AUTH_KEY)
+        for usuario, nivel in (("lab-noauth", "noAuthNoPriv"), ("lab-auth", "authNoPriv")):
+            for sub in (NTCIP_ASC_OID, SCP_OID):
+                config.addVacmUser(snmp_engine, 3, usuario, nivel, readSubTree=sub, writeSubTree=sub)
+        print("[middleware] AVISO: usuarios SNMP de laboratorio activos (RSU_SNMP_USUARIOS_LAB=1)")
 
     config.addV3User(
         snmp_engine,

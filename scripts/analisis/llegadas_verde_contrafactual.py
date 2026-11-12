@@ -109,7 +109,12 @@ def fase_natural_en_cruce(eventos_parada: list[dict], resultado: str) -> tuple[s
                  key=lambda e: e["ts_ns"])
     liberacion = next((e for e in reversed(ctrl) if e["extra"].get("motivo") in MOTIVOS_LIBERACION), None)
     if liberacion is not None:
-        return liberacion["extra"].get("fase"), "medido_liberacion"
+        # Desde el 2026-11-12 el controlador sale de la prioridad por ámbar y
+        # todo rojo: la fase visible al liberar ya no es la del plan, y el
+        # evento trae fase_plan. Las corridas anteriores solo tienen "fase",
+        # que entonces sí era la del plan.
+        ex = liberacion["extra"]
+        return ex.get("fase_plan", ex.get("fase")), "medido_liberacion"
     if resultado == "concedida":
         # Prioridad activa sostenida hasta el cruce sin que se detectara (ni
         # se logueara) ningún cambio de fase natural: la fase natural en el

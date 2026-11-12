@@ -144,6 +144,14 @@ class Controller:
         self._priority_until = 0.0
         self._eventos = eventos
         self._fase_logueada: str | None = None
+        # Salida de la prioridad (2026-11-12): al liberar, el grupo no salta a
+        # la fase del plan. Respeta el verde mínimo desde que empezó el verde,
+        # pasa por ámbar y todo rojo, y retoma el plan cuando este está en
+        # verde o en rojo general (nunca entra al plan a mitad de un ámbar o
+        # un todo rojo). _salida_ambar: instante (monotonic) en que empieza
+        # el ámbar de salida; None fuera de una salida.
+        self._salida_ambar: float | None = None
+        self._verde_desde = 0.0
 
     # --- Ciclo de fases -----------------------------------------------
 
@@ -191,9 +199,38 @@ class Controller:
         ningun estado guardado de antes de la prioridad."""
         return self._fase_en_offset_locked(time.monotonic() - self._epoch)
 
+    def _inicio_verde_plan_locked(self, ahora: float) -> float:
+        """Instante (monotonic) en que empezó el verde del plan en curso;
+        solo tiene sentido si el plan está en verde en `ahora`."""
+        total = sum(d for _, d in self._cycle_locked())
+        if total <= 0:
+            return ahora
+        return ahora - ((ahora - self._epoch) % total)
+
+    def _iniciar_salida_locked(self, liberacion: float) -> None:
+        """Programa la salida de la prioridad liberada en `liberacion`: el
+        ámbar empieza cuando se cumple el verde mínimo (si ya se cumplió,
+        de inmediato)."""
+        self._salida_ambar = max(liberacion, self._verde_desde + self._phase_minimum_green_s)
+
     def _fase_actual_locked(self) -> str:
         if self._priority_vehicle is not None:
             return "verde"
+        if self._salida_ambar is not None:
+            t = time.monotonic() - self._salida_ambar
+            ambar = self._phase_yellow_change_ds / 10.0
+            todo_rojo = self._phase_red_clear_ds / 10.0
+            if t < 0:
+                return "verde"
+            if t < ambar:
+                return "amarillo"
+            if t < ambar + todo_rojo:
+                return "todo_rojo"
+            plan = self._fase_normal_locked()
+            if plan in ("verde", "rojo_general"):
+                self._salida_ambar = None  # plan recuperado
+                return plan
+            return "rojo_general"  # el plan sigue en su ámbar/todo rojo: el grupo espera en rojo
         return self._fase_normal_locked()
 
     @staticmethod
@@ -238,11 +275,10 @@ class Controller:
             vehiculo_vencido = self._priority_vehicle
             id_vencido = self._priority_request_id
             print(f"[controlador] Prioridad de '{vehiculo_vencido}' vencio, "
-                  f"vuelve al ciclo normal")
+                  f"sale por ambar y todo rojo")
             self._priority_vehicle = None
-            self._log_si_cambio_locked(
-                id_vencido, motivo="caducidad_prioridad", vehiculo_id=vehiculo_vencido
-            )
+            self._iniciar_salida_locked(self._priority_until)
+            self._log_liberacion_locked(id_vencido, "caducidad_prioridad", vehiculo_id=vehiculo_vencido)
         elif self._priority_vehicle is None:
             self._log_si_cambio_locked(motivo="ciclo_normal")
 
@@ -264,6 +300,9 @@ class Controller:
                 "green": green,
                 "prioridad_activa": self._priority_vehicle is not None,
                 "prioridad_de": self._priority_vehicle,
+                # campos adicionales (2026-11-12); el middleware no los usa
+                "fase_plan": self._fase_normal_locked(),
+                "en_salida": self._salida_ambar is not None,
             }
 
     def timing(self) -> dict:
@@ -299,6 +338,15 @@ class Controller:
 
     def request_priority(self, vehiculo_id: str, eta_seg: float, id_solicitud: str = "-") -> None:
         with self._lock:
+            ahora = time.monotonic()
+            fase_previa = self._fase_actual_locked()
+            if self._priority_vehicle is None and fase_previa == "verde":
+                # ya estaba en verde: el verde mínimo cuenta desde su inicio
+                self._verde_desde = (self._verde_desde if self._salida_ambar is not None
+                                     else self._inicio_verde_plan_locked(ahora))
+            elif self._priority_vehicle is None:
+                self._verde_desde = ahora
+            self._salida_ambar = None
             self._priority_vehicle = vehiculo_id
             self._priority_until = time.monotonic() + PRIORITY_HOLD_SECONDS
             self._priority_request_id = id_solicitud
@@ -311,9 +359,24 @@ class Controller:
     def clear_priority(self, id_solicitud: str = "-") -> None:
         with self._lock:
             id_para_log = id_solicitud if id_solicitud != "-" else self._priority_request_id
+            if self._priority_vehicle is None:
+                return  # nada que liberar (p. ej. M3 tras una caducidad)
             self._priority_vehicle = None
-            self._log_si_cambio_locked(id_para_log, motivo="liberacion_manual")
-        print("[controlador] Prioridad liberada manualmente, vuelve al ciclo normal")
+            self._iniciar_salida_locked(time.monotonic())
+            self._log_liberacion_locked(id_para_log, "liberacion_manual")
+        print("[controlador] Prioridad liberada manualmente, sale por ambar y todo rojo")
+
+    def _log_liberacion_locked(self, id_solicitud: str, motivo: str, **extra) -> None:
+        """Registra SIEMPRE la liberación (aunque la fase visible siga en
+        verde por el verde mínimo o la salida): con fase_plan, la fase que el
+        plan tenía en ese instante (la que el vehículo habría encontrado sin
+        prioridad, ver llegadas_verde_contrafactual.py)."""
+        fase = self._fase_actual_locked()
+        self._fase_logueada = fase
+        print(f"[controlador] Fase -> {fase} ({motivo})")
+        if self._eventos is not None:
+            self._eventos.log(EVT_CTRL_FASE_CAMBIO, id_solicitud, fase=fase, prioridad_activa=False,
+                              motivo=motivo, fase_plan=self._fase_normal_locked(), **extra)
 
 
 def _handle_client(conn: socket.socket, controller: Controller) -> None:

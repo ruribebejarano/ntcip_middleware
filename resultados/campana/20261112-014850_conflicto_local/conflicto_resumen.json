@@ -1,0 +1,306 @@
+{
+ "repeticiones": 10,
+ "con_conflicto": 10,
+ "t_arbitraje_ms": {
+  "med": 0.8422000000000001,
+  "max": 1.1109
+ },
+ "desalojos": 10,
+ "t_desalojo_ms": {
+  "med": 0.53345,
+  "max": 0.8686
+ },
+ "t_liberacion_ms": {
+  "med": 33.91185,
+  "max": 34.6218
+ },
+ "final_con_prioridad": 0,
+ "final_con_solicitudes_abiertas": 0,
+ "analisis_lazo_centralizado": [
+  "Arbitraje consistente con la pol�tica (servidor/conflictos.py): 10/10",
+  "Ganadores: 10 (obtuvieron verde: 10)",
+  "Perdedores: 10 (atendidos despu�s de esperar: 6, cancelados correctamente al cruzar: 4, sin resolver al cierre de la corrida: 0)"
+ ],
+ "reps": [
+  {
+   "rep": "rep_01",
+   "conflicto": true,
+   "atendida": [
+    "mis-6d4d2fef"
+   ],
+   "en_espera": [
+    "mis-67cb113c"
+   ],
+   "candidatos": [
+    {
+     "mision_id": "mis-67cb113c",
+     "clase": 1,
+     "eta_s": 14.3
+    },
+    {
+     "mision_id": "mis-6d4d2fef",
+     "clase": 1,
+     "eta_s": 8.0
+    }
+   ],
+   "t_arbitraje_ms": 0.8327,
+   "desalojo": true,
+   "t_desalojo_ms": 0.5157,
+   "t_liberacion_ms": 34.3171,
+   "final_prioridad_activa": false,
+   "solicitudes_abiertas_rsu": []
+  },
+  {
+   "rep": "rep_02",
+   "conflicto": true,
+   "atendida": [
+    "mis-0e8bb8c1"
+   ],
+   "en_espera": [
+    "mis-ce17faa0"
+   ],
+   "candidatos": [
+    {
+     "mision_id": "mis-ce17faa0",
+     "clase": 1,
+     "eta_s": 14.42
+    },
+    {
+     "mision_id": "mis-0e8bb8c1",
+     "clase": 1,
+     "eta_s": 8.0
+    }
+   ],
+   "t_arbitraje_ms": 0.8954,
+   "desalojo": true,
+   "t_desalojo_ms": 0.4727,
+   "t_liberacion_ms": 34.391,
+   "final_prioridad_activa": false,
+   "solicitudes_abiertas_rsu": []
+  },
+  {
+   "rep": "rep_03",
+   "conflicto": true,
+   "atendida": [
+    "mis-3e06d837"
+   ],
+   "en_espera": [
+    "mis-ab8a172c"
+   ],
+   "candidatos": [
+    {
+     "mision_id": "mis-ab8a172c",
+     "clase": 1,
+     "eta_s": 14.42
+    },
+    {
+     "mision_id": "mis-3e06d837",
+     "clase": 1,
+     "eta_s": 8.0
+    }
+   ],
+   "t_arbitraje_ms": 0.7458,
+   "desalojo": true,
+   "t_desalojo_ms": 0.5862,
+   "t_liberacion_ms": 33.5066,
+   "final_prioridad_activa": false,
+   "solicitudes_abiertas_rsu": []
+  },
+  {
+   "rep": "rep_04",
+   "conflicto": true,
+   "atendida": [
+    "mis-f53a0cd0"
+   ],
+   "en_espera": [
+    "mis-f916b379"
+   ],
+   "candidatos": [
+    {
+     "mision_id": "mis-f916b379",
+     "clase": 1,
+     "eta_s": 14.46
+    },
+    {
+     "mision_id": "mis-f53a0cd0",
+     "clase": 1,
+     "eta_s": 8.0
+    }
+   ],
+   "t_arbitraje_ms": 0.8074,
+   "desalojo": true,
+   "t_desalojo_ms": 0.5108,
+   "t_liberacion_ms": 34.6218,
+   "final_prioridad_activa": false,
+   "solicitudes_abiertas_rsu": []
+  },
+  {
+   "rep": "rep_05",
+   "conflicto": true,
+   "atendida": [
+    "mis-a56325c2"
+   ],
+   "en_espera": [
+    "mis-ec392e7b"
+   ],
+   "candidatos": [
+    {
+     "mision_id": "mis-ec392e7b",
+     "clase": 1,
+     "eta_s": 14.39
+    },
+    {
+     "mision_id": "mis-a56325c2",
+     "clase": 1,
+     "eta_s": 8.0
+    }
+   ],
+   "t_arbitraje_ms": 0.927,
+   "desalojo": true,
+   "t_desalojo_ms": 0.6206,
+   "t_liberacion_ms": null,
+   "final_prioridad_activa": false,
+   "solicitudes_abiertas_rsu": []
+  },
+  {
+   "rep": "rep_06",
+   "conflicto": true,
+   "atendida": [
+    "mis-854a67ca"
+   ],
+   "en_espera": [
+    "mis-9f121638"
+   ],
+   "candidatos": [
+    {
+     "mision_id": "mis-9f121638",
+     "clase": 1,
+     "eta_s": 14.46
+    },
+    {
+     "mision_id": "mis-854a67ca",
+     "clase": 1,
+     "eta_s": 8.0
+    }
+   ],
+   "t_arbitraje_ms": 0.9667,
+   "desalojo": true,
+   "t_desalojo_ms": 0.6146,
+   "t_liberacion_ms": 4.4045,
+   "final_prioridad_activa": false,
+   "solicitudes_abiertas_rsu": []
+  },
+  {
+   "rep": "rep_07",
+   "conflicto": true,
+   "atendida": [
+    "mis-18c1b885"
+   ],
+   "en_espera": [
+    "mis-d089cead"
+   ],
+   "candidatos": [
+    {
+     "mision_id": "mis-d089cead",
+     "clase": 1,
+     "eta_s": 14.42
+    },
+    {
+     "mision_id": "mis-18c1b885",
+     "clase": 1,
+     "eta_s": 8.0
+    }
+   ],
+   "t_arbitraje_ms": 0.8517,
+   "desalojo": true,
+   "t_desalojo_ms": 0.5446,
+   "t_liberacion_ms": null,
+   "final_prioridad_activa": false,
+   "solicitudes_abiertas_rsu": []
+  },
+  {
+   "rep": "rep_08",
+   "conflicto": true,
+   "atendida": [
+    "mis-4b37a58a"
+   ],
+   "en_espera": [
+    "mis-70376411"
+   ],
+   "candidatos": [
+    {
+     "mision_id": "mis-70376411",
+     "clase": 1,
+     "eta_s": 14.46
+    },
+    {
+     "mision_id": "mis-4b37a58a",
+     "clase": 1,
+     "eta_s": 8.0
+    }
+   ],
+   "t_arbitraje_ms": 0.7004,
+   "desalojo": true,
+   "t_desalojo_ms": 0.4656,
+   "t_liberacion_ms": null,
+   "final_prioridad_activa": false,
+   "solicitudes_abiertas_rsu": []
+  },
+  {
+   "rep": "rep_09",
+   "conflicto": true,
+   "atendida": [
+    "mis-43f9b924"
+   ],
+   "en_espera": [
+    "mis-26d2037c"
+   ],
+   "candidatos": [
+    {
+     "mision_id": "mis-26d2037c",
+     "clase": 1,
+     "eta_s": 14.46
+    },
+    {
+     "mision_id": "mis-43f9b924",
+     "clase": 1,
+     "eta_s": 8.0
+    }
+   ],
+   "t_arbitraje_ms": 0.7581,
+   "desalojo": true,
+   "t_desalojo_ms": 0.5223,
+   "t_liberacion_ms": 3.5467,
+   "final_prioridad_activa": false,
+   "solicitudes_abiertas_rsu": []
+  },
+  {
+   "rep": "rep_10",
+   "conflicto": true,
+   "atendida": [
+    "mis-97bb5fe9"
+   ],
+   "en_espera": [
+    "mis-78aadd08"
+   ],
+   "candidatos": [
+    {
+     "mision_id": "mis-78aadd08",
+     "clase": 1,
+     "eta_s": 14.14
+    },
+    {
+     "mision_id": "mis-97bb5fe9",
+     "clase": 1,
+     "eta_s": 8.0
+    }
+   ],
+   "t_arbitraje_ms": 1.1109,
+   "desalojo": true,
+   "t_desalojo_ms": 0.8686,
+   "t_liberacion_ms": null,
+   "final_prioridad_activa": false,
+   "solicitudes_abiertas_rsu": []
+  }
+ ]
+}

@@ -1,0 +1,20 @@
+\begin{table}[H]
+\centering
+\caption[Conflicto entre dos misiones en el banco]{Conflicto entre dos misiones que llegan a la misma intersección por accesos incompatibles, en el banco de pruebas (condición local, 10 repeticiones). Los tiempos usan un solo reloj.}
+\label{tab:conflicto}
+\small
+\begin{tabular}{lr}
+\toprule
+\textbf{Métrica} & \textbf{Valor} \\
+\midrule
+Repeticiones con conflicto detectado & 10 de 10 \\
+Decisión consistente con la política de arbitraje & 10/10 \\
+ETA de la misión atendida / desplazada (mediana, s) & 8,0 / 14,4 \\
+Tiempo de arbitraje: MP $\to$ decisión (mediana / máx., ms) & 0,84 / 1,11 \\
+Decisión $\to$ M3 a la misión desplazada (mediana / máx., ms) & 0,53 / 0,87 \\
+M3 $\to$ liberación en el controlador (mediana / máx., ms) & 33,91 / 34,62 \\
+Misión desplazada: atendida después / cruzó sin prioridad & 6 / 4 \\
+Final con prioridad activa / con solicitudes abiertas & 0 / 0 \\
+\bottomrule
+\end{tabular}
+\end{table}

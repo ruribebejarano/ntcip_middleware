@@ -134,12 +134,48 @@ def test_prioridad_deja_el_ciclo_de_fondo_coherente_al_liberar():
         ctrl.clear_priority("req-1")
 
         # El reloj de fondo nunca se detuvo: van 1 + 12 = 13 s desde el
-        # epoch -> cae justo al INICIO de rojo_general ([13, 21) s).
+        # epoch -> el plan cae justo al INICIO de rojo_general ([13, 21) s).
         estado = ctrl.status()
-        assert estado["fase"] == "rojo_general", (
-            f"tras liberar la prioridad a los 13 s de reloj real, se esperaba 'rojo_general' "
-            f"(el ciclo de fondo siguio corriendo); salio {estado['fase']!r}."
-        )
+        assert estado["fase_plan"] == "rojo_general"
+        # Salida de la prioridad: el verde mínimo (desde el verde del plan,
+        # t=0) ya se cumplió, así que sale por ámbar (3 s) y todo rojo (2 s)
+        # y recién a los 18 s retoma el plan, que sigue en rojo_general.
+        assert estado["fase"] == "amarillo" and estado["en_salida"]
+        reloj.t += 3.0
+        assert ctrl.status()["fase"] == "todo_rojo"
+        reloj.t += 2.0
+        estado = ctrl.status()
+        assert estado["fase"] == "rojo_general" and not estado["en_salida"]
+
+
+def test_salida_de_prioridad_respeta_verde_minimo_y_no_entra_a_mitad_de_ambar():
+    """Liberada antes de cumplir el verde mínimo, la prioridad sigue en verde
+    hasta cumplirlo; y si al terminar el todo rojo de salida el plan está en
+    su propio ámbar/todo rojo, el grupo espera en rojo hasta que el plan
+    llegue a rojo_general."""
+    reloj = _RelojFalso()
+    with patch("controller.controller_emulator.time.monotonic", reloj):
+        ctrl = Controller()
+        reloj.t += 10.0  # plan en amarillo ([8, 11) s): el grupo está en ámbar
+        ctrl.request_priority("veh-1", eta_seg=5.0, id_solicitud="req-1")  # verde desde t=10
+        reloj.t += 2.0  # t=12: liberada a los 2 s, verde mínimo hasta t=18
+        ctrl.clear_priority("req-1")
+        assert ctrl.status()["fase"] == "verde"
+        reloj.t += 6.0  # t=18: empieza el ámbar de salida
+        assert ctrl.status()["fase"] == "amarillo"
+        reloj.t += 5.0  # t=23: termina el todo rojo; plan en verde ([21, 29) s)
+        assert ctrl.status()["fase"] == "verde"
+        assert not ctrl.status()["en_salida"]
+
+
+def test_liberar_sin_prioridad_activa_no_inicia_salida():
+    reloj = _RelojFalso()
+    with patch("controller.controller_emulator.time.monotonic", reloj):
+        ctrl = Controller()
+        reloj.t += 1.0
+        ctrl.clear_priority("req-x")
+        estado = ctrl.status()
+        assert estado["fase"] == "verde" and not estado["en_salida"]
 
 
 def test_desfase_inicial_adelanta_el_ciclo():

@@ -1,0 +1,460 @@
+{
+  "cota_reloj_pi_ms": 0.0,
+  "nota_reloj": null,
+  "n_misiones": 20,
+  "n_paradas": 20,
+  "resultados": {
+    "concedida": 16,
+    "rechazada": 0,
+    "sin_verde": 4,
+    "sin_respuesta": 0
+  },
+  "sin_respuesta_por_etapa": {},
+  "cola_despeje": 8,
+  "t_OBU_srv_ms": {
+    "n": 550,
+    "media": 0.699760909090909,
+    "mediana": 0.7032,
+    "p95": 0.9554,
+    "max": 2.9644,
+    "min": -1.951
+  },
+  "t_RSU_ms": {
+    "n": 20,
+    "media": 3.941395,
+    "mediana": 1.726,
+    "p95": 7.2245,
+    "max": 25.6012,
+    "min": 0.5721
+  },
+  "RTT_srv_ms": {
+    "n": 20,
+    "media": 21.509275,
+    "mediana": 11.552,
+    "p95": 42.0544,
+    "max": 42.6884,
+    "min": 7.4606
+  },
+  "L_ms": {
+    "n": 20,
+    "media": 18.16747,
+    "mediana": 7.6367,
+    "p95": 37.2207,
+    "max": 39.667,
+    "min": 4.2656
+  },
+  "t_verde_ms": {
+    "n": 16,
+    "media": 764.74280625,
+    "mediana": 36.9496,
+    "p95": 4260.6136,
+    "max": 4260.6136,
+    "min": 4.7005
+  },
+  "T_desp_ms": {
+    "n": 4,
+    "media": 2864.717825,
+    "mediana": 2638.5741,
+    "p95": 4255.3392,
+    "max": 4255.3392,
+    "min": 597.2089
+  },
+  "anticipacion_real_s": {
+    "n": 16,
+    "media": 13.660958225,
+    "mediana": 13.9917791,
+    "p95": 14.9629006,
+    "max": 14.9629006,
+    "min": 9.7311279
+  },
+  "anticipacion_minima_s_rf8": 8.0,
+  "condicion_llegada_conteo": {
+    "rojo_general": 4,
+    "verde": 8,
+    "ambar_todo_rojo": 8
+  },
+  "por_condicion_llegada": {
+    "verde": {
+      "t_RSU_ms": {
+        "n": 8,
+        "media": 4.37555,
+        "mediana": 0.7675,
+        "p95": 25.6012,
+        "max": 25.6012,
+        "min": 0.6658
+      },
+      "RTT_srv_ms": {
+        "n": 8,
+        "media": 28.4377375,
+        "mediana": 29.7247,
+        "p95": 42.6884,
+        "max": 42.6884,
+        "min": 7.6662
+      },
+      "L_ms": {
+        "n": 8,
+        "media": 24.5180625,
+        "mediana": 26.8127,
+        "p95": 39.667,
+        "max": 39.667,
+        "min": 4.9836
+      },
+      "t_verde_ms": {
+        "n": 8,
+        "media": 83.2385625,
+        "mediana": 36.9496,
+        "p95": 283.2777,
+        "max": 283.2777,
+        "min": 6.2828
+      },
+      "T_desp_ms": {
+        "n": 0
+      },
+      "anticipacion_real_s": {
+        "n": 8,
+        "media": 14.5370094,
+        "mediana": 14.6846937,
+        "p95": 14.9629006,
+        "max": 14.9629006,
+        "min": 13.9619229
+      }
+    },
+    "ambar_todo_rojo": {
+      "t_RSU_ms": {
+        "n": 8,
+        "media": 3.7967125,
+        "mediana": 3.7197,
+        "p95": 7.2245,
+        "max": 7.2245,
+        "min": 0.7561
+      },
+      "RTT_srv_ms": {
+        "n": 8,
+        "media": 16.88265,
+        "mediana": 10.0525,
+        "p95": 38.9566,
+        "max": 38.9566,
+        "min": 7.4606
+      },
+      "L_ms": {
+        "n": 8,
+        "media": 14.405462499999999,
+        "mediana": 7.3995,
+        "p95": 36.684,
+        "max": 36.684,
+        "min": 4.7107
+      },
+      "t_verde_ms": {
+        "n": 4,
+        "media": 2878.9506,
+        "mediana": 2674.4207,
+        "p95": 4260.6136,
+        "max": 4260.6136,
+        "min": 607.2211
+      },
+      "T_desp_ms": {
+        "n": 4,
+        "media": 2864.717825,
+        "mediana": 2638.5741,
+        "p95": 4255.3392,
+        "max": 4255.3392,
+        "min": 597.2089
+      },
+      "anticipacion_real_s": {
+        "n": 4,
+        "media": 11.6016124,
+        "mediana": 11.0255038,
+        "p95": 13.3253062,
+        "max": 13.3253062,
+        "min": 9.7311279
+      }
+    },
+    "rojo_general": {
+      "t_RSU_ms": {
+        "n": 4,
+        "media": 3.36245,
+        "mediana": 3.0314,
+        "p95": 5.5182,
+        "max": 5.5182,
+        "min": 0.5721
+      },
+      "RTT_srv_ms": {
+        "n": 4,
+        "media": 16.9056,
+        "mediana": 10.7541,
+        "p95": 37.8299,
+        "max": 37.8299,
+        "min": 7.4864
+      },
+      "L_ms": {
+        "n": 4,
+        "media": 12.990300000000001,
+        "mediana": 5.5802,
+        "p95": 35.1899,
+        "max": 35.1899,
+        "min": 4.2656
+      },
+      "t_verde_ms": {
+        "n": 4,
+        "media": 13.5435,
+        "mediana": 6.3382,
+        "p95": 35.6741,
+        "max": 35.6741,
+        "min": 4.7005
+      },
+      "T_desp_ms": {
+        "n": 0
+      },
+      "anticipacion_real_s": {
+        "n": 4,
+        "media": 13.9682017,
+        "mediana": 13.7200789,
+        "p95": 14.7636059,
+        "max": 14.7636059,
+        "min": 13.3946007
+      }
+    }
+  },
+  "rnf01_cumple_p95": true,
+  "reloj_pi_sincronizado": true,
+  "l_p95_peor_caso_ms": 37.2207,
+  "rnf01_cumple_p95_peor_caso": true,
+  "rnf01_veredicto_peor_caso": "CUMPLE",
+  "conflicto": {
+    "eventos_arbitraje": [
+      {
+        "rsu_id": "1",
+        "candidatos": [
+          {
+            "mision_id": "mis-67cb113c",
+            "clase": 1,
+            "eta_s": 14.3
+          },
+          {
+            "mision_id": "mis-6d4d2fef",
+            "clase": 1,
+            "eta_s": 8.0
+          }
+        ],
+        "atendidos": [
+          "mis-6d4d2fef"
+        ],
+        "en_espera": [
+          "mis-67cb113c"
+        ],
+        "consistente_con_politica": true
+      },
+      {
+        "rsu_id": "1",
+        "candidatos": [
+          {
+            "mision_id": "mis-ce17faa0",
+            "clase": 1,
+            "eta_s": 14.42
+          },
+          {
+            "mision_id": "mis-0e8bb8c1",
+            "clase": 1,
+            "eta_s": 8.0
+          }
+        ],
+        "atendidos": [
+          "mis-0e8bb8c1"
+        ],
+        "en_espera": [
+          "mis-ce17faa0"
+        ],
+        "consistente_con_politica": true
+      },
+      {
+        "rsu_id": "1",
+        "candidatos": [
+          {
+            "mision_id": "mis-ab8a172c",
+            "clase": 1,
+            "eta_s": 14.42
+          },
+          {
+            "mision_id": "mis-3e06d837",
+            "clase": 1,
+            "eta_s": 8.0
+          }
+        ],
+        "atendidos": [
+          "mis-3e06d837"
+        ],
+        "en_espera": [
+          "mis-ab8a172c"
+        ],
+        "consistente_con_politica": true
+      },
+      {
+        "rsu_id": "1",
+        "candidatos": [
+          {
+            "mision_id": "mis-f916b379",
+            "clase": 1,
+            "eta_s": 14.46
+          },
+          {
+            "mision_id": "mis-f53a0cd0",
+            "clase": 1,
+            "eta_s": 8.0
+          }
+        ],
+        "atendidos": [
+          "mis-f53a0cd0"
+        ],
+        "en_espera": [
+          "mis-f916b379"
+        ],
+        "consistente_con_politica": true
+      },
+      {
+        "rsu_id": "1",
+        "candidatos": [
+          {
+            "mision_id": "mis-ec392e7b",
+            "clase": 1,
+            "eta_s": 14.39
+          },
+          {
+            "mision_id": "mis-a56325c2",
+            "clase": 1,
+            "eta_s": 8.0
+          }
+        ],
+        "atendidos": [
+          "mis-a56325c2"
+        ],
+        "en_espera": [
+          "mis-ec392e7b"
+        ],
+        "consistente_con_politica": true
+      },
+      {
+        "rsu_id": "1",
+        "candidatos": [
+          {
+            "mision_id": "mis-9f121638",
+            "clase": 1,
+            "eta_s": 14.46
+          },
+          {
+            "mision_id": "mis-854a67ca",
+            "clase": 1,
+            "eta_s": 8.0
+          }
+        ],
+        "atendidos": [
+          "mis-854a67ca"
+        ],
+        "en_espera": [
+          "mis-9f121638"
+        ],
+        "consistente_con_politica": true
+      },
+      {
+        "rsu_id": "1",
+        "candidatos": [
+          {
+            "mision_id": "mis-d089cead",
+            "clase": 1,
+            "eta_s": 14.42
+          },
+          {
+            "mision_id": "mis-18c1b885",
+            "clase": 1,
+            "eta_s": 8.0
+          }
+        ],
+        "atendidos": [
+          "mis-18c1b885"
+        ],
+        "en_espera": [
+          "mis-d089cead"
+        ],
+        "consistente_con_politica": true
+      },
+      {
+        "rsu_id": "1",
+        "candidatos": [
+          {
+            "mision_id": "mis-70376411",
+            "clase": 1,
+            "eta_s": 14.46
+          },
+          {
+            "mision_id": "mis-4b37a58a",
+            "clase": 1,
+            "eta_s": 8.0
+          }
+        ],
+        "atendidos": [
+          "mis-4b37a58a"
+        ],
+        "en_espera": [
+          "mis-70376411"
+        ],
+        "consistente_con_politica": true
+      },
+      {
+        "rsu_id": "1",
+        "candidatos": [
+          {
+            "mision_id": "mis-26d2037c",
+            "clase": 1,
+            "eta_s": 14.46
+          },
+          {
+            "mision_id": "mis-43f9b924",
+            "clase": 1,
+            "eta_s": 8.0
+          }
+        ],
+        "atendidos": [
+          "mis-43f9b924"
+        ],
+        "en_espera": [
+          "mis-26d2037c"
+        ],
+        "consistente_con_politica": true
+      },
+      {
+        "rsu_id": "1",
+        "candidatos": [
+          {
+            "mision_id": "mis-78aadd08",
+            "clase": 1,
+            "eta_s": 14.14
+          },
+          {
+            "mision_id": "mis-97bb5fe9",
+            "clase": 1,
+            "eta_s": 8.0
+          }
+        ],
+        "atendidos": [
+          "mis-97bb5fe9"
+        ],
+        "en_espera": [
+          "mis-78aadd08"
+        ],
+        "consistente_con_politica": true
+      }
+    ],
+    "arbitraje_consistente_con_politica": "10/10",
+    "ganadores": {
+      "total": 10,
+      "obtuvieron_verde": 10
+    },
+    "perdedores": {
+      "total": 10,
+      "atendidos_despues_de_esperar": 6,
+      "cancelados_correctamente_al_cruzar": 4,
+      "sin_resolver_al_cierre_de_la_corrida": 0
+    },
+    "sin_conflicto_detectado": 0,
+    "tasa_exito_arbitraje": 1.0
+  }
+}
