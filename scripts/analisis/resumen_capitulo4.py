@@ -66,10 +66,17 @@ def _resumen_renovacion(directorio: Path) -> dict:
     }
 
 
+#: nombre legible del enlace y del escenario en la tesis (los identificadores
+#: internos de config.json no van al documento)
+NOMBRE_ENLACE = {"local": "Local", "pi-lan": "Wi-Fi", "pi-4g": "4G"}
+NOMBRE_ESCENARIO = {"lazo": "lazo", "desvio": "desvío"}
+
+
 def _fila_latex(r: dict) -> str:
     veredicto = "Sin caducidad" if r["n_caducidades"] == 0 else f"{r['n_caducidades']} CADUCIDAD(ES)"
     return (
-        f"{r['escenario']} & {r['config']} & {r['n_repeticiones']} & "
+        f"{NOMBRE_ENLACE.get(r['config'], r['config'])} & "
+        f"{NOMBRE_ESCENARIO.get(r['escenario'], r['escenario'])} & {r['n_repeticiones']} & "
         f"{r['n_solicitudes_primeras']} & {r['n_renovaciones']} & {veredicto} \\\\"
     )
 
@@ -92,7 +99,7 @@ def main() -> None:
     filas = "\n".join(_fila_latex(r) for r in resumenes)
     factores = {r["factor"] for r in resumenes}
     nota_factor = (
-        "a velocidad real (factor=1)" if factores == {1.0} or factores == {1}
+        "con la trayectoria reproducida a velocidad real" if factores == {1.0} or factores == {1}
         else f"[REVISAR: hay corridas con factor != 1 mezcladas: {sorted(factores)}]"
     )
     tex = f"""\\begin{{table}}[H]

@@ -196,25 +196,25 @@ def analizar_traduccion(dirs: list[Path]) -> dict:
 
 def tabla_traduccion_latex(r: dict, salida: Path) -> None:
     def pct(a, b):
-        return f"{100.0 * a / b:.1f}\\%" if b else "--"
+        return f"{100.0 * a / b:.1f}".replace(".", ",") + "~\\%" if b else "--"
 
     def stats(vals):
         if not vals:
             return "--", "--"
-        return f"{percentil(vals, 50):.2f}", f"{percentil(vals, 95):.2f}"
+        return (f"{percentil(vals, 50):.2f}".replace(".", ","),
+                f"{percentil(vals, 95):.2f}".replace(".", ","))
 
     med_m1set, p95_m1set = stats(r["t_m1_set_ms"])
     med_setfase, p95_setfase = stats(r["t_set_fase_ms"])
 
     lineas = [
         "\\begin{table}[H]", "\\centering",
-        "\\caption{Traducción correcta del middleware NTCIP (OE2), sobre las 4 campañas válidas del "
-        "29/10 más la corrida multi-RSU del 2026-11-02 (ver M1). "
-        "`M1 → SET' cuenta cada M1 inicial (seq=1) recibido por la RSU frente a si se tradujo en una "
-        "escritura NTCIP 1211 (request\\_priority o en\\_cola\\_despeje); `SET → fase' cuenta, de esos, "
-        "si el controlador quedó en un estado consistente con la prioridad (cambio de fase logueado, o "
-        "ya estaba en verde); `M3 → cancelación' cuenta cada M3 recibido frente a si se tradujo en "
-        "clear\\_priority\\_m3.}",
+        "\\caption{Traducción correcta del middleware NTCIP (OE2), sobre las seis corridas de la campaña "
+        "más una corrida adicional con tres RSU. ``M1 $\\to$ SET'' cuenta cada M1 inicial recibido por la RSU "
+        "y si se tradujo en una escritura NTCIP~1211; ``SET $\\to$ fase'' cuenta, de esos, si el controlador "
+        "quedó en un estado consistente con la prioridad (cambio de fase registrado, o ya estaba en verde, "
+        "que se cuenta como 0~ms); ``M3 $\\to$ cancelación'' cuenta cada M3 recibido y si se tradujo en la "
+        "cancelación de la prioridad.}",
         "\\label{tab:ntcip_traduccion}", "\\small",
         "\\begin{tabular}{lrrrr}", "\\toprule",
         "\\textbf{Métrica} & \\textbf{n} & \\textbf{\\% correcto} & "

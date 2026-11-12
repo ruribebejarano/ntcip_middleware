@@ -1,0 +1,3 @@
+Traducción: M1->SET 103/103, SET->fase 103/103, M3->cancelación 103/103
+Rechazo: 22/22 pruebas en verde (de 22 casos listados)
+Tablas en resultados\campana\_figuras_cap4_2026-11-11: tabla_ntcip_traduccion.tex, tabla_ntcip_rechazo.tex

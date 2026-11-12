@@ -1,0 +1,23 @@
+\begin{table}[H]
+\centering
+\caption{Espera por despeje $T_{desp}$ (RF-04) y anticipación $A_v$ (RF-11) por condición de llegada: la fase del controlador cuando la RSU decide sobre la solicitud. Ámbar y todo rojo se agrupan porque la RSU trata ambas igual (encola la solicitud). Escenarios de lazo y desvío combinados, en s.}
+\label{tab:latencia_por_condicion}
+\small
+\begin{tabular}{llrrrrrr}
+\toprule
+\textbf{Enlace} & \textbf{Llegada} & \textbf{n} & \textbf{$T_{desp}$ med.} & \textbf{$T_{desp}$ p95} & \textbf{$A_v$ med.} & \textbf{$A_v$ p95} & \textbf{$A_v$ mín.} \\
+\midrule
+Local & Verde & 19 & -- & -- & 14,98 & 15,99 & 13,98 \\
+Local & Ámbar/todo rojo & 9 & 3,63 & 4,60 & 12,30 & 12,73 & 9,61 \\
+Local & Rojo general & 7 & -- & -- & 14,00 & 14,99 & 13,00 \\
+\addlinespace
+Wi-Fi & Verde & 21 & -- & -- & 14,99 & 15,99 & 13,00 \\
+Wi-Fi & Ámbar/todo rojo & 7 & 1,82 & 4,50 & 12,17 & 14,53 & 9,15 \\
+Wi-Fi & Rojo general & 8 & -- & -- & 14,49 & 15,64 & 13,00 \\
+\addlinespace
+4G & Verde & 11 & -- & -- & 14,82 & 14,94 & 13,67 \\
+4G & Ámbar/todo rojo & 10 & 1,81 & 4,00 & 12,76 & 13,69 & 9,71 \\
+4G & Rojo general & 8 & -- & -- & 14,31 & 15,94 & 13,94 \\
+\bottomrule
+\end{tabular}
+\end{table}

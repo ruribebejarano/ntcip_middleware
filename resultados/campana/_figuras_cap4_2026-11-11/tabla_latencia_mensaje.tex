@@ -1,0 +1,32 @@
+\begin{table}[H]
+\centering
+\caption[Latencia servidor--RSU por mensaje]{Latencia servidor--RSU por mensaje, sobre todos los pares M1/M2 (solicitud inicial y renovaciones), en ms. El RTT y la retención en la RSU usan un solo reloj; la ida, la vuelta y $L$ (ida más retención) se corrigen con el desfase entre los relojes del servidor y de la RSU, estimado en cada repetición con las cuatro marcas de tiempo del par M1/M2 (sección~\ref{ssec:instrumentacion}). Entre corchetes, intervalo de confianza del 95~\% por remuestreo de repeticiones completas.}
+\label{tab:latencia_mensaje}
+\small
+\begin{tabular}{lllll}
+\toprule
+\textbf{Métrica} & \textbf{Mediana} & \textbf{p95} & \textbf{p99} & \textbf{Máx.} \\
+\midrule
+\multicolumn{5}{l}{\textbf{Local} (512 pares M1/M2)} \\
+\quad RTT & 2,3 [2,2; 2,4] & 6,9 [6,6; 7,5] & 20,1 [15,9; 25,8] & 27,0 \\
+\quad Retención RSU & 1,0 [1,0; 1,0] & 5,4 [5,2; 5,8] & 18,8 [14,6; 24,5] & 25,4 \\
+\quad Ida & 0,6 [0,6; 0,7] & 1,1 [1,0; 1,3] & 1,4 [1,2; 1,8] & 3,0 \\
+\quad Vuelta & 0,6 [0,6; 0,6] & 1,1 [1,0; 1,2] & 1,7 [1,2; 2,3] & 11,6 \\
+\quad $L$ & 1,6 [1,6; 1,7] & 6,1 [5,9; 6,6] & 19,5 [15,2; 25,1] & 26,1 \\
+\addlinespace
+\multicolumn{5}{l}{\textbf{Wi-Fi} (526 pares M1/M2)} \\
+\quad RTT & 10,4 [10,1; 10,7] & 17,9 [17,0; 20,1] & 32,4 [24,9; 43,2] & 47,3 \\
+\quad Retención RSU & 1,9 [1,9; 1,9] & 2,6 [2,6; 2,7] & 3,0 [2,8; 3,2] & 3,8 \\
+\quad Ida & 4,5 [4,2; 4,9] & 9,1 [8,0; 11,3] & 20,5 [12,8; 26,0] & 37,5 \\
+\quad Vuelta & 3,9 [3,7; 4,1] & 8,6 [6,7; 10,0] & 13,6 [11,0; 23,6] & 40,3 \\
+\quad $L$ & 6,5 [6,1; 6,9] & 11,1 [10,0; 13,3] & 22,3 [14,9; 28,4] & 39,5 \\
+\addlinespace
+\multicolumn{5}{l}{\textbf{4G} (423 pares M1/M2)} \\
+\quad RTT & 167,3 [151,6; 181,5] & 408,3 [382,8; 1214,4] & 1996,3 [428,7; 3216,4] & 3934,7 \\
+\quad Retención RSU & 1,9 [1,9; 1,9] & 2,3 [2,0; 2,6] & 2,8 [2,7; 2,9] & 3,2 \\
+\quad Ida & 94,1 [85,0; 109,6] & 329,5 [314,5; 336,5] & 393,5 [343,5; 433,0] & 1051,9 \\
+\quad Vuelta & 59,9 [58,7; 60,9] & 91,0 [71,3; 1150,9] & 1898,1 [97,0; 3154,9] & 3815,8 \\
+\quad $L$ & 95,9 [87,0; 111,5] & 330,9 [314,1; 338,4] & 395,5 [345,5; 435,6] & 1053,8 \\
+\bottomrule
+\end{tabular}
+\end{table}

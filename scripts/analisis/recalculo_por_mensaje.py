@@ -62,6 +62,8 @@ REGISTRO = RAIZ / "scripts" / "campanas" / "fixtures" / "registro_rsu_1.json"
 T_CAD_S = 3.0
 T_M_S = 2.0
 A_V_MAX_S = 16.0
+LLEGADAS = ("verde", "ambar_todo_rojo", "rojo_general")
+NOMBRE_LLEGADA = {"verde": "Verde", "ambar_todo_rojo": "Ámbar/todo rojo", "rojo_general": "Rojo general"}
 B_BOOT = 2000
 SEMILLA = 20261111
 NS = 1e9
@@ -122,11 +124,25 @@ def analizar_rep(rep: Path, centro) -> dict:
     for e in srv:
         if e["tipo_evento"] == "M2_rx":
             m2_rx[(e["id_solicitud"], e["x"].get("seq_ref"))].append(e["ts"])
-    decision = {}
+    decision, llegada = {}, {}
     for e in rsu:
         if e["tipo_evento"] == "snmp_set_tx" and e["x"].get("origen") == "v2i" and \
                 e["x"].get("accion") in ("request_priority", "en_cola_despeje", "rechazada"):
             decision.setdefault(e["id_solicitud"], e["ts"])
+            # condición de llegada: fase del controlador al decidir (mismo
+            # criterio que lazo_centralizado.py::condicion_de_fase)
+            f = e["x"].get("fase")
+            llegada.setdefault(e["id_solicitud"], {"verde": "verde", "amarillo": "ambar_todo_rojo",
+                                                   "todo_rojo": "ambar_todo_rojo",
+                                                   "rojo_general": "rojo_general"}.get(f))
+    # T_desp (RF-04): encolado durante el despeje -> activación (reloj de la RSU)
+    cola = {}
+    for e in rsu:
+        if e["tipo_evento"] == "snmp_set_tx" and e["x"].get("accion") == "en_cola_despeje":
+            cola.setdefault(e["id_solicitud"], e["ts"])
+        elif e["tipo_evento"] == "snmp_set_tx" and e["x"].get("accion") == "activar_cola_rf06" \
+                and e["id_solicitud"] in cola:
+            r["T_desp"].append((e["ts"] - cola.pop(e["id_solicitud"])) / NS)
 
     thetas = []
     for (sid, seq), e in m1_tx.items():
@@ -265,7 +281,10 @@ def analizar_rep(rep: Path, centro) -> dict:
         m3c = next((x for x in srv if x["tipo_evento"] == "M3_tx" and x["id_solicitud"] == sid
                     and x["x"].get("motivo") == "cruce"), None)
         if t_verde is not None and m3c is not None:
-            r["A_v"].append((m3c["ts"] - (t_verde - theta * MS)) / NS)
+            a_v = (m3c["ts"] - (t_verde - theta * MS)) / NS
+            r["A_v"].append(a_v)
+            if llegada.get(sid):
+                r["A_v_" + llegada[sid]].append(a_v)
         lib = [x["ts"] for x in rsu if x["tipo_evento"] == "snmp_set_tx" and x["id_solicitud"] == sid
                and x["x"].get("accion") == "clear_priority_m3"]
         if act and lib:
@@ -305,9 +324,14 @@ def main() -> None:
     centro = (reg["lat"], reg["lon"])
     rng = np.random.default_rng(SEMILLA)
 
-    res = {}
+    res, por_corrida = {}, {}
     for cond, corridas in CONDICIONES.items():
-        reps = [analizar_rep(Path(p), centro) for d in corridas for p in sorted(glob.glob(str(C / d / "rep_*")))]
+        reps = []
+        for d in corridas:
+            rd = [analizar_rep(Path(p), centro) for p in sorted(glob.glob(str(C / d / "rep_*")))]
+            escenario = "desvío" if "_desvio_" in d else "lazo"
+            por_corrida[(cond, escenario)] = rd
+            reps += rd
         g = lambda k: [r[k] for r in reps]  # noqa: E731
         ent = sum((r["ent"][0] for r in reps), Counter())
         res[cond] = {
@@ -334,27 +358,96 @@ def main() -> None:
             "A_v_bajo_Tm": sum(1 for r in reps for x in r["A_v"] if x < T_M_S),
             "A_v_sobre_max": sum(1 for r in reps for x in r["A_v"] if x > A_V_MAX_S),
             "dur_prioridad_s": resumir(g("dur_prioridad"), rng, con_ic=False),
+            "T_desp_s": resumir(g("T_desp"), rng, con_ic=False),
+            "A_v_por_llegada": {c: resumir(g("A_v_" + c), rng, con_ic=False) for c in LLEGADAS},
         }
     (salida / "recalculo_por_mensaje.json").write_text(json.dumps(res, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    # --- tabla: RTT por mensaje y tiempo de red -------------------------
+    # --- tabla principal de latencia: todos los pares M1/M2 ---------------
+    # Reemplaza a las tablas de latencia por solicitud inicial y de
+    # percentiles: con el RTT por mensaje, n permite estimar p99 con su IC.
+    # Un bloque por enlace (encabezado de grupo) para que quepa en la página.
     fil = []
     for cond, x in res.items():
-        for nom, k in (("RTT servidor--RSU", "rtt_ms"), ("Tiempo de red (RTT $-$ retención)", "red_ms"),
-                       ("Retención en la RSU", "retencion_rsu_ms"),
-                       ("Ida, corregida por desfase", "ida_corr_ms"), ("Vuelta, corregida por desfase", "vuelta_corr_ms"),
-                       ("$L$ por mensaje (ida + retención)", "L_corr_ms")):
+        fil.append(f"\\multicolumn{{5}}{{l}}{{\\textbf{{{cond}}} ({x['rtt_ms']['n']} pares M1/M2)}} \\\\")
+        for nom, k in (("RTT", "rtt_ms"), ("Retención RSU", "retencion_rsu_ms"),
+                       ("Ida", "ida_corr_ms"), ("Vuelta", "vuelta_corr_ms"),
+                       ("$L$", "L_corr_ms")):
             s = x[k]
-            fil.append(f"{nom} & {cond} & {s['n']} & {ic(s, 'med')} & {ic(s, 'p95')} & {ic(s, 'p99')} & {coma(s['max'], 1)} \\\\")
+            fil.append(f"\\quad {nom} & {ic(s, 'med')} & {ic(s, 'p95')} & {ic(s, 'p99')} & {coma(s['max'], 1)} \\\\")
         fil.append("\\addlinespace")
-    tex = ("\\begin{table}[H]\n\\centering\n\\caption{RTT servidor--RSU por mensaje (solicitud inicial y "
-           "renovaciones), tiempo de red y retención en la RSU, en ms. Entre corchetes, intervalo de confianza "
-           "del 95~\\% por remuestreo de repeticiones completas. Cada métrica usa un solo reloj.}\n"
-           "\\label{tab:rtt_mensaje}\n\\small\n\\begin{tabular}{llrlllr}\n\\toprule\n"
-           "\\textbf{Métrica} & \\textbf{Enlace} & \\textbf{n} & \\textbf{Mediana} & \\textbf{p95} & "
+    tex = ("\\begin{table}[H]\n\\centering\n\\caption[Latencia servidor--RSU por mensaje]{Latencia "
+           "servidor--RSU por mensaje, sobre todos los pares M1/M2 (solicitud inicial y renovaciones), en ms. "
+           "El RTT y la retención en la RSU usan un solo reloj; la ida, la vuelta y $L$ (ida más retención) se "
+           "corrigen con el desfase entre los relojes del servidor y de la RSU, estimado en cada repetición con "
+           "las cuatro marcas de tiempo del par M1/M2 (sección~\\ref{ssec:instrumentacion}). Entre corchetes, "
+           "intervalo de confianza del 95~\\% por remuestreo de repeticiones completas.}\n"
+           "\\label{tab:latencia_mensaje}\n\\small\n\\begin{tabular}{lllll}\n\\toprule\n"
+           "\\textbf{Métrica} & \\textbf{Mediana} & \\textbf{p95} & "
            "\\textbf{p99} & \\textbf{Máx.} \\\\\n\\midrule\n" + "\n".join(fil[:-1]) +
            "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (salida / "tabla_rtt_mensaje.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_latencia_mensaje.tex").write_text(tex, encoding="utf-8")
+
+    # --- tabla: anticipación A_v frente a [T_m; A_v,max] (RF-11) ------------
+    fil = []
+    for (cond, esc), rd in por_corrida.items():
+        v = [a for r in rd for a in r["A_v"]]
+        fuera = sum(1 for a in v if a < T_M_S or a > A_V_MAX_S)
+        fil.append(f"{cond} & {esc} & {len(rd)} & {len(v)} & {coma(pct(v, 50))} & {coma(pct(v, 95))} & "
+                   f"{coma(min(v))} & {coma(max(v))} & {fuera} \\\\")
+    tex = ("\\begin{table}[H]\n\\centering\n\\caption{Anticipación $A_v$ (verde concedido $\\to$ cruce del "
+           f"vehículo) frente a los límites de RF-11, $T_m = {coma(T_M_S, 0)}$~s y $A_{{v,max}} = {coma(A_V_MAX_S, 0)}$~s "
+           "(ecuación~\\eqref{eq:avmax}), en s, corregida por el desfase de relojes. ``Fuera'' cuenta las paradas "
+           "con $A_v$ fuera de ese intervalo.}\n\\label{tab:anticipacion_parada}\n\\small\n"
+           "\\begin{tabular}{llrrrrrrr}\n\\toprule\n\\textbf{Enlace} & \\textbf{Escenario} & \\textbf{Repet.} & "
+           "\\textbf{Cruces} & \\textbf{Mediana} & \\textbf{p95} & \\textbf{Mín.} & \\textbf{Máx.} & "
+           "\\textbf{Fuera} \\\\\n\\midrule\n" + "\n".join(fil) + "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
+    (salida / "tabla_anticipacion.tex").write_text(tex, encoding="utf-8")
+
+    # --- tabla: condición de llegada (solo T_desp y A_v) -------------------
+    fil = []
+    for cond, x in res.items():
+        for c in LLEGADAS:
+            s = x["A_v_por_llegada"][c]
+            if not s.get("n"):
+                continue
+            td = x["T_desp_s"] if c == "ambar_todo_rojo" and x["T_desp_s"].get("n") else None
+            td_txt = f"{coma(td['med'])} & {coma(td['p95'])}" if td else "-- & --"
+            fil.append(f"{cond} & {NOMBRE_LLEGADA[c]} & {s['n']} & {td_txt} & {coma(s['med'])} & "
+                       f"{coma(s['p95'])} & {coma(s['min'])} \\\\")
+        fil.append("\\addlinespace")
+    tex = ("\\begin{table}[H]\n\\centering\n\\caption{Espera por despeje $T_{desp}$ (RF-04) y anticipación $A_v$ "
+           "(RF-11) por condición de llegada: la fase del controlador cuando la RSU decide sobre la solicitud. "
+           "Ámbar y todo rojo se agrupan porque la RSU trata ambas igual (encola la solicitud). Escenarios de lazo "
+           "y desvío combinados, en s.}\n\\label{tab:latencia_por_condicion}\n\\small\n"
+           "\\begin{tabular}{llrrrrrr}\n\\toprule\n\\textbf{Enlace} & \\textbf{Llegada} & \\textbf{n} & "
+           "\\textbf{$T_{desp}$ med.} & \\textbf{$T_{desp}$ p95} & \\textbf{$A_v$ med.} & \\textbf{$A_v$ p95} & "
+           "\\textbf{$A_v$ mín.} \\\\\n\\midrule\n" + "\n".join(fil[:-1]) +
+           "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
+    (salida / "tabla_condicion_llegada.tex").write_text(tex, encoding="utf-8")
+
+    # --- figura: CDF de A_v por enlace con los dos límites -----------------
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(figsize=(6.0, 3.4))
+    for cond, color in zip(res, ("#4C72B0", "#55A868", "#C44E52")):
+        v = sorted(a for (c, _e), rd in por_corrida.items() if c == cond for r in rd for a in r["A_v"])
+        ax.step(v, [(i + 1) / len(v) for i in range(len(v))], where="post", color=color,
+                label=f"{cond} (n={len(v)})")
+    for lim, txt in ((T_M_S, "$T_m$"), (A_V_MAX_S, "$A_{v,max}$")):
+        ax.axvline(lim, color="0.3", ls="--", lw=1)
+        ax.text(lim, 0.03, f" {txt} = {coma(lim, 0)} s", fontsize=8, ha="left" if lim < 10 else "right",
+                va="bottom")
+    ax.set_xlim(0, A_V_MAX_S + 2)
+    ax.set_xlabel("Anticipación $A_v$ (s)")
+    ax.set_ylabel("Fracción de paradas")
+    ax.grid(alpha=0.3)
+    ax.legend(loc="upper left", fontsize=8)
+    fig.tight_layout()
+    for ext in ("pdf", "png"):
+        fig.savefig(salida / f"fig_anticipacion_cdf.{ext}", dpi=200)
+    plt.close(fig)
 
     # --- tabla: entrega ---------------------------------------------------
     fil = []
@@ -378,7 +471,7 @@ def main() -> None:
     for cond, x in res.items():
         print(f"== {cond} ({x['repeticiones']} rep.)")
         for k in ("rtt_ms", "red_ms", "ida_ms", "retencion_rsu_ms", "L_est_ms", "L_cruda_ms", "ida_corr_ms", "vuelta_corr_ms", "L_corr_ms", "desfase_theta_ms", "desfase_cota_error_ms",
-                  "racha_s", "eta_err_s", "eta_err_abs_s", "A_e_s", "cruce_M3_menos_centro_s", "A_v_s", "dur_prioridad_s"):
+                  "racha_s", "eta_err_s", "eta_err_abs_s", "A_e_s", "cruce_M3_menos_centro_s", "A_v_s", "dur_prioridad_s", "T_desp_s"):
             s = x[k]
             if s.get("n"):
                 extra = "".join(f" {q}_ic=[{s[q+'_ic'][0]:.2f};{s[q+'_ic'][1]:.2f}]" for q in ("med", "p95", "p99") if q + "_ic" in s)

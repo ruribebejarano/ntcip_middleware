@@ -1,0 +1,15 @@
+\begin{table}[H]
+\centering
+\caption{Traducción correcta del middleware NTCIP (OE2), sobre las seis corridas de la campaña más una corrida adicional con tres RSU. ``M1 $\to$ SET'' cuenta cada M1 inicial recibido por la RSU y si se tradujo en una escritura NTCIP~1211; ``SET $\to$ fase'' cuenta, de esos, si el controlador quedó en un estado consistente con la prioridad (cambio de fase registrado, o ya estaba en verde, que se cuenta como 0~ms); ``M3 $\to$ cancelación'' cuenta cada M3 recibido y si se tradujo en la cancelación de la prioridad.}
+\label{tab:ntcip_traduccion}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Métrica} & \textbf{n} & \textbf{\% correcto} & \textbf{Mediana (ms)} & \textbf{p95 (ms)} \\
+\midrule
+M1 recibido $\to$ SET NTCIP & 103 & 100,0~\% & 1,06 & 19,89 \\
+SET $\to$ cambio de fase consistente & 103 & 100,0~\% & 0,00 & 4031,55 \\
+M3 recibido $\to$ cancelación NTCIP & 103 & 100,0~\% & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}

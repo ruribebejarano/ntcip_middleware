@@ -133,7 +133,8 @@ def main() -> None:
     for d in args.dir:
         d = Path(d)
         cfg = json.loads((d / "config.json").read_text(encoding="utf-8"))
-        etiqueta = f"{cfg['config']}/{cfg['escenario']}"
+        etiqueta = (f"{ {'local': 'Local', 'pi-lan': 'Wi-Fi', 'pi-4g': '4G'}.get(cfg['config'], cfg['config'])}/"
+                    f"{ {'desvio': 'desvío'}.get(cfg['escenario'], cfg['escenario'])}")
         eventos = cargar([d])
         filas_mision, filas_parada, _ = analizar(eventos)
 

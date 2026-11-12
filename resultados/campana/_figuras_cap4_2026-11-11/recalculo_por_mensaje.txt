@@ -17,6 +17,7 @@
   cruce_M3_menos_centro_s  n=  35 min=    -1.10 med=     0.77 p95=     1.00 p99=     1.00 max=     1.00
   A_v_s                    n=  35 min=     9.61 med=    14.00 p95=    15.29 p99=    15.99 max=    15.99
   dur_prioridad_s          n=  35 min=     9.61 med=    14.00 p95=    15.29 p99=    15.99 max=    16.00
+  T_desp_s                 n=   9 min=     1.24 med=     3.63 p95=     4.60 p99=     4.61 max=     4.61
   rachas>=Tcad=0  A_v<Tm=0  A_v>max=0
   entrega={'MP_env': 3074, 'MP_rec': 3074, 'M1_env': 512, 'M1_rec': 512, 'M3_env': 35, 'M3_rec': 35, 'M2_env': 521, 'M2_rec': 521}
 == Wi-Fi (36 rep.)
@@ -38,6 +39,7 @@
   cruce_M3_menos_centro_s  n=  36 min=    -1.10 med=     0.80 p95=     1.00 p99=     1.00 max=     1.00
   A_v_s                    n=  36 min=     9.15 med=    14.89 p95=    15.99 p99=    16.00 max=    16.00
   dur_prioridad_s          n=  36 min=     9.16 med=    14.89 p95=    16.00 p99=    16.00 max=    16.00
+  T_desp_s                 n=   7 min=     0.21 med=     1.82 p95=     4.50 p99=     4.77 max=     4.84
   rachas>=Tcad=0  A_v<Tm=0  A_v>max=0
   entrega={'MP_env': 3162, 'MP_rec': 3162, 'M1_env': 526, 'M1_rec': 526, 'M3_env': 36, 'M3_rec': 36, 'M2_env': 533, 'M2_rec': 533}
 == 4G (29 rep.)
@@ -59,5 +61,6 @@
   cruce_M3_menos_centro_s  n=  29 min=    -1.10 med=     0.92 p95=     1.00 p99=     1.00 max=     1.00
   A_v_s                    n=  29 min=     9.71 med=    13.95 p95=    15.55 p99=    15.94 max=    15.94
   dur_prioridad_s          n=  29 min=     9.76 med=    14.02 p95=    15.72 p99=    16.27 max=    16.36
+  T_desp_s                 n=  10 min=     0.53 med=     1.81 p95=     4.00 p99=     4.76 max=     4.96
   rachas>=Tcad=0  A_v<Tm=0  A_v>max=0
   entrega={'MP_env': 2547, 'MP_rec': 2547, 'M1_env': 423, 'M1_rec': 423, 'M3_env': 29, 'M3_rec': 29, 'M2_env': 433, 'M2_rec': 433}

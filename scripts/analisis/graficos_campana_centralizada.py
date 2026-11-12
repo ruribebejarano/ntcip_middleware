@@ -95,10 +95,10 @@ def _ecdf(ax, valores, color, etiqueta):
 def fig_rtt_cdf(ax, resultados: dict[str, dict]):
     for (etq, g), color in zip(resultados.items(), PALETA):
         _ecdf(ax, _valores_de(g, "RTT_srv_ms"), color, etq)
-    ax.set_xlabel("RTT_srv (ms)")
+    ax.set_xlabel("RTT servidor–RSU (ms)")
     ax.set_ylabel("Probabilidad acumulada")
     ax.set_ylim(0, 1.02)
-    ax.set_title("(a) CDF de RTT_srv", loc="left")
+    ax.set_title("(a) CDF del RTT servidor–RSU", loc="left")
     ax.legend(loc="lower right", frameon=False)
     ax.grid(True)
 
@@ -196,7 +196,7 @@ def fig_comparacion(ax, resultados: dict[str, dict]):
     """La figura comparativa pedida: RTT_srv y t_RSU (un solo reloj,
     validas en cualquier config) lado a lado, una caja por etiqueta."""
     etiquetas = list(resultados)
-    metricas = [("RTT_srv_ms", "RTT_srv"), ("t_RSU_ms", "t_RSU")]
+    metricas = [("RTT_srv_ms", "RTT servidor–RSU"), ("t_RSU_ms", "t_RSU")]
     pos = 1
     xticks, xlabels = [], []
     for metrica, nombre in metricas:
@@ -215,7 +215,7 @@ def fig_comparacion(ax, resultados: dict[str, dict]):
         pos += 0.6
     ax.set_xticks(xticks, xlabels, fontsize=6.5)
     ax.set_ylabel("Latencia (ms)")
-    ax.set_title("Comparación por configuración (métricas de un solo reloj)", loc="left")
+    ax.set_title("Comparación por enlace (métricas de un solo reloj)", loc="left")
     ax.grid(True, axis="y")
     ax.set_ylim(bottom=0)
 
@@ -248,20 +248,29 @@ def _cota_para_tabla(g: dict, clave: str) -> str:
     return f"{cota / 1000.0:.3f} s" if clave == "anticipacion_real_s" else f"{cota:.1f} ms"
 
 
+def _coma(x: float) -> str:
+    """Decimal con coma, como el resto de la tesis."""
+    return f"{x:.2f}".replace(".", ",")
+
+
 def tabla_latex(resultados: dict[str, dict], salida: Path, nota: str):
-    metricas = [("RTT\\_srv", "RTT_srv_ms", "ms"), ("$t_{RSU}$", "t_RSU_ms", "ms"),
-                ("$t_{OBU\\to srv}$", "t_OBU_srv_ms", "ms"), ("$L$ (RNF-01)", "L_ms", "ms"),
-                ("Anticipación real", "anticipacion_real_s", "s")]
+    # Tabla complementaria (anexo): la tabla principal de latencia es la
+    # de todos los pares M1/M2 (recalculo_por_mensaje.py). Aquí quedan la
+    # solicitud inicial y el tramo OBU->servidor, que no sale de la laptop.
+    metricas = [("RTT servidor--RSU", "RTT_srv_ms", "ms"), ("$t_{RSU}$", "t_RSU_ms", "ms"),
+                ("$L$ sin corregir", "L_ms", "ms"), ("$t_{OBU\\to srv}$", "t_OBU_srv_ms", "ms")]
     lineas = ["\\begin{table}[H]", "\\centering",
-              "\\caption{Latencia del lazo, escenarios de lazo y desvío combinados por condición de "
-              "enlace. " + nota + " Con la RSU real no se reporta $L$, porque cruza el reloj de dos "
-              "equipos y el desfase entre ellos supera al tramo medido: su cota superior es "
-              "RTT\\_srv, medido con un solo reloj. La anticipación real lleva la cota de error de "
-              "reloj del lado de la Raspberry Pi.}",
-              "\\label{tab:latencia_campana_centralizada}", "\\small",
-              "\\begin{tabular}{llrrrrll}", "\\toprule",
-              "\\textbf{Métrica} & \\textbf{Config.} & \\textbf{n} & \\textbf{Mediana} & "
-              "\\textbf{p95} & \\textbf{Máx.} & \\textbf{Unidad} & \\textbf{Cota reloj (Pi)} \\\\",
+              "\\caption[Latencia de la solicitud inicial y del tramo OBU--servidor]{Latencia de la "
+              "solicitud inicial (primer M1 de cada parada) y del tramo "
+              "OBU$\\to$servidor por enlace, escenarios de lazo y desvío combinados, en ms. $L$ sin "
+              "corregir se reporta solo en la condición local, donde todos los procesos comparten el "
+              "reloj; con la RSU física, la latencia corregida por el desfase de relojes está en la "
+              "Tabla~\\ref{tab:latencia_mensaje}. El tramo OBU$\\to$servidor no sale de la laptop en "
+              "ninguna condición: la OBU emulada, el \\emph{broker} y el servidor corren en ella.}",
+              "\\label{tab:latencia_inicial}", "\\small",
+              "\\begin{tabular}{llrrrr}", "\\toprule",
+              "\\textbf{Métrica} & \\textbf{Enlace} & \\textbf{n} & \\textbf{Mediana} & "
+              "\\textbf{p95} & \\textbf{Máx.} \\\\",
               "\\midrule"]
     for nombre, clave, unidad in metricas:
         for etq, g in resultados.items():
@@ -269,8 +278,8 @@ def tabla_latex(resultados: dict[str, dict], salida: Path, nota: str):
                 continue
             m = g.get(clave, {})
             if m.get("n"):
-                lineas.append(f"{nombre} & {etq} & {m['n']} & {m['mediana']:.2f} & {m['p95']:.2f} & "
-                              f"{m['max']:.2f} & {unidad} & {_cota_para_tabla(g, clave)} \\\\")
+                lineas.append(f"{nombre} & {etq} & {m['n']} & {_coma(m['mediana'])} & {_coma(m['p95'])} & "
+                              f"{_coma(m['max'])} \\\\")
     lineas += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
     (salida / "tabla_latencia.tex").write_text("\n".join(lineas) + "\n", encoding="utf-8")
 
@@ -278,7 +287,7 @@ def tabla_latex(resultados: dict[str, dict], salida: Path, nota: str):
 #: etiqueta de presentación para cada condición de llegada (ver
 #: scripts/campanas/lazo_centralizado.py y
 #: scripts/analisis/lazo_centralizado.py::CONDICIONES_LLEGADA).
-NOMBRE_CONDICION = {"verde": "verde", "ambar_todo_rojo": "ámbar/todo rojo", "rojo_general": "rojo"}
+NOMBRE_CONDICION = {"verde": "Verde", "ambar_todo_rojo": "Ámbar/todo rojo", "rojo_general": "Rojo general"}
 
 
 def tabla_condicion_latex(resultados: dict[str, dict], salida: Path, nota: str):
@@ -288,19 +297,20 @@ def tabla_condicion_latex(resultados: dict[str, dict], salida: Path, nota: str):
     arreglo del controlador emulado, el 100 % de las decisiones caía en
     "ámbar/todo rojo", así que este desglose no tenía sentido -- ver
     docs/bitacora/2026-10-29_fase-controlador-emulado.md)."""
-    metricas = [("RTT\\_srv", "RTT_srv_ms", "ms"), ("$t_{RSU}$", "t_RSU_ms", "ms"),
-                ("$L$ (RNF-01)", "L_ms", "ms"), ("$t_{verde}$", "t_verde_ms", "ms"),
-                ("$T_{desp}$ (RF-04)", "T_desp_ms", "ms"), ("Anticipación real (RF-11)", "anticipacion_real_s", "s")]
+    # Versión completa (anexo); la tabla principal por condición de llegada,
+    # reducida a T_desp y A_v, la genera recalculo_por_mensaje.py.
+    metricas = [("RTT servidor--RSU", "RTT_srv_ms", "ms"), ("$t_{RSU}$", "t_RSU_ms", "ms"),
+                ("$L$ sin corregir", "L_ms", "ms"), ("$t_{verde}$", "t_verde_ms", "ms")]
     lineas = ["\\begin{table}[H]", "\\centering",
-              "\\caption{Latencia del lazo por condición de llegada: la fase del controlador en el "
-              "momento de la decisión (verde, ámbar/todo rojo --tratadas juntas por ser ambas no "
-              "interrumpibles-- o rojo general). Escenarios de lazo y desvío combinados por condición "
-              "de enlace. $L$ y $t_{verde}$ se reportan solo en la condición local, "
-              "donde no cruzan el reloj de dos equipos.}",
-              "\\label{tab:latencia_por_condicion}", "\\small",
-              "\\begin{tabular}{lllrrrl}", "\\toprule",
-              "\\textbf{Métrica} & \\textbf{Config.} & \\textbf{Condición} & \\textbf{n} & "
-              "\\textbf{Mediana} & \\textbf{p95} & \\textbf{Unidad} \\\\",
+              "\\caption{Latencia de la solicitud inicial por condición de llegada: la fase del "
+              "controlador en el momento de la decisión (verde, ámbar/todo rojo --tratadas juntas por "
+              "ser ambas no interrumpibles-- o rojo general). Escenarios de lazo y desvío combinados por "
+              "enlace, en ms. $L$ sin corregir y $t_{verde}$ (envío de M1 $\\to$ verde concedido) se "
+              "reportan solo en la condición local, donde no cruzan el reloj de dos equipos.}",
+              "\\label{tab:condicion_completa}", "\\small",
+              "\\begin{tabular}{lllrrr}", "\\toprule",
+              "\\textbf{Métrica} & \\textbf{Enlace} & \\textbf{Llegada} & \\textbf{n} & "
+              "\\textbf{Mediana} & \\textbf{p95} \\\\",
               "\\midrule"]
     for nombre, clave, unidad in metricas:
         for etq, g in resultados.items():
@@ -310,7 +320,7 @@ def tabla_condicion_latex(resultados: dict[str, dict], salida: Path, nota: str):
                 m = g.get("por_condicion_llegada", {}).get(cond, {}).get(clave, {})
                 if m.get("n"):
                     lineas.append(f"{nombre} & {etq} & {NOMBRE_CONDICION[cond]} & {m['n']} & "
-                                  f"{m['mediana']:.2f} & {m['p95']:.2f} & {unidad} \\\\")
+                                  f"{_coma(m['mediana'])} & {_coma(m['p95'])} \\\\")
     lineas += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
     (salida / "tabla_condicion.tex").write_text("\n".join(lineas) + "\n", encoding="utf-8")
 

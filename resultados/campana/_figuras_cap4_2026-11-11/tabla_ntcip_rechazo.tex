@@ -1,0 +1,34 @@
+\begin{table}[H]
+\centering
+\caption{Casos de rechazo/aceptación correctos del middleware NTCIP (OE2), a partir del resultado real de las pruebas automatizadas existentes (no se repite su lógica, solo se recoge pass/fail). Los últimos cuatro casos se agregaron en esta sesión (tests/test\_rsu\_middleware\_validacion.py) porque no tenían prueba a nivel de la lógica de rechazo.}
+\label{tab:ntcip_rechazo}
+\small
+\begin{tabular}{p{5.2cm}p{4.5cm}p{1.6cm}}
+\toprule
+\textbf{Caso} & \textbf{Resultado esperado} & \textbf{Obtenido} \\
+\midrule
+M1 con clase reconocida (CLASES\_EMERGENCIA\_RECONOCIDAS) & se acepta (RF-03) & PASA \\
+M1 con clase NO reconocida & se rechaza (RF-03) & PASA \\
+M1 durante amarillo (fase no interrumpible) & se encola, no se rechaza directo (RF-04) & PASA \\
+M1 durante todo\_rojo (fase no interrumpible) & se encola, no se rechaza directo (RF-04) & PASA \\
+M1 durante verde o rojo\_general (fase interrumpible) & se activa de inmediato (RF-04) & PASA \\
+M1 encolado, despeje termina dentro del TTL & se activa al terminar el despeje (RF-04) & PASA \\
+M1 encolado, despeje tarda más que el TTL & caduca en cola, no se activa (RF-04/RF-07) & PASA \\
+Solicitud activa renovada antes de T\_CAD=3s & no caduca (RF-07) & PASA \\
+Solicitud activa sin renovar, pasado T\_CAD=3s & caduca sola (RF-07/RNF-03) & PASA \\
+Verificación de caducidad sin ninguna solicitud activa & no-op, no falla (RF-07) & PASA \\
+M3 sobre una solicitud activa (en verde forzado) & se cancela (RF-05) & PASA \\
+M3 sobre una solicitud encolada (RF-04) & se cancela, sale de la cola (RF-05) & PASA \\
+OCTET STRING NTCIP 1211 con longitud != 29 bytes & se rechaza al decodificar (mensaje inválido) & PASA \\
+Campo del codec OER fuera de rango & se rechaza al codificar (mensaje inválido) & PASA \\
+vehiculo\_id más largo que el campo OER & se rechaza al codificar (mensaje inválido) & PASA \\
+Reloj de fondo del controlador tras liberar una prioridad & queda coherente con el ciclo real, no se reinicia & PASA \\
+Solicitud activa sin más M1 del servidor (modo seguro) & caduca sola, no se sostiene indefinida (RNF-03) & PASA \\
+Tras caducar, sin M1 nuevo & no hay reactivación automática (RNF-03) & PASA \\
+M1 repetido (mismo seq que el último visto) -- AGREGADO en esta sesión, sin prueba previa & se descarta como duplicado (replay) & PASA \\
+M1 con seq menor al último visto (reenvío desordenado) -- AGREGADO en esta sesión & se descarta como duplicado (replay) & PASA \\
+M1 sin campo id\_solicitud (mensaje inválido) -- AGREGADO en esta sesión, sin prueba previa & se descarta (log 'M1 invalido'), no interrumpe el proceso & PASA \\
+M1 con seq no numérico (mensaje inválido) -- AGREGADO en esta sesión & se descarta (log 'M1 invalido'), no interrumpe el proceso & PASA \\
+\bottomrule
+\end{tabular}
+\end{table}

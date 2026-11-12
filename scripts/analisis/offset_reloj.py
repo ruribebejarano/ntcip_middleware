@@ -97,7 +97,7 @@ def main() -> None:
     for d in args.dir:
         cfg = json.loads((Path(d) / "config.json").read_text(encoding="utf-8"))
         enlace = {"pi-lan": "Wi-Fi", "pi-4g": "4G"}.get(cfg["config"], cfg["config"])
-        nombre = f"{enlace}\n{cfg['escenario']}"
+        nombre = f"{enlace}\n{ {'desvio': 'desvío'}.get(cfg['escenario'], cfg['escenario'])}"
         for momento in ("inicio", "fin"):
             texto = cfg.get(f"reloj_pi_{momento}")
             off = offset_ms(texto)
@@ -126,8 +126,8 @@ def main() -> None:
     ax.grid(True, axis="y")
     if any(not p[3] for p in puntos):
         leyenda = [
-            plt.Line2D([0], [0], marker="o", color=AZUL, lw=0, label="Evaluable (chrony sincronizado)"),
-            plt.Line2D([0], [0], marker="x", color="#b91c1c", lw=0, label="RNF-01 no evaluable (chrony perdió sync.)"),
+            plt.Line2D([0], [0], marker="o", color=AZUL, lw=0, label="Reloj sincronizado"),
+            plt.Line2D([0], [0], marker="x", color="#b91c1c", lw=0, label="Sincronización perdida"),
         ]
         ax.legend(handles=leyenda, loc="upper center", bbox_to_anchor=(0.5, -0.32), frameon=False, fontsize=6)
     fig.savefig(salida / "fig_offset_reloj.pdf", bbox_inches="tight")
