@@ -1,0 +1,5 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794439598829249800,ctrl_1,ctrl_inicio,-,"{""desfase_s"":0.0,""epoch_wall_ns"":1794439598829238600,""verde_s"":8,""amarillo_ds"":30,""todo_rojo_ds"":20,""rojo_general_s"":8}"
+1794439619722555600,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794439619723183700,ctrl_1,ctrl_fase_cambio,mis-d33ff588-C,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""obu-desvio-r14"",""eta_seg"":8}"
+1794439633720770800,ctrl_1,ctrl_fase_cambio,mis-d33ff588-C,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""liberacion_manual""}"

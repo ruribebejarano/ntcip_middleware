@@ -1,0 +1,29 @@
+Misiones: 17  Paradas: 17 (concedidas 17, sin verde 0, rechazadas 0, sin respuesta 0; en cola de despeje: 4)
+RTT_srv (ms, un reloj):     n=17, mediana=5.36, p95=27.01, max=27.01
+t_RSU (ms, un reloj):       n=17, mediana=2.66, p95=24.77, max=24.77
+L -- RNF-01 (ms):           n=17, mediana=3.47, p95=25.43, max=25.43  [peor caso p95+cota=25.43 ms vs 1000 ms -> CUMPLE]
+t_OBU_srv (ms):             n=1493, mediana=0.55, p95=0.77, max=1.10
+Anticipacion real (s, RF8=8.0 s): n=17, mediana=14.00, p95=15.00, max=15.00
+t_verde (ms, espera hasta el verde):  n=17, mediana=3.90, p95=4585.39, max=4585.39
+T_desp (ms, espera de despeje RF-06): n=4, mediana=2284.45, p95=4573.94, max=4573.94
+
+Condición de llegada (fase de la RSU al decidir): {'verde': 9, 'rojo_general': 4, 'ambar_todo_rojo': 4}
+  [verde] RTT_srv: n=9, mediana=4.71, p95=25.60, max=25.60
+  [verde] t_RSU:   n=9, mediana=2.41, p95=23.56, max=23.56
+  [verde] L:       n=9, mediana=3.12, p95=24.19, max=24.19
+  [verde] t_verde: n=9, mediana=3.12, p95=24.19, max=24.19
+  [verde] Anticipación real: n=9, mediana=14.98, p95=15.00, max=15.00
+  [ambar_todo_rojo] RTT_srv: n=4, mediana=5.40, p95=27.01, max=27.01
+  [ambar_todo_rojo] t_RSU:   n=4, mediana=2.96, p95=24.77, max=24.77
+  [ambar_todo_rojo] L:       n=4, mediana=4.18, p95=25.43, max=25.43
+  [ambar_todo_rojo] t_verde: n=4, mediana=2288.18, p95=4585.39, max=4585.39
+  [ambar_todo_rojo] T_desp:  n=4, mediana=2284.45, p95=4573.94, max=4573.94
+  [ambar_todo_rojo] Anticipación real: n=4, mediana=10.94, p95=12.71, max=12.71
+  [rojo_general] RTT_srv: n=4, mediana=5.08, p95=20.01, max=20.01
+  [rojo_general] t_RSU:   n=4, mediana=2.36, p95=17.27, max=17.27
+  [rojo_general] L:       n=4, mediana=3.44, p95=18.27, max=18.27
+  [rojo_general] t_verde: n=4, mediana=3.72, p95=18.60, max=18.60
+  [rojo_general] Anticipación real: n=4, mediana=13.98, p95=15.00, max=15.00
+
+Detalle: resultados\campana\20261111-180333_desvio_local_1hz_con-tls\lazo_por_parada.csv, resultados\campana\20261111-180333_desvio_local_1hz_con-tls\lazo_por_mision.csv
+Resumen: resultados\campana\20261111-180333_desvio_local_1hz_con-tls\lazo_resumen.json

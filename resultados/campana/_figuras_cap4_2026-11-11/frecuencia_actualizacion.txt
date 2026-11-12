@@ -1,0 +1,28 @@
+== 20261111-173108_lazo_local_1hz_con-tls
+MP (OBU): n=1584 mediana=1.000 s p95=1.001 s máx=1.147 s
+M1 renovación (servidor): n=247 mediana=1.000 s p95=1.001 s máx=1.110 s
+Misiones con MI: 18; con MF: 18
+== 20261111-180333_desvio_local_1hz_con-tls
+MP (OBU): n=1496 mediana=1.000 s p95=1.001 s máx=1.036 s
+M1 renovación (servidor): n=230 mediana=1.000 s p95=1.001 s máx=1.007 s
+Misiones con MI: 17; con MF: 17
+== 20261111-183407_lazo_local_1hz_sin-tls
+MP (OBU): n=1496 mediana=1.000 s p95=1.001 s máx=1.033 s
+M1 renovación (servidor): n=234 mediana=1.000 s p95=1.001 s máx=1.002 s
+Misiones con MI: 17; con MF: 17
+== 20261104-045004_lazo_pi-lan
+MP (OBU): n=1584 mediana=1.000 s p95=1.001 s máx=1.014 s
+M1 renovación (servidor): n=247 mediana=1.000 s p95=1.001 s máx=1.004 s
+Misiones con MI: 18; con MF: 18
+== 20261104-052338_desvio_pi-lan
+MP (OBU): n=1584 mediana=1.000 s p95=1.001 s máx=1.007 s
+M1 renovación (servidor): n=243 mediana=1.000 s p95=1.001 s máx=1.006 s
+Misiones con MI: 18; con MF: 18
+== 20261103-232704_lazo_pi-4g
+MP (OBU): n=1056 mediana=1.000 s p95=1.001 s máx=1.080 s
+M1 renovación (servidor): n=164 mediana=1.000 s p95=1.001 s máx=1.001 s
+Misiones con MI: 12; con MF: 12
+== 20261103-235034_desvio_pi-4g
+MP (OBU): n=1496 mediana=1.000 s p95=1.000 s máx=1.013 s
+M1 renovación (servidor): n=230 mediana=1.000 s p95=1.001 s máx=1.003 s
+Misiones con MI: 17; con MF: 17

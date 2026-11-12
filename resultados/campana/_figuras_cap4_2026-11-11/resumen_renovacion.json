@@ -1,0 +1,56 @@
+[
+  {
+    "escenario": "lazo",
+    "config": "local",
+    "factor": 1.0,
+    "n_repeticiones": 18,
+    "n_solicitudes_primeras": 18,
+    "n_renovaciones": 247,
+    "n_caducidades": 0
+  },
+  {
+    "escenario": "desvio",
+    "config": "local",
+    "factor": 1.0,
+    "n_repeticiones": 17,
+    "n_solicitudes_primeras": 17,
+    "n_renovaciones": 230,
+    "n_caducidades": 0
+  },
+  {
+    "escenario": "lazo",
+    "config": "pi-lan",
+    "factor": 1.0,
+    "n_repeticiones": 18,
+    "n_solicitudes_primeras": 18,
+    "n_renovaciones": 247,
+    "n_caducidades": 0
+  },
+  {
+    "escenario": "desvio",
+    "config": "pi-lan",
+    "factor": 1.0,
+    "n_repeticiones": 18,
+    "n_solicitudes_primeras": 18,
+    "n_renovaciones": 243,
+    "n_caducidades": 0
+  },
+  {
+    "escenario": "lazo",
+    "config": "pi-4g",
+    "factor": 1.0,
+    "n_repeticiones": 12,
+    "n_solicitudes_primeras": 12,
+    "n_renovaciones": 164,
+    "n_caducidades": 0
+  },
+  {
+    "escenario": "desvio",
+    "config": "pi-4g",
+    "factor": 1.0,
+    "n_repeticiones": 17,
+    "n_solicitudes_primeras": 17,
+    "n_renovaciones": 230,
+    "n_caducidades": 0
+  }
+]

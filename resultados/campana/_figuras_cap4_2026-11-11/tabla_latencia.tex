@@ -1,0 +1,25 @@
+\begin{table}[H]
+\centering
+\caption{Latencia del lazo, escenarios de lazo y desvío combinados por condición de enlace. La condición pi-lan es la RSU real por Wi-Fi mediante una red superpuesta, no un enlace cableado; pi-4g, la RSU real por el módem celular; local, el banco de desarrollo, con los procesos compitiendo por CPU en la misma máquina, y no debe leerse como una cota inferior. Con la RSU real no se reporta $L$, porque cruza el reloj de dos equipos y el desfase entre ellos supera al tramo medido: su cota superior es RTT\_srv, medido con un solo reloj. La anticipación real lleva la cota de error de reloj del lado de la Raspberry Pi.}
+\label{tab:latencia_campana_centralizada}
+\small
+\begin{tabular}{llrrrrll}
+\toprule
+\textbf{Métrica} & \textbf{Config.} & \textbf{n} & \textbf{Mediana} & \textbf{p95} & \textbf{Máx.} & \textbf{Unidad} & \textbf{Cota reloj (Pi)} \\
+\midrule
+RTT\_srv & local & 35 & 5.54 & 25.90 & 27.01 & ms & -- \\
+RTT\_srv & pi-lan & 36 & 11.20 & 17.71 & 21.03 & ms & -- \\
+RTT\_srv & pi-4g & 29 & 173.82 & 395.30 & 418.77 & ms & -- \\
+$t_{RSU}$ & local & 35 & 2.96 & 23.56 & 24.77 & ms & -- \\
+$t_{RSU}$ & pi-lan & 36 & 1.02 & 1.09 & 1.17 & ms & -- \\
+$t_{RSU}$ & pi-4g & 29 & 1.02 & 1.09 & 1.39 & ms & -- \\
+$t_{OBU\to srv}$ & local & 3074 & 0.57 & 0.78 & 2.73 & ms & -- \\
+$t_{OBU\to srv}$ & pi-lan & 3162 & 0.88 & 1.06 & 27.57 & ms & -- \\
+$t_{OBU\to srv}$ & pi-4g & 2547 & 0.65 & 0.86 & 13.24 & ms & -- \\
+$L$ (RNF-01) & local & 35 & 3.90 & 24.21 & 25.43 & ms & 0 (mismo reloj) \\
+Anticipación real & local & 35 & 14.00 & 15.98 & 15.99 & s & 0 (mismo reloj) \\
+Anticipación real & pi-lan & 36 & 14.85 & 16.06 & 16.06 & s & 0.021 s \\
+Anticipación real & pi-4g & 29 & 14.04 & 16.03 & 16.03 & s & 0.026 s \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,5 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794438437850309300,ctrl_1,ctrl_inicio,-,"{""desfase_s"":0.0,""epoch_wall_ns"":1794438437850301500,""verde_s"":8,""amarillo_ds"":30,""todo_rojo_ds"":20,""rojo_general_s"":8}"
+1794438470395351300,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""todo_rojo"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794438472091054600,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794438472092102800,ctrl_1,ctrl_fase_cambio,mis-937f5464-C,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""obu-desvio-r03"",""eta_seg"":8}"

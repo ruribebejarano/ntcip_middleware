@@ -1,0 +1,18 @@
+\begin{table}[H]
+\centering
+\caption{Percentiles de latencia por condición de enlace, en ms. Con la RSU real se reporta RTT\_srv como cota superior de $L$. Con $N < 100$, p99 coincide con el máximo observado y no es un percentil estimado con precisión. El tramo OBU$\to$servidor ($t_{OBU\to srv}$) incluye todos los mensajes de posición, por lo que su p99 sí es un percentil real.}
+\label{tab:latencia_percentiles}
+\small
+\begin{tabular}{llrrrrl}
+\toprule
+\textbf{Métrica} & \textbf{Condición} & \textbf{N} & \textbf{p50} & \textbf{p95} & \textbf{p99} & \textbf{Máx.} \\
+\midrule
+$L$ (p99 $\approx$ máx.) & local & 35 & 3.90 & 24.21 & 25.43 & 25.43 \\
+RTT\_srv (p99 $\approx$ máx.) & pi-lan & 36 & 11.20 & 17.71 & 21.03 & 21.03 \\
+RTT\_srv (p99 $\approx$ máx.) & pi-4g & 29 & 173.82 & 395.30 & 418.77 & 418.77 \\
+$t_{OBU\to srv}$ & local & 3074 & 0.57 & 0.78 & 0.95 & 2.73 \\
+$t_{OBU\to srv}$ & pi-lan & 3162 & 0.88 & 1.06 & 1.49 & 27.57 \\
+$t_{OBU\to srv}$ & pi-4g & 2547 & 0.65 & 0.86 & 1.09 & 13.24 \\
+\bottomrule
+\end{tabular}
+\end{table}

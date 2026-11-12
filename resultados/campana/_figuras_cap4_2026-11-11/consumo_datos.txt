@@ -1,0 +1,3 @@
+20261103-232704_lazo_pi-4g: 2.23 MB (RX 0.69 / TX 1.54), 0.19 MB/repetición
+20261103-235034_desvio_pi-4g: 3.20 MB (RX 0.94 / TX 2.26), 0.19 MB/repetición
+Total usb0: 5.43 MB

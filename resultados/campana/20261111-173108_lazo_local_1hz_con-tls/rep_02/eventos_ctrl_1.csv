@@ -1,0 +1,5 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794436375509657500,ctrl_1,ctrl_inicio,-,"{""desfase_s"":0.0,""epoch_wall_ns"":1794436375509650200,""verde_s"":8,""amarillo_ds"":30,""todo_rojo_ds"":20,""rojo_general_s"":8}"
+1794436415137669800,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794436415138839200,ctrl_1,ctrl_fase_cambio,mis-496bfaec-C,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""solicitud_prioridad"",""vehiculo_id"":""obu-lazo-r02"",""eta_seg"":8}"
+1794436428135582000,ctrl_1,ctrl_fase_cambio,mis-496bfaec-C,"{""fase"":""amarillo"",""prioridad_activa"":false,""motivo"":""liberacion_manual""}"

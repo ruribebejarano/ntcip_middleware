@@ -1,0 +1,48 @@
+\begin{table}[H]
+\centering
+\caption{Latencia del lazo por condición de llegada: la fase del controlador en el momento de la decisión (verde, ámbar/todo rojo --tratadas juntas por ser ambas no interrumpibles-- o rojo general). Escenarios de lazo y desvío combinados por condición de enlace. $L$ y $t_{verde}$ se reportan solo en la condición local, donde no cruzan el reloj de dos equipos.}
+\label{tab:latencia_por_condicion}
+\small
+\begin{tabular}{lllrrrl}
+\toprule
+\textbf{Métrica} & \textbf{Config.} & \textbf{Condición} & \textbf{n} & \textbf{Mediana} & \textbf{p95} & \textbf{Unidad} \\
+\midrule
+RTT\_srv & local & verde & 19 & 5.66 & 25.90 & ms \\
+RTT\_srv & local & ámbar/todo rojo & 9 & 5.40 & 27.01 & ms \\
+RTT\_srv & local & rojo & 7 & 5.54 & 20.01 & ms \\
+RTT\_srv & pi-lan & verde & 21 & 11.20 & 15.45 & ms \\
+RTT\_srv & pi-lan & ámbar/todo rojo & 7 & 10.00 & 12.44 & ms \\
+RTT\_srv & pi-lan & rojo & 8 & 13.33 & 21.03 & ms \\
+RTT\_srv & pi-4g & verde & 11 & 173.82 & 394.49 & ms \\
+RTT\_srv & pi-4g & ámbar/todo rojo & 10 & 222.17 & 418.77 & ms \\
+RTT\_srv & pi-4g & rojo & 8 & 116.14 & 388.28 & ms \\
+$t_{RSU}$ & local & verde & 19 & 2.98 & 23.56 & ms \\
+$t_{RSU}$ & local & ámbar/todo rojo & 9 & 2.96 & 24.77 & ms \\
+$t_{RSU}$ & local & rojo & 7 & 2.66 & 17.27 & ms \\
+$t_{RSU}$ & pi-lan & verde & 21 & 1.01 & 1.08 & ms \\
+$t_{RSU}$ & pi-lan & ámbar/todo rojo & 7 & 1.05 & 1.09 & ms \\
+$t_{RSU}$ & pi-lan & rojo & 8 & 1.01 & 1.07 & ms \\
+$t_{RSU}$ & pi-4g & verde & 11 & 0.99 & 1.06 & ms \\
+$t_{RSU}$ & pi-4g & ámbar/todo rojo & 10 & 1.05 & 1.39 & ms \\
+$t_{RSU}$ & pi-4g & rojo & 8 & 1.00 & 1.08 & ms \\
+$L$ (RNF-01) & local & verde & 19 & 3.90 & 24.21 & ms \\
+$L$ (RNF-01) & local & ámbar/todo rojo & 9 & 4.18 & 25.43 & ms \\
+$L$ (RNF-01) & local & rojo & 7 & 3.47 & 18.27 & ms \\
+$t_{verde}$ & local & verde & 19 & 3.90 & 24.21 & ms \\
+$t_{verde}$ & local & ámbar/todo rojo & 9 & 3637.45 & 4616.86 & ms \\
+$t_{verde}$ & local & rojo & 7 & 3.78 & 18.60 & ms \\
+$T_{desp}$ (RF-04) & local & ámbar/todo rojo & 9 & 3633.68 & 4612.45 & ms \\
+$T_{desp}$ (RF-04) & pi-lan & ámbar/todo rojo & 7 & 1824.81 & 4842.19 & ms \\
+$T_{desp}$ (RF-04) & pi-4g & ámbar/todo rojo & 10 & 1726.73 & 4955.88 & ms \\
+Anticipación real (RF-11) & local & verde & 19 & 14.98 & 15.99 & s \\
+Anticipación real (RF-11) & local & ámbar/todo rojo & 9 & 12.30 & 12.73 & s \\
+Anticipación real (RF-11) & local & rojo & 7 & 14.00 & 15.00 & s \\
+Anticipación real (RF-11) & pi-lan & verde & 21 & 15.05 & 16.06 & s \\
+Anticipación real (RF-11) & pi-lan & ámbar/todo rojo & 7 & 12.23 & 14.85 & s \\
+Anticipación real (RF-11) & pi-lan & rojo & 8 & 14.06 & 16.06 & s \\
+Anticipación real (RF-11) & pi-4g & verde & 11 & 14.93 & 15.04 & s \\
+Anticipación real (RF-11) & pi-4g & ámbar/todo rojo & 10 & 12.74 & 14.06 & s \\
+Anticipación real (RF-11) & pi-4g & rojo & 8 & 14.05 & 16.03 & s \\
+\bottomrule
+\end{tabular}
+\end{table}

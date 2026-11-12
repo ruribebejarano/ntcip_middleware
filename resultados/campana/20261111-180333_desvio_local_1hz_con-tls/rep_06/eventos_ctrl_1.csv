@@ -1,0 +1,4 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794438766498986100,ctrl_1,ctrl_inicio,-,"{""desfase_s"":0.0,""epoch_wall_ns"":1794438766498978600,""verde_s"":8,""amarillo_ds"":30,""todo_rojo_ds"":20,""rojo_general_s"":8}"
+1794438789302079400,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""verde"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794438804300314900,ctrl_1,ctrl_fase_cambio,mis-ec0628cd-C,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""liberacion_manual""}"

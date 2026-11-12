@@ -54,7 +54,7 @@ import numpy as np
 RAIZ = Path(__file__).resolve().parent.parent.parent
 C = RAIZ / "resultados" / "campana"
 CONDICIONES = {  # mismas corridas que scripts/analisis/generar_cap4.sh
-    "Local": ["20261104-002341_lazo_local_1hz_con-tls", "20261104-005352_desvio_local_1hz_con-tls"],
+    "Local": ["20261111-173108_lazo_local_1hz_con-tls", "20261111-180333_desvio_local_1hz_con-tls"],
     "Wi-Fi": ["20261104-045004_lazo_pi-lan", "20261104-052338_desvio_pi-lan"],
     "4G": ["20261103-232704_lazo_pi-4g", "20261103-235034_desvio_pi-4g"],
 }
