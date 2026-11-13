@@ -270,7 +270,15 @@ def repeticion(n: int, rep: Path, grafo: Path, registro: Path, trays: list[Path]
     roles[obus.pid] = "obus"
     roles[pid_broker()] = "broker"
     # muestreo de recursos a 1 Hz hasta que terminan las OBU
-    ps = {pid: psutil.Process(pid) for pid in roles if pid}
+    # En Windows, el python.exe del entorno virtual es un lanzador que arranca
+    # el intérprete real como proceso HIJO: se mide cada proceso con todos sus
+    # descendientes (el lanzador solo, casi sin CPU, daba 0 %).
+    ps: dict[int, psutil.Process] = {}
+    for pid in [p for p in roles if p]:
+        raiz = psutil.Process(pid)
+        for q in [raiz] + raiz.children(recursive=True):
+            ps[q.pid] = q
+            roles.setdefault(q.pid, roles[pid])
     for p in ps.values():
         p.cpu_percent(None)
     muestras = []
@@ -306,7 +314,12 @@ def repeticion(n: int, rep: Path, grafo: Path, registro: Path, trays: list[Path]
         elif e["tipo_evento"] == "M2_rx":
             m2_rx.setdefault((e["id_solicitud"], e["x"].get("seq_ref")), e["ts"])
     rtt = [(m2_rx[k] - t) / 1e6 for k, t in m1_tx.items() if k in m2_rx]
-    mp_tx = sum(1 for e in obu_ev if e["tipo_evento"] == "MP_tx")
+    # MP con la misión armada: antes de que el servidor la cierre (al llegar
+    # al destino la cierra él mismo, antes del MF; las MP posteriores no las
+    # procesa), igual que en scripts/analisis/recalculo_por_mensaje.py
+    obu_de = {e["id_solicitud"]: e["x"].get("obu_id") for e in srv_ev if e["tipo_evento"] == "mision_armada"}
+    fin_obu = {obu_de.get(e["id_solicitud"]): e["ts"] for e in srv_ev if e["tipo_evento"] == "mision_desarmada"}
+    mp_tx = sum(1 for e in obu_ev if e["tipo_evento"] == "MP_tx" and e["ts"] < fin_obu.get(e["nodo"], 1 << 63))
     mp_rx = sum(1 for e in srv_ev if e["tipo_evento"] == "MP_rx")
     rec = defaultdict(list)
     for _t, rol, _pid, cpu, mem in muestras:

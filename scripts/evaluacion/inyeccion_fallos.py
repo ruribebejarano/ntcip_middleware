@@ -25,8 +25,8 @@ Métricas por repetición:
                 (la referencia de RNF-07: <= T_cad + Δt = 4 s; en el caso
                 rsu, por el límite de sostenimiento del controlador, 15 s)
   T_rec         restauración -> primera respuesta M2 de la RSU a una sonda
-                (un M1 de prueba que esta herramienta publica con la
-                identidad del servidor cada 0,5 s y luego cancela con M3)
+                (un M1 de prueba, con una clase no reconocida, que esta herramienta publica con la
+                identidad del servidor cada 0,5 s; la RSU lo rechaza sin tocar el controlador)
   reanudada     si la misión en curso volvió a emitir M1 a la RSU tras la
                 restauración (antes del cruce)
   retenida      si al final de la repetición el controlador sigue con una
@@ -128,7 +128,7 @@ class Observador(threading.Thread):
 
 def _sonda(desde_ns: int, limite_s: float = 90.0) -> dict:
     """Publica un M1 de prueba cada 0,5 s (identidad del servidor) hasta
-    recibir su M2; luego lo cancela con M3. Devuelve el instante del primer
+    recibir su M2 (rechazada, por la clase). Devuelve el instante del primer
     M2 y cuántos intentos hicieron falta."""
     ca, cert, key = _rutas_tls(TLS_DIR, "servidor", None)
     recibido: dict = {}
@@ -161,20 +161,17 @@ def _sonda(desde_ns: int, limite_s: float = 90.0) -> dict:
                 props = Properties(PacketTypes.PUBLISH)
                 props.ResponseTopic = "servidor/central/respuestas"
                 props.CorrelationData = b"1"
-                cuerpo = {"tipo": "M1", "id_solicitud": sid, "mision_id": "sonda", "obu_id": "sonda", "clase": 1,
+                # Clase NO reconocida (RF-03): la RSU la rechaza con un M2 sin
+                # tocar la tabla de solicitudes ni el controlador. Una sonda con
+                # clase válida pisaba la solicitud en curso de la misión y su M3
+                # liberaba la prioridad, falseando t_lib en el caso "rsu".
+                cuerpo = {"tipo": "M1", "id_solicitud": sid, "mision_id": "sonda", "obu_id": "sonda", "clase": 99,
                           "acceso": "S", "t_servicio": 10, "seq": 1, "ts_ms": int(time.time() * 1000),
                           "origen": "sonda"}
                 c.publish(f"rsu/{RSU_ID}/solicitudes", json.dumps(cuerpo), qos=1, properties=props)
                 intentos += 1
                 ids.append(sid)
             time.sleep(0.5)
-        if "ts_ns" in recibido:
-            m3 = {"tipo": "M3", "id_solicitud": recibido["id"], "seq": 2, "motivo": "sonda",
-                  "ts_ms": int(time.time() * 1000)}
-            props = Properties(PacketTypes.PUBLISH)
-            props.ResponseTopic = "servidor/central/respuestas"
-            props.CorrelationData = b"2"
-            c.publish(f"rsu/{RSU_ID}/solicitudes", json.dumps(m3), qos=1, properties=props).wait_for_publish(3)
         return {**recibido, "intentos": intentos}
     finally:
         time.sleep(0.3)

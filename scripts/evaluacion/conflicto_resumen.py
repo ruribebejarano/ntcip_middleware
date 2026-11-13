@@ -117,7 +117,7 @@ def main() -> None:
     tex = ("\\begin{table}[H]\n\\centering\n\\caption[Conflicto entre dos misiones en el banco]{Conflicto entre "
            "dos misiones que llegan a la misma intersección por accesos incompatibles, en el banco de pruebas "
            f"(condición local, {len(reps)} repeticiones). Los tiempos usan un solo reloj.}}\n"
-           "\\label{tab:conflicto}\n\\small\n\\begin{tabular}{lr}\n\\toprule\n"
+           "\\label{tab:conflicto}\n\\small\n\\begin{tabular}{>{\\raggedright\\arraybackslash}p{10.5cm}r}\n\\toprule\n"
            "\\textbf{Métrica} & \\textbf{Valor} \\\\\n\\midrule\n" +
            "\n".join(f"{a} & {b} \\\\" for a, b in filas) + "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
     (corrida / "tabla_conflicto.tex").write_text(tex, encoding="utf-8")

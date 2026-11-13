@@ -120,8 +120,15 @@ def main() -> None:
         _trayectoria_con_ruido(FIXTURES / esc["obus"][0][1], tray, semilla, 5.0)
         t_ini_pi = int(ssh_reintentar("date +%s%N").strip())
         obs_pi = f"/tmp/obs_fallo_{i:02d}.csv"
-        ssh(f"cd {DIR_PI} && nohup {PY_PI} scripts/evaluacion/observador_rsu.py --salida {obs_pi} "
-            f"--duracion 220 > /dev/null 2>&1 &")
+        # El cliente SSH de Windows no suelta la sesión si el proceso remoto
+        # queda en segundo plano: se deja el SSH corriendo aparte (Popen, sin
+        # esperarlo) y el observador en su propia sesión (setsid + nohup), para
+        # que sobreviva si el corte del enlace tumba la conexión SSH.
+        ssh_obs = subprocess.Popen(
+            ["ssh", "-n", HOST, f"cd {DIR_PI} && setsid nohup {PY_PI} scripts/evaluacion/observador_rsu.py "
+                                f"--salida {obs_pi} --duracion 220 > /dev/null 2>&1 < /dev/null"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(2.0)
         servidor = _lanzar_servidor(rep, esc["grafo"], FIXTURES / esc["registro"], "127.0.0.1", 8883,
                                     base.TLS_DIR)
         time.sleep(random.Random(semilla + 10_000).uniform(0, 21))
@@ -144,6 +151,7 @@ def main() -> None:
         time.sleep(3)
         _detener(servidor)
         # --- datos de la Pi (reloj de la Pi) -----------------------------------
+        ssh_obs.kill()  # el observador sigue solo hasta --duracion; aquí solo se suelta el SSH
         texto_obs = ssh_reintentar(f"sleep 1; cat {obs_pi}")
         (rep / "observador_pi.csv").write_text(texto_obs, encoding="utf-8")
         journal = ssh_reintentar(f"sudo journalctl -u rsu-agent.service -o short-unix --since @{t_ini_pi // 10**9}")
