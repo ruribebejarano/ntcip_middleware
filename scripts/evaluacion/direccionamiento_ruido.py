@@ -170,8 +170,8 @@ def main() -> None:
            "esperado, y la cerró por el cruce del vehículo. $\\sigma$: desviación del módulo del error de "
            "posición, independiente en cada muestra de 1~s. ``Cierre en destino'': la misión terminó al "
            f"llegar al destino, que está a {coma(d_ult, 0)}~m de la última RSU ({ultima}), antes de registrar "
-           "su cruce.}\n\\label{tab:direccionamiento}\n\\footnotesize\n"
-           "\\begin{tabular}{r*{8}{>{\\centering\\arraybackslash}p{1.3cm}}}\n\\toprule\n\\textbf{$\\sigma$ (m)} & \\textbf{Paradas} & "
+           "su cruce.}\n\\label{tab:direccionamiento}\n\\footnotesize\n\\setlength{\\tabcolsep}{3.5pt}\n"
+           "\\begin{tabular}{r*{8}{>{\\centering\\arraybackslash}p{1.5cm}}}\n\\toprule\n\\textbf{$\\sigma$ (m)} & \\textbf{Paradas} & "
            "\\textbf{Correctas (\\%)} & \\textbf{Acceso errado} & \\textbf{Cierre en destino} & "
            "\\textbf{Sin cruce (otro)} & \\textbf{Omitidas} & "
            "\\textbf{M1 espurios} & \\textbf{Rep. con recálculo} \\\\\n\\midrule\n" + "\n".join(fil) +
