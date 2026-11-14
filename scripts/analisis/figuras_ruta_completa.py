@@ -197,13 +197,16 @@ def fig_anticipacion(filas: list[dict], salida: Path) -> None:
         ys = [f["anticipacion_real_s"] for f in filas if f["escenario"] == esc and f["anticipacion_real_s"] is not None]
         if xs:
             ax.plot(xs, ys, mk, ms=3.5, color=col, alpha=0.8, lw=0, label=lab)
-    ax.axhline(8.0, color="#b91c1c", lw=0.9, ls="--", label="Anticipación mínima (8 s)")
+    # Límites de RF-11 (ecuación eq:avmax de la tesis) con los tiempos del
+    # controlador emulado: T_m = 2 s y A_v,max = T_desp,max + T_m + Δt = 16 s.
+    ax.axhline(2.0, color="#b91c1c", lw=0.9, ls="--", label="$T_m$ = 2 s")
+    ax.axhline(16.0, color="#7f1d1d", lw=0.9, ls=":", label="$A_{v,max}$ = 16 s")
     ax.set_xticks(range(len(ids)), ids)
     ax.set_xlabel("RSU (en el orden de la ruta)")
     ax.set_ylabel("Anticipación real (s)")
     ax.set_ylim(bottom=0)
     ax.grid(True, axis="y", alpha=0.5)
-    ax.legend(loc="lower right", frameon=False, fontsize=6.5, ncol=3)
+    ax.legend(loc="upper right", frameon=False, fontsize=6.5, ncol=2)
     guardar(fig, salida, "fig_ruta_anticipacion")
 
 
