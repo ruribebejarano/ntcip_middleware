@@ -32,12 +32,14 @@ cp "$E/20261112-020514_direccionamiento_ruido/tabla_direccionamiento.tex" \
    "$E/20261112-020514_direccionamiento_ruido/fig_direccionamiento.pdf" "$SALIDA/"
 cp "$E/20261112-014849_recuperacion_plan/tabla_recuperacion_plan.tex" \
    "$E/20261112-014849_recuperacion_plan/fig_recuperacion_plan.pdf" "$SALIDA/"
+# Costo mensual de datos de una RSU con planes IoT (sección 4.6.3)
+"$PY" scripts/analisis/costo_planes_iot.py --resumen "$SALIDA" --salida "$SALIDA" > /dev/null
 # Separación entre intersecciones de la ruta real de 13 RSU (OE1, Anexo 7)
 "$PY" scripts/analisis/separacion_rsu.py --salida "$SALIDA" > /dev/null
 
 if [ $# -ge 1 ]; then
   T="$1"
-  for f in tabla_fallos tabla_carga tabla_handshake tabla_bytes tabla_proyeccion_datos tabla_snmp_niveles \
+  for f in tabla_fallos tabla_carga tabla_handshake tabla_bytes tabla_proyeccion_datos tabla_costo_planes tabla_snmp_niveles \
            tabla_conflicto tabla_direccionamiento tabla_recuperacion_plan tabla_separacion_rsu; do
     cp "$SALIDA/$f.tex" "$T/tablas/resultados/$f.tex"
   done
