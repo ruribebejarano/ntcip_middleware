@@ -293,7 +293,11 @@ def main() -> None:
         try:
             texto_obs = ssh_reintentar(f"sleep 1; cat {obs_pi}")
             (rep / "observador_pi.csv").write_text(texto_obs, encoding="utf-8")
-            journal = ssh_reintentar(f"sudo journalctl -u rsu-agent.service -o short-unix "
+            # Sin sudo: el usuario de la Pi está en el grupo adm, que lee el
+            # journal. Con sudo, la lectura dependía de que el autor hubiera
+            # escrito su contraseña en la Pi en los últimos minutos, y si no,
+            # la corrida quedaba esperando (2026-11-15 01:03, descartada).
+            journal = ssh_reintentar(f"journalctl -u rsu-agent.service -o short-unix --no-pager "
                                      f"--since @{t_ini_pi // 10**9}")
             (rep / "journal_agente.txt").write_text(journal, encoding="utf-8")
             eventos = ssh_reintentar(f"cd {DIR_PI} && tail -n 4000 resultados/eventos/eventos_rsu_1.csv")
