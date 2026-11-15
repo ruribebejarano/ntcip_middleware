@@ -148,7 +148,33 @@ def metricas(caso: str, texto_obs: str, eventos: str, journal: str, t_ini_pi: in
                t_lib_falla_s=(lib - t_falla) / NS if lib else None,
                T_rec_s=(con - (t_up or t_falla)) / NS if con else None,
                retenida=bool(obs) and obs[-1]["prioridad_activa"] == "1")
+    if caso == "enlace4g" and t_up:
+        res.update(_descomponer_trec(obs, ev, t_falla, t_up, con))
     return res
+
+
+def _descomponer_trec(obs: list, ev: list, t_falla: int, t_up: int, t_m1: int | None) -> dict:
+    """Separa T_rec en tramos, si la Pi corre la versión instrumentada
+    (columna ipv4 del observador, eventos mqtt_* del middleware); con datos
+    anteriores devuelve los campos en None.
+      modem      usb0 reaparece -> usb0 tiene IPv4 (re-registro en la red)
+      mqtt       IPv4 -> CONNACK del broker (túnel + reintentos del cliente)
+      primer_m1  CONNACK -> primer M1 recibido (resuscripción + periodo de la sonda)
+    deteccion: corte -> el cliente da la conexión por perdida (puede ocurrir
+    después de reconectado el módem, o nunca, si el corte fue más corto)."""
+    def ev_tras(tipo: str, desde: int) -> list[int]:
+        return [int(r["ts_ns"]) for r in ev if r.get("tipo_evento") == tipo and int(r["ts_ns"]) > desde]
+    t_ip = next((int(r["ts_ns"]) for r in obs if int(r["ts_ns"]) >= t_up and r.get("ipv4")), None)
+    t_desc = next(iter(ev_tras("mqtt_desconectado", t_falla)), None)
+    t_con = next(iter(ev_tras("mqtt_conectado", t_up)), None)
+    intentos = [t for t in ev_tras("mqtt_intento", t_falla) if not t_con or t <= t_con]
+    fallidos = [t for t in ev_tras("mqtt_intento_fallido", t_falla) if not t_con or t <= t_con]
+    s = lambda a, b: (b - a) / NS if a and b and b >= a else None  # noqa: E731
+    return {"t_ip_ns": t_ip, "t_mqtt_desconectado_ns": t_desc, "t_mqtt_conectado_ns": t_con,
+            "trec_modem_s": s(t_up, t_ip), "trec_mqtt_s": s(t_ip, t_con), "trec_primer_m1_s": s(t_con, t_m1),
+            "deteccion_s": s(t_falla, t_desc), "intentos_mqtt": len(intentos),
+            "intentos_tras_ip": sum(1 for t in intentos if t_ip and t >= t_ip),
+            "intentos_fallidos": len(fallidos)}
 
 
 def recalcular(corrida: Path, caso: str) -> None:
@@ -290,7 +316,9 @@ def main() -> None:
         _guardar(corrida, args.caso, filas)
         print(f"[{args.caso} {i:02d}] t_lib(M1)={res.get('t_lib_m1_s')} T_rec={res.get('T_rec_s')} "
               f"retenida={res.get('retenida')} sonda={res.get('sonda', {}).get('intentos')} "
-              f"datos={res.get('bytes_tailscale', 0) / 1e6:.2f} MB {res.get('error', '')}",
+              f"datos={res.get('bytes_tailscale', 0) / 1e6:.2f} MB "
+              f"[módem={res.get('trec_modem_s')} mqtt={res.get('trec_mqtt_s')} "
+              f"intentos={res.get('intentos_mqtt')}] {res.get('error', '')}",
               flush=True)
     _guardar(corrida, args.caso, filas)
     total = sum(x.get("bytes_tailscale", 0) for x in filas)

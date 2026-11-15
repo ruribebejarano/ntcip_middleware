@@ -59,6 +59,12 @@ def main() -> None:
                 "retenida": x.get("retenida"),
                 "intentos_sonda": x.get("sonda", {}).get("intentos"),
                 "bytes_tunel": x.get("bytes_tailscale"),
+                # tramos de T_rec (solo con la RSU instrumentada, desde el 2026-11-15)
+                "trec_modem_s": x.get("trec_modem_s"),
+                "trec_mqtt_s": x.get("trec_mqtt_s"),
+                "trec_primer_m1_s": x.get("trec_primer_m1_s"),
+                "deteccion_s": x.get("deteccion_s"),
+                "intentos_mqtt": x.get("intentos_mqtt"),
             })
         col = lambda k: [f[k] for f in filas if f[k] is not None]  # noqa: E731
         bytes_ = col("bytes_tunel")
@@ -75,6 +81,10 @@ def main() -> None:
             "corte_s": resumen(col("corte_s")),
             "T_rec_s": resumen(col("T_rec_s")),
             "T_rec_dentro_rnf08": sum(1 for t in col("T_rec_s") if t <= LIMITE_RNF08_S),
+            "trec_modem_s": resumen(col("trec_modem_s")),
+            "trec_mqtt_s": resumen(col("trec_mqtt_s")),
+            "trec_primer_m1_s": resumen(col("trec_primer_m1_s")),
+            "deteccion_s": resumen(col("deteccion_s")),
             "bytes_tunel_total": sum(bytes_) if bytes_ else None,
             "bytes_tunel_por_rep": resumen(bytes_) if bytes_ else None,
             "por_repeticion": filas,
@@ -87,6 +97,10 @@ def main() -> None:
               f"({c['t_lib_dentro_rnf07']}/{c['t_lib_s']['n']} <= 4 s), "
               f"T_rec med {c['T_rec_s']['mediana']:.1f} s máx {c['T_rec_s']['max']:.1f} s "
               f"({c['T_rec_dentro_rnf08']}/{c['T_rec_s']['n']} <= 10 s)")
+        if c["trec_modem_s"]["n"]:
+            print("   tramos (mediana): " + ", ".join(
+                f"{k} {c[k]['mediana']:.1f} s" for k in ("trec_modem_s", "trec_mqtt_s", "trec_primer_m1_s")
+                if c[k]["n"]))
     print(f"Salida en {args.salida}")
 
 

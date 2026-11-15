@@ -6,7 +6,10 @@ A 10 Hz, con el reloj de la Pi (time.time_ns):
   - consulta el controlador emulado (127.0.0.1:9000, su propio protocolo,
     igual que la RSU): fase y prioridad_activa;
   - lee el estado de la interfaz del módem (/sys/class/net/<if>/operstate;
-    "ausente" si la interfaz desapareció, p. ej. al desconectar el módem USB).
+    "ausente" si la interfaz desapareció, p. ej. al desconectar el módem USB);
+  - lee su dirección IPv4 (vacía mientras el módem no tenga red): separa,
+    dentro del tiempo de recuperación, el re-registro del módem en la red
+    celular de lo que tarda después la conexión MQTT.
 Escribe un CSV y termina tras --duracion segundos. No cambia nada en la Pi.
 
 Uso (en la Pi): python3 scripts/evaluacion/observador_rsu.py --salida /tmp/obs.csv --duracion 240 --interfaz usb0
@@ -18,6 +21,19 @@ import json
 import socket
 import time
 from pathlib import Path
+
+
+def ipv4_interfaz(nombre: str) -> str:
+    """IPv4 de la interfaz por ioctl SIOCGIFADDR (sin lanzar procesos, para
+    no perturbar el muestreo a 10 Hz); "" si no tiene o no existe."""
+    try:
+        import fcntl
+        import struct
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sk:
+            r = fcntl.ioctl(sk.fileno(), 0x8915, struct.pack("256s", nombre[:15].encode()))
+        return socket.inet_ntoa(r[20:24])
+    except (OSError, ImportError):
+        return ""
 
 
 def estado_interfaz(nombre: str) -> str:
@@ -38,7 +54,7 @@ def main() -> None:
     fin = time.monotonic() + args.duracion
     s = f = None
     with open(args.salida, "w", encoding="utf-8", buffering=1) as out:
-        out.write("ts_ns,prioridad_activa,fase,interfaz\n")
+        out.write("ts_ns,prioridad_activa,fase,interfaz,ipv4\n")
         while time.monotonic() < fin:
             prio, fase = "", ""
             try:
@@ -50,7 +66,8 @@ def main() -> None:
                 prio, fase = int(bool(e["prioridad_activa"])), e["fase"]
             except (OSError, ValueError):
                 s = None
-            out.write(f"{time.time_ns()},{prio},{fase},{estado_interfaz(args.interfaz)}\n")
+            out.write(f"{time.time_ns()},{prio},{fase},{estado_interfaz(args.interfaz)},"
+                      f"{ipv4_interfaz(args.interfaz)}\n")
             time.sleep(0.1)
 
 
