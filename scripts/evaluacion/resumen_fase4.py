@@ -190,9 +190,18 @@ MENSAJES = [("MI", "obu|subida|PUBLISH_MI"), ("MP", "obu|subida|PUBLISH_MP"), ("
             ("PUBACK", "rsu|bajada|PUBACK"), ("PINGREQ/PINGRESP", "rsu|subida|PINGREQ")]
 
 
-def bytes_mensaje(d_tls: Path, d_sin: Path, salida: Path) -> dict:
+def bytes_mensaje(d_tls: Path, d_sin: Path, salida: Path, reposo_tls: Path | None = None,
+                  reposo_sin: Path | None = None, keepalive_s: int = 30) -> dict:
+    """reposo_tls / reposo_sin: corridas aparte cuyo reposo de la RSU reemplaza
+    al de d_tls / d_sin (p. ej., tras cambiar el keepalive de la RSU, sin
+    rehacer las cinco misiones). keepalive_s: el de esas mediciones de reposo."""
     sin = json.loads((d_sin / "resumen.json").read_text(encoding="utf-8"))
     tls = json.loads((d_tls / "resumen.json").read_text(encoding="utf-8"))
+    rep_sin, rep_tls = sin["rsu_reposo"], tls["rsu_reposo"]
+    if reposo_sin:
+        rep_sin = json.loads((reposo_sin / "resumen.json").read_text(encoding="utf-8"))["rsu_reposo"]
+    if reposo_tls:
+        rep_tls = json.loads((reposo_tls / "resumen.json").read_text(encoding="utf-8"))["rsu_reposo"]
     filas = []
     for nombre, clave in MENSAJES:
         v = sin["por_clase"].get(clave)
@@ -206,12 +215,15 @@ def bytes_mensaje(d_tls: Path, d_sin: Path, salida: Path) -> dict:
 
     res = {"sin_tls": {k: medias(sin, k) for k in ("rsu_mision", "rsu_total", "obu_mision", "servidor_mision")},
            "tls": {k: medias(tls, k) for k in ("rsu_mision", "rsu_total", "obu_mision", "servidor_mision")},
-           "reposo_sin_tls_B_h": sin["rsu_reposo"]["bytes_por_hora"], "reposo_tls_B_h": tls["rsu_reposo"]["bytes_por_hora"]}
+           "reposo_sin_tls_B_h": rep_sin["bytes_por_hora"], "reposo_tls_B_h": rep_tls["bytes_por_hora"],
+           "keepalive_reposo_s": keepalive_s}
+    min_reposo = round(min(rep_sin["segundos"], rep_tls["segundos"]) / 60)
     agregados = [
         ("RSU, por misión (M1, M2, M3 y acuses)", res["sin_tls"]["rsu_mision"], res["tls"]["rsu_mision"]),
         ("RSU, por conexión (incluye el \\emph{handshake})", res["sin_tls"]["rsu_total"] - res["sin_tls"]["rsu_mision"],
          res["tls"]["rsu_total"] - res["tls"]["rsu_mision"]),
-        ("RSU, en reposo (\\emph{keepalive}), por hora", res["reposo_sin_tls_B_h"], res["reposo_tls_B_h"]),
+        (f"RSU, en reposo (\\emph{{keepalive}} de {keepalive_s}~s), por hora", res["reposo_sin_tls_B_h"],
+         res["reposo_tls_B_h"]),
         ("OBU, por misión", res["sin_tls"]["obu_mision"], res["tls"]["obu_mision"]),
         ("Servidor, por misión (una RSU)", res["sin_tls"]["servidor_mision"], res["tls"]["servidor_mision"]),
     ]
@@ -220,7 +232,8 @@ def bytes_mensaje(d_tls: Path, d_sin: Path, salida: Path) -> dict:
            "en cinco misiones del escenario de lazo. Sin TLS se lee cada paquete MQTT; con TLS~1.3 cada paquete "
            "viaja en un registro de 22 bytes más (encabezado, tipo de contenido y etiqueta de autenticación), "
            "verificado sobre los registros capturados. Los agregados son el promedio de las cinco misiones; el "
-           "reposo se midió durante 5~min con la RSU conectada y sin misión.}\n\\label{tab:bytes}\n\\small\n"
+           f"reposo se midió durante {min_reposo}~min con la RSU conectada y sin misión.}}\n\\label{{tab:bytes}}\n"
+           "\\small\n"
            "\\begin{tabular}{lrr}\n\\toprule\n\\textbf{Mensaje o agregado} & \\textbf{Sin TLS (B)} & "
            "\\textbf{Con TLS 1.3 (B)} \\\\\n\\midrule\n" + "\n".join(filas) + "\n\\addlinespace\n" +
            "\n".join(f"{n} & {coma(a, 0)} & {coma(b, 0)} \\\\" for n, a, b in agregados) +
@@ -273,13 +286,19 @@ def main() -> None:
     ap.add_argument("--handshake-wifi", required=True)
     ap.add_argument("--bytes-tls", required=True)
     ap.add_argument("--bytes-sin-tls", required=True)
+    ap.add_argument("--bytes-reposo-tls", help="corrida aparte cuyo reposo de la RSU (con TLS) se usa")
+    ap.add_argument("--bytes-reposo-sin-tls", help="corrida aparte cuyo reposo de la RSU (sin TLS) se usa")
+    ap.add_argument("--keepalive-reposo", type=int, default=30, help="keepalive (s) de las mediciones de reposo")
     ap.add_argument("--salida", required=True)
     a = ap.parse_args()
     salida = Path(a.salida)
     salida.mkdir(parents=True, exist_ok=True)
     res = {"carga": carga(Path(a.carga), salida),
            "handshake": handshake({"4G": Path(a.handshake_4g), "Wi-Fi": Path(a.handshake_wifi)}, salida),
-           "bytes": bytes_mensaje(Path(a.bytes_tls), Path(a.bytes_sin_tls), salida),
+           "bytes": bytes_mensaje(Path(a.bytes_tls), Path(a.bytes_sin_tls), salida,
+                                  Path(a.bytes_reposo_tls) if a.bytes_reposo_tls else None,
+                                  Path(a.bytes_reposo_sin_tls) if a.bytes_reposo_sin_tls else None,
+                                  a.keepalive_reposo),
            "snmp": snmp_niveles(Path(a.snmp), salida)}
     (salida / "resumen_fase4.json").write_text(json.dumps(res, indent=1, ensure_ascii=False, default=str),
                                                encoding="utf-8")

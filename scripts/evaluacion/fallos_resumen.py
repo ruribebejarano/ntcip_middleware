@@ -51,9 +51,16 @@ def main() -> None:
     coma = lambda x, d=1: "--" if x is None else f"{x:.{d}f}".replace(".", ",")  # noqa: E731
     filas, resumen = [], {}
     for d in args.dir:
+        # --dir <corrida>=<nombre de la fila>: para distinguir dos corridas
+        # del mismo caso (p. ej., el corte 4G antes y después de ajustar la
+        # reconexión MQTT de la RSU).
+        d, _, etiqueta = d.partition("=")
         d = Path(d)
         r = json.loads((d / "resultados.json").read_text(encoding="utf-8"))
         clave = ("pi_" if "_fallos_pi_" in d.name else "") + r["caso"]
+        nombre = etiqueta or NOMBRE[clave]
+        if clave in resumen:
+            clave = f"{clave}_{d.name}"
         reps = [x for x in r["reps"] if "error" not in x]
         # Si la prioridad ya se había liberado antes del corte (el vehículo
         # cruzó y llegó el M3), esa liberación no la causó el fallo: no
@@ -73,9 +80,11 @@ def main() -> None:
             s = {"repeticiones": len(reps), "t_lib_m1_s": tl, "T_rec_s": tr, "retenidas": ret,
                  "reanudadas": sum(1 for x in reps if x.get("reanudada"))}
             col_lib = f"{coma(pct(tl, 50))} / {coma(max(tl))} ({len(tl)})"
-            col_rean = f"{s['reanudadas']}/{len(reps)}"
+            # En el corte 4G no se mide si la misión retoma la solicitud tras
+            # la reconexión (la misión de prueba suele terminar antes).
+            col_rean = "--" if r["caso"] == "enlace4g" else f"{s['reanudadas']}/{len(reps)}"
         resumen[clave] = s
-        filas.append(f"{NOMBRE[clave]} & {len(reps)} & {col_rean} & {col_lib} & "
+        filas.append(f"{nombre} &{len(reps)} & {col_rean} & {col_lib} & "
                      f"{coma(pct(tr, 50))} / {coma(max(tr))} & {ret} \\\\")
     salida = Path(args.salida)
     salida.mkdir(parents=True, exist_ok=True)
@@ -86,7 +95,8 @@ def main() -> None:
            "el controlador deja de sostener la prioridad, en las repeticiones en que la liberación la causó el "
            "fallo (entre paréntesis, cuántas); en las demás la liberó el cruce del vehículo. $T_{rec}$: desde la "
            "restauración hasta que la RSU responde de nuevo (local: a una sonda que publica cada 0,5~s; RSU física: "
-           "reconexión del agente al \\emph{broker}, incluidos los 2~s de espera del reinicio). ``Retenidas'': "
+           "reconexión del agente al \\emph{broker}, incluidos los 2~s de espera del reinicio; corte del enlace 4G: "
+           "desde que el módem vuelve a aparecer en el USB hasta el siguiente M1 recibido por la RSU). ``Retenidas'': "
            "repeticiones que terminaron con la prioridad activa.}\n"
            "\\label{tab:fallos}\n\\footnotesize\n\\begin{tabular}{>{\\raggedright\\arraybackslash}p{3.6cm}r"
            ">{\\centering\\arraybackslash}p{1.6cm}>{\\centering\\arraybackslash}p{2.4cm}"

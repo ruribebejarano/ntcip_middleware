@@ -19,11 +19,26 @@ export PYTHONIOENCODING=utf-8
 "$PY" scripts/evaluacion/fallos_resumen.py \
   --dir "$E/20261112-015811_fallos_broker" --dir "$E/20261112-021647_fallos_servidor" \
   --dir "$E/20261112-023511_fallos_rsu" --dir "$E/20261112-023515_fallos_pi_rsu" \
+  --dir "$E/20261115-000321_fallos_pi_enlace4g=Corte del enlace 4G, reconexión por defecto (RSU física)" \
+  --dir "$E/20261115-011141_fallos_pi_enlace4g=Corte del enlace 4G, reconexión ajustada (RSU física)" \
   --salida "$SALIDA" > /dev/null
+# Corte físico del enlace 4G (sección 4.4): detalle por corte y figuras.
+# 20261114-225701 es la corrida de confirmación con la reconexión por defecto.
+C4G="$E/20261115-011141_fallos_pi_enlace4g/corte4g_resumen.json"
+"$PY" scripts/analisis/corte4g_resumen.py --dir "$E/20261115-011141_fallos_pi_enlace4g" \
+  --dir "$E/20261115-000321_fallos_pi_enlace4g" --dir "$E/20261114-225701_fallos_pi_enlace4g" \
+  --salida "$C4G" > /dev/null
+"$PY" scripts/analisis/figuras_corte4g.py --resumen "$C4G" --salida "$SALIDA" \
+  --etiqueta "20261115-011141_fallos_pi_enlace4g=Reconexión ajustada" \
+  --etiqueta "20261115-000321_fallos_pi_enlace4g=Por defecto (corrida 1)" \
+  --etiqueta "20261114-225701_fallos_pi_enlace4g=Por defecto (corrida 2)" \
+  --tramos 20261115-011141_fallos_pi_enlace4g > /dev/null
 # Pruebas 2, 3 y 5
 "$PY" scripts/evaluacion/resumen_fase4.py --carga "$E/20261112-153503_carga" \
   --handshake-4g "$E/20261112-022340_handshake_4g" --handshake-wifi "$E/20261112-021517_handshake_wifi" \
   --bytes-tls "$E/20261112-150406_bytes_tls" --bytes-sin-tls "$E/20261112-151809_bytes_sin-tls" \
+  --bytes-reposo-tls "$E/20261115-020628_bytes_tls" --bytes-reposo-sin-tls "$E/20261115-022138_bytes_sin-tls" \
+  --keepalive-reposo 10 \
   --snmp "$E/20261112-021421_snmp_niveles_pi" --salida "$SALIDA" > "$SALIDA/resumen_fase4.txt"
 # Pruebas 6, 7 y 8: sus scripts ya escribieron la tabla en su corrida
 "$PY" scripts/evaluacion/conflicto_resumen.py --dir resultados/campana/20261112-014850_conflicto_local > /dev/null
@@ -44,7 +59,7 @@ if [ $# -ge 1 ]; then
            tabla_conflicto tabla_direccionamiento tabla_recuperacion_plan tabla_separacion_rsu; do
     cp "$SALIDA/$f.tex" "$T/tablas/resultados/$f.tex"
   done
-  for f in fig_carga fig_direccionamiento fig_recuperacion_plan; do
+  for f in fig_carga fig_direccionamiento fig_recuperacion_plan fig_corte4g_tiempos fig_corte4g_tramos; do
     cp "$SALIDA/$f.pdf" "$T/figuras/resultados/$f.pdf"
   done
 fi
