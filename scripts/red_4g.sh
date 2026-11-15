@@ -11,9 +11,11 @@
 #   scripts/red_4g.sh evidencia     [--destino <dir>]
 #
 # --perfil:    nombre del perfil de NetworkManager asociado a usb0 (el
-#              módem 4G). Default: "netplan-eth0" (nombre heredado de
-#              netplan, ver docs/MODEM_4G.md sección 1 -- no es una interfaz
-#              Ethernet real).
+#              módem 4G). Sin él se busca solo: el perfil activo en usb0, el
+#              ligado a usb0, "netplan-eth0" (nombre heredado de netplan, ver
+#              docs/MODEM_4G.md sección 1) o el único perfil Ethernet.
+#              NetworkManager puede renombrarlo al reconectar el módem
+#              (p. ej. "Wired connection 1").
 # --puerto-at: puerto serie de comandos AT del módem. Default: /dev/ttyACM2.
 #
 # modo-normal:   Wi-Fi para todo (ruta por defecto), 4G de respaldo
@@ -38,20 +40,74 @@ PUERTO_AT_DEFAULT="/dev/ttyACM2"
 DESTINO_DEFAULT="$HOME/evidencia_4g"
 
 usage() {
-  sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,/^set -euo/p' "$0" | grep '^#' | sed 's/^# \{0,1\}//'
   exit 1
 }
 
+existe_perfil() {
+  nmcli -t -f NAME connection show | sed 's/\\:/:/g' | grep -Fxq -- "$1"
+}
+
+listar_perfiles() {
+  echo "Perfiles de NetworkManager (nombre:tipo:dispositivo):" >&2
+  nmcli -t -f NAME,TYPE,DEVICE connection show | sed 's/^/  /' >&2
+}
+
+# Nombre del perfil de NetworkManager del módem (usb0). NetworkManager puede
+# crear un perfil nuevo al reconectar el módem (p. ej. "Wired connection 1"
+# en lugar de "netplan-eth0", visto el 2026-11-15), así que el nombre no se
+# da por fijo: con --perfil se verifica que exista; sin él se busca, en este
+# orden, el perfil activo en usb0, uno ligado a usb0 por interface-name, el
+# default heredado y, si hay un único perfil Ethernet, ese. Imprime el nombre
+# o falla con la lista de perfiles.
+resolver_perfil() {
+  local pedido="$1" n
+  if [ -n "$pedido" ]; then
+    if existe_perfil "$pedido"; then echo "$pedido"; return 0; fi
+    echo "ERROR: no existe el perfil '$pedido'." >&2
+    listar_perfiles
+    return 1
+  fi
+  n="$(nmcli -t -f NAME,DEVICE connection show --active | awk -F: '$NF=="usb0"' | sed 's/:usb0$//; s/\\:/:/g' | head -1)"
+  if [ -n "$n" ]; then echo "$n"; return 0; fi
+  local eth=()
+  while IFS= read -r n; do
+    [ -z "$n" ] && continue
+    eth+=("$n")
+    if [ "$(nmcli -g connection.interface-name connection show "$n" 2>/dev/null)" = "usb0" ]; then
+      echo "$n"; return 0
+    fi
+  done < <(nmcli -t -f NAME,TYPE connection show | awk -F: '$NF=="802-3-ethernet"' \
+             | sed 's/:802-3-ethernet$//; s/\\:/:/g')
+  if existe_perfil "$PERFIL_DEFAULT"; then echo "$PERFIL_DEFAULT"; return 0; fi
+  if [ "${#eth[@]}" -eq 1 ]; then
+    echo "AVISO: usb0 no está activo; se usa el único perfil Ethernet, '${eth[0]}'." >&2
+    echo "${eth[0]}"; return 0
+  fi
+  echo "ERROR: no se encontró el perfil del módem (usb0). Indíquelo con --perfil." >&2
+  listar_perfiles
+  return 1
+}
+
 modo_normal() {
-  local perfil="$1"
-  echo "==> modo normal: '$perfil' metrica 900 (respaldo), sin ruta IPv6 por defecto, Wi-Fi encendido"
-  sudo nmcli connection modify "$perfil" ipv4.route-metric 900 ipv6.never-default yes
+  local pedido="$1" perfil
+  # El Wi-Fi va primero: si algo falla con el perfil del módem, la RSU
+  # queda igual alcanzable por Wi-Fi (el 2026-11-15 el script abortó antes
+  # de encenderlo porque el perfil había cambiado de nombre).
+  echo "==> modo normal: Wi-Fi encendido"
   sudo nmcli radio wifi on
+  if ! perfil="$(resolver_perfil "$pedido")"; then
+    echo "AVISO: Wi-Fi encendido, pero el 4G quedó sin cambios." >&2
+    exit 1
+  fi
+  echo "==> '$perfil': metrica 900 (respaldo), sin ruta IPv6 por defecto"
+  sudo nmcli connection modify "$perfil" ipv4.route-metric 900 ipv6.never-default yes
   sudo nmcli connection up "$perfil"
 }
 
 modo_campana() {
-  local perfil="$1" sin_wifi="$2"
+  local pedido="$1" sin_wifi="$2" perfil
+  perfil="$(resolver_perfil "$pedido")" || exit 1
   echo "==> modo campaña: '$perfil' metrica 50 (ruta principal por 4G)"
   sudo nmcli connection modify "$perfil" ipv4.route-metric 50
   sudo nmcli connection up "$perfil"
@@ -157,7 +213,7 @@ cmd="${1:-}"
 [ -z "$cmd" ] && usage
 shift
 
-perfil="$PERFIL_DEFAULT"
+perfil=""   # vacío: se busca el perfil del módem (resolver_perfil)
 puerto_at="$PUERTO_AT_DEFAULT"
 sin_wifi=0
 destino="$DESTINO_DEFAULT"
@@ -175,7 +231,7 @@ done
 case "$cmd" in
   modo-normal)  modo_normal "$perfil" ;;
   modo-campana) modo_campana "$perfil" "$sin_wifi" ;;
-  estado)       estado "$perfil" "$puerto_at" ;;
+  estado)       estado "$(resolver_perfil "$perfil" 2>/dev/null || echo "(no encontrado)")" "$puerto_at" ;;
   evidencia)    evidencia "$destino" ;;
   *) usage ;;
 esac

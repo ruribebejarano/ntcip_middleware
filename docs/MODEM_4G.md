@@ -19,7 +19,7 @@ en esta puesta en marcha. [REVISAR] cruzar con ese PDF si difiere.
 | Puerto de comandos AT | `/dev/ttyACM2` | Verificado con `AT` → `OK` |
 | Módulo | SIMCOM SIM7670G-MNGV, firmware V1.9.05 | Salida de `ATI` |
 | Identificación USB | `QualComm_QualComm_Compo` | Normal en esta familia de módulos |
-| Perfil de NetworkManager | `netplan-eth0` (asociado a `usb0`) | El nombre viene de netplan; lo usa el módem, no el puerto Ethernet |
+| Perfil de NetworkManager | `netplan-eth0` (asociado a `usb0`); desde el 2026-11-15, `Wired connection 1` | El nombre viene de netplan; lo usa el módem, no el puerto Ethernet. NetworkManager creó un perfil nuevo tras muchas reconexiones del USB: `red_4g.sh` lo busca solo |
 
 Abrir el puerto AT:
 
@@ -82,9 +82,11 @@ recibir avisos del operador (recargas, paquetes). Se vació con `AT+CMGD=0,4`.
 
 Automatizado en `scripts/red_4g.sh` (corre EN la Pi) y `scripts/pi.sh red
 <subcomando> [host]` (lo invoca por SSH desde la laptop). El perfil de
-NetworkManager (`netplan-eth0` por defecto) y el puerto AT (`/dev/ttyACM2`
-por defecto) son parámetros (`--perfil`, `--puerto-at`), no están fijos en
-el script.
+NetworkManager y el puerto AT (`/dev/ttyACM2` por defecto) son parámetros
+(`--perfil`, `--puerto-at`). Sin `--perfil`, el script busca el perfil del
+módem: el activo en `usb0`, el ligado a `usb0`, `netplan-eth0` o el único
+perfil Ethernet. `modo-normal` enciende el Wi-Fi antes de tocar el perfil,
+para que la RSU siga alcanzable aunque el perfil no se encuentre.
 
 ```bash
 scripts/pi.sh red modo-normal   [host]                # Wi-Fi para todo, 4G de respaldo
