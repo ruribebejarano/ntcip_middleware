@@ -100,12 +100,99 @@ def journal_ts(texto: str, patron: str, desde_ns: int) -> int | None:
     return None
 
 
+# Estados de /sys/class/net/<if>/operstate que indican que el enlace cayó.
+# El módem USB (usb0) informa "unknown" mientras funciona normalmente (no
+# reporta el estado de su portadora), así que "no estar up" no basta: el
+# corte se reconoce cuando la interfaz desaparece ("ausente", el cable USB
+# desconectado) o queda explícitamente abajo.
+ESTADOS_CAIDA = {"ausente", "down", "lowerlayerdown", "notpresent"}
+CABECERA_EVENTOS = "ts_ns,nodo,tipo_evento,id_solicitud,extra_json"
+
+
+def metricas(caso: str, texto_obs: str, eventos: str, journal: str, t_ini_pi: int) -> dict:
+    """Métricas de una repetición a partir de los archivos traídos de la Pi."""
+    obs = [r for r in csv.DictReader(texto_obs.splitlines())]
+    # eventos_rsu_pi.csv es un `tail` del registro de la RSU: si el archivo
+    # completo es más largo, la cabecera queda fuera y hay que reponerla.
+    lineas_ev = eventos.splitlines()
+    if lineas_ev and not lineas_ev[0].startswith("ts_ns,"):
+        lineas_ev.insert(0, CABECERA_EVENTOS)
+    ev = [r for r in csv.DictReader(lineas_ev) if (r.get("ts_ns") or "").isdigit()]
+    m1 = [int(r["ts_ns"]) for r in ev
+          if r.get("tipo_evento") == "M1_rx" and int(r["ts_ns"]) > t_ini_pi
+          and not r["id_solicitud"].startswith("sonda")]
+    # Cualquier M1 recibido (incluida la sonda de la laptop) prueba que la RSU
+    # volvió a estar conectada al broker: el cliente MQTT reconecta solo y no
+    # siempre deja una línea en el journal.
+    m1_todos = [int(r["ts_ns"]) for r in ev if r.get("tipo_evento") == "M1_rx" and int(r["ts_ns"]) > t_ini_pi]
+    if caso == "rsu":
+        t_falla = journal_ts(journal, "killed", t_ini_pi) or journal_ts(journal, "Main process exited", t_ini_pi)
+        t_up = t_falla
+    else:
+        caidas = [int(r["ts_ns"]) for r in obs if r["interfaz"] in ESTADOS_CAIDA]
+        t_falla = caidas[0] if caidas else None
+        t_up = next((int(r["ts_ns"]) for r in obs if t_falla and int(r["ts_ns"]) > caidas[-1]
+                     and r["interfaz"] not in ESTADOS_CAIDA), None)
+    res: dict = {"t_falla_ns": t_falla, "t_up_ns": t_up}
+    if not t_falla:
+        res["error"] = "sin corte detectado"
+        return res
+    lib = next((int(r["ts_ns"]) for r in obs if int(r["ts_ns"]) > t_falla and r["prioridad_activa"] == "0"), None)
+    m1_antes = [t for t in m1 if t <= t_falla]
+    con = journal_ts(journal, "Conectado al broker MQTT", t_up or t_falla)
+    if caso == "enlace4g":
+        con = next((t for t in m1_todos if t > (t_up or t_falla)), con)
+    prio_al_fallo = next((r["prioridad_activa"] for r in reversed(obs) if int(r["ts_ns"]) <= t_falla), None)
+    res.update(prioridad_al_fallo=prio_al_fallo == "1",
+               t_lib_m1_s=(lib - max(m1_antes)) / NS if lib and m1_antes else None,
+               t_lib_falla_s=(lib - t_falla) / NS if lib else None,
+               T_rec_s=(con - (t_up or t_falla)) / NS if con else None,
+               retenida=bool(obs) and obs[-1]["prioridad_activa"] == "1")
+    return res
+
+
+def recalcular(corrida: Path, caso: str) -> None:
+    """Recalcula fallo.json y resultados.json de una corrida ya hecha, con los
+    archivos guardados por repetición. El instante de inicio en la Pi no se
+    guardó: se toma 5 s antes de la primera muestra del observador, que se
+    lanza justo después de leerlo."""
+    filas = []
+    for rep in sorted(corrida.glob("rep_*")):
+        previo = json.loads((rep / "fallo.json").read_text(encoding="utf-8"))
+        texto_obs = (rep / "observador_pi.csv").read_text(encoding="utf-8")
+        primera = next(csv.DictReader(texto_obs.splitlines()), None)
+        t_ini_pi = int(primera["ts_ns"]) - int(5 * NS) if primera else 0
+        res = {k: previo[k] for k in ("rep", "caso", "sonda") if k in previo}
+        res.update(metricas(caso, texto_obs, (rep / "eventos_rsu_pi.csv").read_text(encoding="utf-8"),
+                            (rep / "journal_agente.txt").read_text(encoding="utf-8"), t_ini_pi))
+        (rep / "fallo.json").write_text(json.dumps(res, indent=1, default=str), encoding="utf-8")
+        filas.append(res)
+        print(f"[{caso} {res.get('rep', 0):02d}] t_lib(M1)={res.get('t_lib_m1_s')} "
+              f"t_lib(falla)={res.get('t_lib_falla_s')} T_rec={res.get('T_rec_s')} "
+              f"retenida={res.get('retenida')} {res.get('error', '')}", flush=True)
+    (corrida / "resultados.json").write_text(json.dumps({"caso": caso, "reps": filas}, indent=1, default=str),
+                                             encoding="utf-8")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--caso", required=True, choices=["rsu", "enlace4g"])
     ap.add_argument("--repeticiones", type=int, default=10)
     ap.add_argument("--semilla-base", type=int, default=700)
+    ap.add_argument("--recalcular", type=Path, help="corrida ya hecha: solo recalcula sus métricas")
     args = ap.parse_args()
+    if args.recalcular:
+        recalcular(args.recalcular, args.caso)
+        return
+    if args.caso == "enlace4g":
+        # Con el Wi-Fi activo, al desconectar el módem el tráfico sigue por el
+        # Wi-Fi y el "corte" no corta nada (corrida del 2026-11-14 descartada
+        # por eso). Se exige que la única salida sea el módem.
+        wifi = ssh("cat /sys/class/net/wlan0/operstate 2>/dev/null || echo ausente").strip()
+        if wifi == "up":
+            raise SystemExit("wlan0 está activo en la Pi: el corte del módem no cortaría el enlace. "
+                             "Ejecute antes 'bash scripts/pi.sh red modo-campana rsu --sin-wifi' y verifique "
+                             "que la Pi siga respondiendo.")
     base.PUERTO_BROKER = 8883  # broker de la campaña, al que se conecta el agente de la Pi
     corrida = RAIZ / "resultados" / "evaluacion" / f"{datetime.now():%Y%m%d-%H%M%S}_fallos_pi_{args.caso}"
     corrida.mkdir(parents=True)
@@ -158,27 +245,7 @@ def main() -> None:
         (rep / "journal_agente.txt").write_text(journal, encoding="utf-8")
         eventos = ssh_reintentar(f"cd {DIR_PI} && tail -n 4000 resultados/eventos/eventos_rsu_1.csv")
         (rep / "eventos_rsu_pi.csv").write_text(eventos, encoding="utf-8")
-        obs = [r for r in csv.DictReader(texto_obs.splitlines())]
-        m1 = [int(r["ts_ns"]) for r in csv.DictReader(eventos.splitlines())
-              if r.get("tipo_evento") == "M1_rx" and int(r["ts_ns"]) > t_ini_pi
-              and not r["id_solicitud"].startswith("sonda")]
-        if args.caso == "rsu":
-            t_falla = journal_ts(journal, "killed", t_ini_pi) or journal_ts(journal, "Main process exited", t_ini_pi)
-            t_up = t_falla
-        else:
-            caidas = [int(r["ts_ns"]) for r in obs if r["interfaz"] != "up"]
-            t_falla = caidas[0] if caidas else None
-            t_up = next((int(r["ts_ns"]) for r in obs if t_falla and int(r["ts_ns"]) > caidas[-1]
-                         and r["interfaz"] == "up"), None)
-        if t_falla:
-            lib = next((int(r["ts_ns"]) for r in obs if int(r["ts_ns"]) > t_falla and r["prioridad_activa"] == "0"),
-                       None)
-            m1_antes = [t for t in m1 if t <= t_falla]
-            con = journal_ts(journal, "Conectado al broker MQTT", t_up or t_falla)
-            res.update(t_lib_m1_s=(lib - max(m1_antes)) / NS if lib and m1_antes else None,
-                       t_lib_falla_s=(lib - t_falla) / NS if lib else None,
-                       T_rec_s=(con - (t_up or t_falla)) / NS if con else None,
-                       retenida=bool(obs) and obs[-1]["prioridad_activa"] == "1")
+        res.update(metricas(args.caso, texto_obs, eventos, journal, t_ini_pi))
         (rep / "fallo.json").write_text(json.dumps(res, indent=1, default=str), encoding="utf-8")
         filas.append(res)
         print(f"[{args.caso} {i:02d}] t_lib(M1)={res.get('t_lib_m1_s')} T_rec={res.get('T_rec_s')} "
