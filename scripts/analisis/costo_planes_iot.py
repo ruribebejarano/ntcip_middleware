@@ -31,7 +31,12 @@ costo facturado será algo mayor. Un mes = 30 días.
 
 Uso: .venv/Scripts/python.exe scripts/analisis/costo_planes_iot.py \
        --resumen <dir con resumen_fase4.json> \
-       --bytes-tls <corrida de bytes con TLS> --salida <dir>
+       --bytes-tls <corrida de bytes con TLS> --salida <dir> \
+       [--reposo-tls <corrida de bytes con TLS cuyo reposo de la RSU se usa>]
+
+--reposo-tls sirve para evaluar un cambio de keepalive de la RSU sin rehacer
+toda la Fase 4: reemplaza el tráfico en reposo de la proyección (clave
+rsu_reposo.bytes_por_hora de esa corrida) y deja igual misiones y conexión.
 """
 from __future__ import annotations
 
@@ -95,6 +100,7 @@ def main() -> None:
     ap.add_argument("--resumen", required=True, type=Path, help="carpeta con resumen_fase4.json")
     ap.add_argument("--bytes-tls", required=True, type=Path, help="corrida de bytes con TLS")
     ap.add_argument("--salida", required=True, type=Path)
+    ap.add_argument("--reposo-tls", type=Path, help="corrida de bytes con TLS cuyo reposo de la RSU se usa")
     a = ap.parse_args()
     a.salida.mkdir(parents=True, exist_ok=True)
 
@@ -103,10 +109,19 @@ def main() -> None:
     # RSU: proyección por misiones atendidas por día
     print("RSU (misiones por día):")
     proy = {int(k): v for k, v in r["bytes"]["proyeccion_MB_mes"].items()}
+    nota_reposo = ""
+    if a.reposo_tls:
+        nuevo = json.loads((a.reposo_tls / "resumen.json").read_text(encoding="utf-8"))["rsu_reposo"]["bytes_por_hora"]
+        viejo = r["bytes"]["reposo_tls_B_h"]
+        extra_mb = 24 * DIAS_MES * (nuevo - viejo) / 1e6
+        proy = {m: v + extra_mb for m, v in proy.items()}
+        print(f"  reposo reemplazado: {viejo:.0f} -> {nuevo:.0f} B/h ({extra_mb:+.2f} MB/mes)")
+        nota_reposo = (f"Reposo de la RSU con el \\emph{{keepalive}} ajustado: {coma(nuevo / 1000)}~kB por hora "
+                       f"(antes {coma(viejo / 1000)}~kB). ")
     filas = [fila(str(m), proy[m]) for m in sorted(proy)]
     cap = ("\\caption[Costo mensual de datos de una RSU con planes IoT]{Costo mensual de datos de una RSU con "
            "TLS~1.3 en dos planes IoT de tarifa publicada que cubren Perú, a partir de la proyección de la "
-           "Tabla~\\ref{tab:proyeccion_datos}. " + TARIFAS + "}")
+           "Tabla~\\ref{tab:proyeccion_datos}. " + nota_reposo + TARIFAS + "}")
     (a.salida / "tabla_costo_planes.tex").write_text(
         tabla(cap, "tab:costo_planes", "Misiones por día", filas), encoding="utf-8")
 
