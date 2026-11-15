@@ -99,6 +99,13 @@ EVT_VEHICULO_DETENIDO = "vehiculo_detenido"     # servidor/gestor_mision.py clas
 EVT_SOLICITUD_SUSPENDIDA_DETENIDO = "solicitud_suspendida_detenido"  # servidor deja de renovar por ETA una solicitud vigente tras T_DETENIDO_MAX_S detenido sin cruzar (vuelve a "pendiente", se re-solicita sola si el vehiculo retoma movimiento); extra: interseccion_id, segundos_detenido
 EVT_ETA_ESTIMADO = "eta_estimado"               # servidor estima, con cada MP, el ETA a la siguiente parada pendiente (no cambia ninguna decision; sirve para medir el error del ETA); extra: rsu_id, interseccion_id, eta_s, distancia_restante_m, velocidad_kmh
 
+# Ciclo de vida de la conexión MQTT de la RSU (agent/rsu_middleware.py), para
+# descomponer el tiempo de recuperación tras un corte del enlace (RNF-08).
+EVT_MQTT_DESCONECTADO = "mqtt_desconectado"  # el cliente da la conexión por perdida; extra: reason_code
+EVT_MQTT_INTENTO = "mqtt_intento"            # el cliente inicia un intento de conexión (on_pre_connect)
+EVT_MQTT_INTENTO_FALLIDO = "mqtt_intento_fallido"  # ese intento falló (on_connect_fail)
+EVT_MQTT_CONECTADO = "mqtt_conectado"        # CONNACK recibido; extra: reason_code
+
 EVT_BROKER_RX = "broker_rx"      # scripts/testigo_broker.py: un suscriptor mas
                                   # corriendo en la MISMA maquina que el broker,
                                   # registra la llegada de cada M1/M2/M3 con el

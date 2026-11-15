@@ -110,6 +110,10 @@ from common.events import (  # noqa: E402
     EVT_M1_RX,
     EVT_M2_TX,
     EVT_M3_RX,
+    EVT_MQTT_CONECTADO,
+    EVT_MQTT_DESCONECTADO,
+    EVT_MQTT_INTENTO,
+    EVT_MQTT_INTENTO_FALLIDO,
     EVT_SNMP_SET_TX,
     EventLogger,
 )
@@ -209,6 +213,16 @@ CONTROLLER_PORT = int(os.environ.get("CONTROLLER_PORT", "9000"))
 # (arquitectura centralizada, E3, ssec:sel_direccionamiento de main.tex).
 MQTT_BROKER_HOST = os.environ.get("MQTT_BROKER_HOST", "127.0.0.1")
 MQTT_BROKER_PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
+# Reconexión tras perder el enlace (RNF-08). Con los valores por defecto de
+# paho (keepalive de 30 s, espera entre reintentos que se duplica de 1 a
+# 120 s), el corte físico del 4G del 2026-11-15 dio un T_rec de 18,2 s de
+# mediana (7,4-38,1 s): el cliente podía quedar esperando su siguiente
+# reintento con la red ya disponible. Se acota la espera a MQTT_RECONEXION_MAX_S
+# y se detecta antes la pérdida con un keepalive menor. Son parámetros de
+# diseño en evaluación, no valores de una norma.
+MQTT_KEEPALIVE_S = int(os.environ.get("MQTT_KEEPALIVE_S", "10"))
+MQTT_RECONEXION_MIN_S = int(os.environ.get("MQTT_RECONEXION_MIN_S", "1"))
+MQTT_RECONEXION_MAX_S = int(os.environ.get("MQTT_RECONEXION_MAX_S", "2"))
 # Tema LEGADO (P0-P3): un solo tema para todas las RSU, mensaje con
 # eta_seg. Se mantiene para gateway/obu_simulator.py y scripts/demo_asesor.sh.
 MQTT_TOPIC = "rsu/v2i/solicitud_prioridad"
@@ -651,9 +665,23 @@ _RESPUESTA_POR_ID: dict[str, str] = {}
 _ID_NUMERICO_POR_SOLICITUD: dict[str, int] = {}
 
 
+def _on_mqtt_pre_connect(_client, _userdata) -> None:
+    EVENTOS.log(EVT_MQTT_INTENTO, "-")
+
+
+def _on_mqtt_connect_fail(_client, _userdata) -> None:
+    EVENTOS.log(EVT_MQTT_INTENTO_FALLIDO, "-")
+
+
+def _on_mqtt_disconnect(_client, _userdata, _flags, reason_code, _properties=None) -> None:
+    EVENTOS.log(EVT_MQTT_DESCONECTADO, "-", reason_code=str(reason_code))
+    print(f"[middleware] Desconectado del broker MQTT, reason_code={reason_code}", flush=True)
+
+
 def _on_mqtt_connect(client, _userdata, _flags, reason_code, _properties=None):
+    EVENTOS.log(EVT_MQTT_CONECTADO, "-", reason_code=str(reason_code))
     print(f"[middleware] Conectado al broker MQTT ({MQTT_BROKER_HOST}:{MQTT_BROKER_PORT}), "
-          f"reason_code={reason_code}")
+          f"reason_code={reason_code}", flush=True)
     # Resuscribirse en cada conexion (no solo la primera vez): si el broker
     # se reinicia o la red se cae un momento, el cliente se reconecta solo
     # (loop_start ya lo maneja) pero pierde la suscripcion del lado del
@@ -900,9 +928,15 @@ def start_mqtt_listener() -> mqtt.Client:
                          protocol=mqtt.MQTTv5)
     client.on_connect = _on_mqtt_connect
     client.on_message = _on_mqtt_message
+    client.on_disconnect = _on_mqtt_disconnect
+    client.on_pre_connect = _on_mqtt_pre_connect
+    client.on_connect_fail = _on_mqtt_connect_fail
+    client.reconnect_delay_set(min_delay=MQTT_RECONEXION_MIN_S, max_delay=MQTT_RECONEXION_MAX_S)
     if aplicar_tls(client, RSU_TLS_CA, RSU_TLS_CERT, RSU_TLS_KEY, puerto=MQTT_BROKER_PORT):
         print("[middleware] mTLS habilitado (TLS 1.3 minimo, CA/cert/key por variables de entorno)")
-    client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, keepalive=30)
+    client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, keepalive=MQTT_KEEPALIVE_S)
+    print(f"[middleware] MQTT: keepalive={MQTT_KEEPALIVE_S} s, espera entre reintentos "
+          f"{MQTT_RECONEXION_MIN_S}-{MQTT_RECONEXION_MAX_S} s", flush=True)
     client.loop_start()
     _MQTT_CLIENT = client
     print(f"[middleware] Escuchando solicitudes V2I en mqtt://{MQTT_BROKER_HOST}:{MQTT_BROKER_PORT} "
