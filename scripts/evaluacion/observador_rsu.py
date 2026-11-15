@@ -7,9 +7,10 @@ A 10 Hz, con el reloj de la Pi (time.time_ns):
     igual que la RSU): fase y prioridad_activa;
   - lee el estado de la interfaz del módem (/sys/class/net/<if>/operstate;
     "ausente" si la interfaz desapareció, p. ej. al desconectar el módem USB);
-  - lee su dirección IPv4 (vacía mientras el módem no tenga red): separa,
-    dentro del tiempo de recuperación, el re-registro del módem en la red
-    celular de lo que tarda después la conexión MQTT.
+  - lee su dirección IPv4. OJO: es la dirección de la LAN USB que entrega
+    el propio módem (192.168.0.x, RNDIS), no la de la red celular: aparece
+    apenas el módem enumera por USB, aunque todavía no tenga datos de Claro.
+    Marca que el enlace USB volvió, no que volvió la red celular.
 Escribe un CSV y termina tras --duracion segundos. No cambia nada en la Pi.
 
 Uso (en la Pi): python3 scripts/evaluacion/observador_rsu.py --salida /tmp/obs.csv --duracion 240 --interfaz usb0

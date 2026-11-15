@@ -157,8 +157,11 @@ def _descomponer_trec(obs: list, ev: list, t_falla: int, t_up: int, t_m1: int | 
     """Separa T_rec en tramos, si la Pi corre la versión instrumentada
     (columna ipv4 del observador, eventos mqtt_* del middleware); con datos
     anteriores devuelve los campos en None.
-      modem      usb0 reaparece -> usb0 tiene IPv4 (re-registro en la red)
-      mqtt       IPv4 -> CONNACK del broker (túnel + reintentos del cliente)
+      modem      usb0 reaparece -> usb0 tiene IPv4. Es la IP de la LAN USB del
+                 propio módem (192.168.0.x), no de la red celular: mide el
+                 enlace USB, NO el re-registro en la red de Claro.
+      mqtt       IPv4 -> CONNACK del broker: re-registro celular + túnel +
+                 reintentos y handshake TLS del cliente MQTT, sin separar
       primer_m1  CONNACK -> primer M1 recibido (resuscripción + periodo de la sonda)
     deteccion: corte -> el cliente da la conexión por perdida (puede ocurrir
     después de reconectado el módem, o nunca, si el corte fue más corto)."""
