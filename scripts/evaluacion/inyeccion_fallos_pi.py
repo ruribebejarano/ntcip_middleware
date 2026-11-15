@@ -174,6 +174,29 @@ def recalcular(corrida: Path, caso: str) -> None:
                                              encoding="utf-8")
 
 
+# Contadores de la interfaz de Tailscale de la Pi: a diferencia de usb0 (que
+# desaparece y se reinicia a cero en cada corte), tailscale0 acumula desde que
+# arrancó tailscaled. Todo el tráfico de la prueba (MQTT, SSH, descargas)
+# pasa por ella; no cuenta el tráfico propio de la Pi fuera del túnel.
+CMD_BYTES_TS = ("cat /sys/class/net/tailscale0/statistics/rx_bytes "
+                "/sys/class/net/tailscale0/statistics/tx_bytes 2>/dev/null")
+
+
+def _bytes_ts(texto: str) -> int | None:
+    try:
+        rx, tx = (int(x) for x in texto.split()[:2])
+        return rx + tx
+    except ValueError:
+        return None
+
+
+def _guardar(corrida: Path, caso: str, filas: list) -> None:
+    """Se reescribe tras cada repetición: si la corrida se interrumpe, lo
+    hecho hasta ahí queda utilizable por fallos_resumen.py."""
+    (corrida / "resultados.json").write_text(json.dumps({"caso": caso, "reps": filas}, indent=1, default=str),
+                                             encoding="utf-8")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--caso", required=True, choices=["rsu", "enlace4g"])
@@ -205,7 +228,9 @@ def main() -> None:
         obu_id = f"obu-fpi-{args.caso}-r{i:02d}"
         tray = rep / f"trayectoria_{obu_id}.csv"
         _trayectoria_con_ruido(FIXTURES / esc["obus"][0][1], tray, semilla, 5.0)
-        t_ini_pi = int(ssh_reintentar("date +%s%N").strip())
+        ini = ssh_reintentar("date +%s%N; " + CMD_BYTES_TS).split(None, 1)
+        t_ini_pi = int(ini[0])
+        bytes_ini = _bytes_ts(ini[1]) if len(ini) > 1 else None
         obs_pi = f"/tmp/obs_fallo_{i:02d}.csv"
         # El cliente SSH de Windows no suelta la sesión si el proceso remoto
         # queda en segundo plano: se deja el SSH corriendo aparte (Popen, sin
@@ -239,20 +264,37 @@ def main() -> None:
         _detener(servidor)
         # --- datos de la Pi (reloj de la Pi) -----------------------------------
         ssh_obs.kill()  # el observador sigue solo hasta --duracion; aquí solo se suelta el SSH
-        texto_obs = ssh_reintentar(f"sleep 1; cat {obs_pi}")
-        (rep / "observador_pi.csv").write_text(texto_obs, encoding="utf-8")
-        journal = ssh_reintentar(f"sudo journalctl -u rsu-agent.service -o short-unix --since @{t_ini_pi // 10**9}")
-        (rep / "journal_agente.txt").write_text(journal, encoding="utf-8")
-        eventos = ssh_reintentar(f"cd {DIR_PI} && tail -n 4000 resultados/eventos/eventos_rsu_1.csv")
-        (rep / "eventos_rsu_pi.csv").write_text(eventos, encoding="utf-8")
+        try:
+            texto_obs = ssh_reintentar(f"sleep 1; cat {obs_pi}")
+            (rep / "observador_pi.csv").write_text(texto_obs, encoding="utf-8")
+            journal = ssh_reintentar(f"sudo journalctl -u rsu-agent.service -o short-unix "
+                                     f"--since @{t_ini_pi // 10**9}")
+            (rep / "journal_agente.txt").write_text(journal, encoding="utf-8")
+            eventos = ssh_reintentar(f"cd {DIR_PI} && tail -n 4000 resultados/eventos/eventos_rsu_1.csv")
+            (rep / "eventos_rsu_pi.csv").write_text(eventos, encoding="utf-8")
+            bytes_fin = _bytes_ts(ssh_reintentar(CMD_BYTES_TS))
+        except SystemExit as e:
+            # La Pi no volvió (p. ej., el 4G no se restableció): se guarda lo
+            # hecho y se detiene la corrida en vez de perderla entera.
+            res["error"] = f"sin datos de la Pi: {e}"
+            (rep / "fallo.json").write_text(json.dumps(res, indent=1, default=str), encoding="utf-8")
+            filas.append(res)
+            _guardar(corrida, args.caso, filas)
+            print(f"[{args.caso} {i:02d}] {res['error']} -- corrida detenida; salida en {corrida}", flush=True)
+            return
         res.update(metricas(args.caso, texto_obs, eventos, journal, t_ini_pi))
+        if bytes_ini is not None and bytes_fin is not None and bytes_fin >= bytes_ini:
+            res["bytes_tailscale"] = bytes_fin - bytes_ini
         (rep / "fallo.json").write_text(json.dumps(res, indent=1, default=str), encoding="utf-8")
         filas.append(res)
+        _guardar(corrida, args.caso, filas)
         print(f"[{args.caso} {i:02d}] t_lib(M1)={res.get('t_lib_m1_s')} T_rec={res.get('T_rec_s')} "
-              f"retenida={res.get('retenida')} sonda={res.get('sonda', {}).get('intentos')} {res.get('error', '')}",
+              f"retenida={res.get('retenida')} sonda={res.get('sonda', {}).get('intentos')} "
+              f"datos={res.get('bytes_tailscale', 0) / 1e6:.2f} MB {res.get('error', '')}",
               flush=True)
-    (corrida / "resultados.json").write_text(json.dumps({"caso": args.caso, "reps": filas}, indent=1, default=str),
-                                             encoding="utf-8")
+    _guardar(corrida, args.caso, filas)
+    total = sum(x.get("bytes_tailscale", 0) for x in filas)
+    print(f"Datos por el túnel en toda la corrida: {total / 1e6:.1f} MB")
     print(f"Salida en {corrida}")
 
 

@@ -55,7 +55,11 @@ def main() -> None:
         r = json.loads((d / "resultados.json").read_text(encoding="utf-8"))
         clave = ("pi_" if "_fallos_pi_" in d.name else "") + r["caso"]
         reps = [x for x in r["reps"] if "error" not in x]
-        tl = [x["t_lib_m1_s"] for x in reps if x.get("t_lib_m1_s") is not None]
+        # Si la prioridad ya se había liberado antes del corte (el vehículo
+        # cruzó y llegó el M3), esa liberación no la causó el fallo: no
+        # cuenta para t_lib, pero sí para T_rec.
+        tl = [x["t_lib_m1_s"] for x in reps
+              if x.get("t_lib_m1_s") is not None and x.get("prioridad_al_fallo") is not False]
         tr = [x["T_rec_s"] for x in reps if x.get("T_rec_s") is not None]
         ret = sum(1 for x in reps if x.get("retenida"))
         if clave.endswith("rsu"):
