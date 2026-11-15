@@ -34,16 +34,39 @@ rechaza las conexiones hasta renovarla.
    ```bash
    bash ~/ntcip_middleware/scripts/red_4g.sh modo-campana
    ```
-   Comprobar que la ruta por defecto es `usb0`:
+   Comprobar que la ruta por defecto es `usb0` y que el módem tiene IPv4:
    ```bash
    ip route | grep default
+   ip -br addr show usb0
    ```
+   La primera ruta debe ser `dev usb0 ... metric 50`, y `usb0` debe tener
+   `192.168.0.100/24`. **Si `usb0` solo tiene IPv6** (`2800:4b0:...`), el
+   módem no le entregó IPv4 a la Pi y no habrá ruta por el 4G (pasó el
+   2026-11-15). Se corrige reactivando el perfil:
+   ```bash
+   sudo nmcli connection up "Wired connection 2"
+   ```
+   Si tampoco basta: desconectar y reconectar el USB del módem, esperar un
+   minuto y repetir; en último caso, el reinicio por comandos AT de
+   `docs/MODEM_4G.md`, sección 3.
 3. **Pi apuntando al broker de Oracle.** En la Pi (pide la contraseña de sudo):
    ```bash
    bash ~/ntcip_middleware/scripts/pi_broker.sh nube
    ```
    Debe terminar con `Conectado al broker MQTT (129.151.104.124:8883)`.
-4. **Máquina actualizada.** Desde la laptop:
+   `pi_broker.sh` reinicia el agente: si se cambió la ruta (paso 2) después
+   de conectar el agente, hay que volver a correrlo, porque una conexión ya
+   abierta no cambia de camino.
+4. **Verificar que la RSU entra por la red celular**, no por el internet
+   fijo del lugar. Desde la laptop:
+   ```bash
+   ssh -i ~/.ssh/oci_ntcip ubuntu@129.151.104.124 'sudo journalctl -u mosquitto-ntcip -n 300 -o cat | grep "as rsu-middleware-1" | tail -1'
+   ```
+   La IP de `New client connected from ...` debe ser del operador celular
+   (Claro: `179.6.x.x` el 2026-11-15), **no** la IP pública del internet
+   fijo de la casa. Si es la del internet fijo, la Pi sigue saliendo por
+   Wi-Fi: revisar el paso 2 y volver a correr el paso 3.
+5. **Máquina actualizada.** Desde la laptop:
    ```bash
    ssh -i ~/.ssh/oci_ntcip ubuntu@129.151.104.124 'cd ~/ntcip_middleware && git pull --ff-only && systemctl is-active mosquitto-ntcip && timedatectl | grep synchronized'
    ```
@@ -69,6 +92,12 @@ OBU están en la misma máquina que el broker (el SAN del certificado incluye
 ```
 
 Si se corta el SSH, volver a entrar y `tmux attach -t campana`.
+
+**Duración y datos esperados** (referencia: campaña 4G del 2026-11-03, con
+el mismo script): `lazo` 12 repeticiones en 23 min y 2,2 MB; `desvio` 17
+repeticiones en 32 min y 3,2 MB. Cerca de una hora y 5–6 MB por sesión; el
+número de repeticiones es adaptativo, con un tope de 18 por escenario. No
+desconectar el módem ni apagar la Pi hasta que terminen los dos.
 
 Anotar para cada sesión: fecha, hora de inicio y fin, lugar de la Pi,
 operador, y las carpetas de salida que imprime el script.
