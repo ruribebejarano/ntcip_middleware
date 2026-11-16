@@ -33,7 +33,8 @@ from costo_planes_iot import duracion_misiones_s  # noqa: E402
 RAIZ = Path(__file__).resolve().parent.parent.parent
 C = RAIZ / "resultados" / "campana"
 E = RAIZ / "resultados" / "evaluacion"
-VERDE, ROJO, NARANJA, GRIS = "#1baf7a", "#b91c1c", "#eb6834", "#a8a6a0"
+# Escala de grises, para figuras formales (pedido del autor, 2026-11-16).
+NEGRO, OSCURO, MEDIO, CLARO = "#1a1a1a", "#4d4d4d", "#8c8c8c", "#cfcfcf"
 
 RECALCULO_CAMPANA = C / "_figuras_cap4_2026-11-11" / "recalculo_por_mensaje.json"
 RECALCULO_NUBE = C / "_campana_nube" / "recalculo_por_mensaje.json"
@@ -68,11 +69,12 @@ def latencia_condiciones(salida: Path) -> None:
     p95 = [f[1]["L_corr_ms"]["p95"] for f in filas]
     ic = [f[1]["L_corr_ms"]["p95_ic"] for f in filas]
     err = [[p - lo for p, (lo, hi) in zip(p95, ic)], [hi - p for p, (lo, hi) in zip(p95, ic)]]
-    ax.bar(x, p95, color=[GRIS, GRIS, AZUL, AZUL], width=0.55, yerr=err, capsize=3, ecolor=INK2)
+    ax.bar(x, p95, color=[CLARO, CLARO, MEDIO, OSCURO], edgecolor=NEGRO, linewidth=0.6, width=0.55, yerr=err,
+           capsize=3, ecolor=NEGRO)
     for i, v in enumerate(p95):
         ax.text(i, v + err[1][i] + 20, f"{_coma(v)} ms", ha="center", va="bottom", fontsize=7.5)
-    ax.axhline(1000, color=ROJO, ls="--", lw=1)
-    ax.text(len(filas) - 0.6, 1010, "límite de RNF-01: 1000 ms", color=ROJO, ha="right", va="bottom", fontsize=7)
+    ax.axhline(1000, color=NEGRO, ls="--", lw=1)
+    ax.text(len(filas) - 0.6, 1010, "límite de RNF-01: 1000 ms", color=NEGRO, ha="right", va="bottom", fontsize=7)
     ax.set_xticks(list(x), [f[0] for f in filas])
     ax.set_ylabel("$L$, percentil 95 (ms)")
     ax.set_ylim(0, 1150)
@@ -81,19 +83,21 @@ def latencia_condiciones(salida: Path) -> None:
 
 def rf11_indra(salida: Path) -> None:
     fig, ax = plt.subplots(figsize=(COL2 * 0.9, 2.5))
-    ax.axvspan(T_M, A_V_MAX, color=VERDE, alpha=0.12, lw=0)
+    ax.axvspan(T_M, A_V_MAX, color="#ececec", lw=0)
     ax.text((T_M + A_V_MAX) / 2, len(RF11) - 0.35, "zona permitida por RF-11 (de 2 a 16 s)", ha="center",
-            fontsize=7, color="#0f6e4f")
+            fontsize=7, color=NEGRO)
     for i, (etq, carpeta) in enumerate(reversed(RF11)):
         with (C / carpeta / "lazo_por_parada.csv").open(encoding="utf-8") as fh:
             filas = list(csv.DictReader(fh))
         av = [float(f["anticipacion_real_s"]) for f in filas if f["anticipacion_real_s"]]
         sin_verde = sum(1 for f in filas if f.get("obtuvo_verde") != "True")
-        colores = [VERDE if T_M <= a <= A_V_MAX else NARANJA for a in av]
-        ax.scatter(av, [i] * len(av), c=colores, s=16, zorder=3, edgecolors="white", linewidths=0.4)
+        dentro = [a for a in av if T_M <= a <= A_V_MAX]
+        fuera = [a for a in av if not T_M <= a <= A_V_MAX]
+        ax.scatter(dentro, [i] * len(dentro), c=NEGRO, s=16, zorder=3)
+        ax.scatter(fuera, [i] * len(fuera), facecolors="white", edgecolors=NEGRO, s=18, linewidths=0.9, zorder=3)
         if sin_verde:
-            ax.scatter([0.6] * sin_verde, [i + 0.12 * k for k in range(sin_verde)], marker="x", c=ROJO, s=26, zorder=3)
-            ax.text(1.1, i + 0.05, f"{sin_verde} sin verde", color=ROJO, fontsize=7, va="center")
+            ax.scatter([0.6] * sin_verde, [i + 0.12 * k for k in range(sin_verde)], marker="x", c=NEGRO, s=26, zorder=3)
+            ax.text(1.1, i + 0.05, f"{sin_verde} sin verde", color=NEGRO, fontsize=7, va="center")
     ax.set_yticks(range(len(RF11)), [e for e, _ in reversed(RF11)])
     ax.set_xlabel("anticipación $A_v$: segundos de verde antes de que el vehículo cruce")
     ax.set_xlim(0, 20)
@@ -109,7 +113,7 @@ def handshake(salida: Path) -> None:
     fig, axs = plt.subplots(1, 2, figsize=(COL2 * 0.95, 2.4), sharey=False)
     for ax, enlace in zip(axs, ("4G", "Wi-Fi")):
         vals = [hs[f"{enlace}|{k}"]["total_med"] for k, _ in casos]
-        ax.bar(range(len(casos)), vals, color=[GRIS, AZUL, VERDE, NARANJA], width=0.6)
+        ax.bar(range(len(casos)), vals, color=[CLARO, OSCURO, MEDIO, NEGRO], edgecolor=NEGRO, linewidth=0.6, width=0.6)
         for i, v in enumerate(vals):
             ax.text(i, v * 1.02, f"{v:.0f} ms", ha="center", va="bottom", fontsize=7)
         ax.set_xticks(range(len(casos)), [n for _, n in casos], fontsize=6.8)
@@ -138,7 +142,7 @@ def resultados_limites(salida: Path) -> None:
     fig, ax = plt.subplots(figsize=(COL2 * 0.95, 2.9))
     for i, (txt, v, lim, u) in enumerate(reversed(filas)):
         pct = 100 * v / lim
-        color = VERDE if pct <= 100 else ROJO
+        color = MEDIO if pct <= 100 else NEGRO
         ax.barh(i, min(pct, 140), color=color, height=0.55)
         etiqueta = f"{_coma(v, 1 if u == 'ms' else 2)} {u} de {_coma(lim, 0)} {u}"
         if pct > 140:
@@ -147,8 +151,8 @@ def resultados_limites(salida: Path) -> None:
         else:
             # a la derecha de la línea del límite, para no cruzarla
             ax.text(max(pct, 100) + 3, i, etiqueta, va="center", fontsize=7)
-    ax.axvline(100, color=ROJO, ls="--", lw=1)
-    ax.text(100, len(filas) - 0.35, "límite del requerimiento", color=ROJO, ha="center", fontsize=7)
+    ax.axvline(100, color=NEGRO, ls="--", lw=1)
+    ax.text(100, len(filas) - 0.35, "límite del requerimiento", color=NEGRO, ha="center", fontsize=7)
     ax.set_yticks(range(len(filas)), [f[0] for f in reversed(filas)])
     ax.set_xlabel("resultado como porcentaje de su límite (%)")
     ax.set_xlim(0, 175)
@@ -169,15 +173,15 @@ def consumo_mensual(salida: Path) -> None:
     horas = [h / 2 for h in range(0, 17)]
     obu = [tasa_obu * 3600 * h * dias / 1e6 for h in horas]
     fig, axs = plt.subplots(1, 2, figsize=(COL2 * 0.95, 2.4))
-    axs[0].plot(misiones, rsu, color=AZUL)
-    axs[0].fill_between(misiones, 0, [reposo_h * horas_mes / 1e6] * len(misiones), color=GRIS, alpha=0.35, lw=0)
+    axs[0].plot(misiones, rsu, color=NEGRO)
+    axs[0].fill_between(misiones, 0, [reposo_h * horas_mes / 1e6] * len(misiones), color=CLARO, alpha=0.6, lw=0)
     axs[0].text(100, reposo_h * horas_mes / 1e6 / 2, "solo mantener la conexión (keepalive)", ha="center",
                 fontsize=6.8, color=INK2)
     axs[0].set_xlabel("misiones atendidas por día")
     axs[0].set_ylabel("MB al mes")
     axs[0].set_title("RSU")
     axs[0].set_ylim(0, max(rsu) * 1.1)
-    axs[1].plot(horas, obu, color=NARANJA)
+    axs[1].plot(horas, obu, color=NEGRO)
     axs[1].set_xlabel("horas de misión por día")
     axs[1].set_title("OBU")
     axs[1].set_ylim(0, max(obu) * 1.1)
