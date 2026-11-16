@@ -87,6 +87,9 @@ TLS_KEYFILE = os.environ.get("SERVIDOR_TLS_KEY")
 # solo el criterio de ETA.
 EMISION_R_G_M = float(os.environ.get("SERVIDOR_R_G_M", ParametrosGeometria().r_g_m))
 EMISION_ETA_S = float(os.environ.get("SERVIDOR_ETA_EMISION_S", ANTICIPACION_MINIMA_S))
+# Vacío o ausente = no suspender por vehículo detenido (gestor_mision.T_DETENIDO_MAX_S).
+_T_DET = os.environ.get("SERVIDOR_T_DETENIDO_MAX_S", "").strip()
+T_DETENIDO_MAX_S_SERVIDOR = float(_T_DET) if _T_DET else None
 
 EVENTOS = EventLogger("servidor")
 
@@ -286,12 +289,14 @@ def main() -> None:
         eventos=EVENTOS,
         parametros_geocerca=ParametrosGeometria(r_g_m=EMISION_R_G_M),
         anticipacion_min_s=EMISION_ETA_S,
+        t_detenido_max_s=T_DETENIDO_MAX_S_SERVIDOR,
     )
     print(f"[servidor] Emisión de M1: geocerca R_g={EMISION_R_G_M:.0f} m o ETA <= {EMISION_ETA_S:.1f} s")
     MONITOR = MonitorSeguridad(EVENTOS, _publicar_alerta, _suspender_mision)
     print(f"[servidor] Seguridad operativa: {MONITOR.parametros()}")
     EVENTOS.log("seguridad_inicio", "-", **MONITOR.parametros())
-    EVENTOS.log("servidor_inicio", "-", r_g_m=EMISION_R_G_M, eta_emision_s=EMISION_ETA_S)
+    EVENTOS.log("servidor_inicio", "-", r_g_m=EMISION_R_G_M, eta_emision_s=EMISION_ETA_S,
+                t_detenido_max_s=T_DETENIDO_MAX_S_SERVIDOR)
 
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"servidor-{SERVIDOR_ID}",
                          protocol=mqtt.MQTTv5)

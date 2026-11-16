@@ -93,7 +93,18 @@ MARGEN_CRUCE_M = 20.0             # cuanto puede "pasarse" la distancia acumulad
 UMBRAL_DETENIDO_KMH = 1.0         # mismo umbral de ruido que el default de la app (EvaluadorFixGnss.UMBRAL_DETENIDO_KMH_DEFECTO) [REVISAR con asesor]
 T_VALIDEZ_VEL_S = 5.0             # "sin dato": cuánto se reutiliza la última velocidad en movimiento antes de caer a VELOCIDAD_RESPALDO_KMH [REVISAR con asesor]
 VENTANA_MEDIANA_S = 3.0           # "en movimiento": ventana de suavizado por mediana para el ETA, en vez de la muestra instantánea [REVISAR con asesor]
-T_DETENIDO_MAX_S = 5.0            # "detenido medido": cuánto se tolera (sigue renovando) antes de suspender la solicitud por ETA [REVISAR con asesor]
+# "Detenido medido": cuánto se tolera detenido, sin cruzar, una solicitud
+# sostenida solo por ETA antes de suspenderla (M3 motivo "detenido").
+# None (por defecto desde el 2026-11-16) = no se suspende: la solicitud se
+# renueva mientras la misión siga armada, igual que dentro de la geocerca.
+# La prueba de colas (docs/PRUEBA_COLA.md, tesis ssec:resultados_cola)
+# mostró que con 5 s la suspensión corta el verde que descarga la cola y
+# el vehículo cruza sin verde cuando la emisión depende solo del ETA. El
+# costo: un vehículo detenido sin estar en una cola (estacionado con la
+# misión armada) sostiene la prioridad hasta el desarme o hasta
+# TIEMPO_MAXIMO_MISION_S. SERVIDOR_T_DETENIDO_MAX_S restituye el valor
+# anterior (5) para reproducir la campaña. [REVISAR con asesor]
+T_DETENIDO_MAX_S: Optional[float] = None
 # B3 (app_obu/PROPUESTA_FIN_MISION.md §1): el umbral de llegada a destino no
 # estaba definido. [REVISAR con asesor] -- se elige el valor más
 # conservador, igual a MARGEN_CRUCE_M, para no introducir un orden de
@@ -193,7 +204,7 @@ class GestorMision:
         umbral_detenido_kmh: float = UMBRAL_DETENIDO_KMH,
         t_validez_vel_s: float = T_VALIDEZ_VEL_S,
         ventana_mediana_s: float = VENTANA_MEDIANA_S,
-        t_detenido_max_s: float = T_DETENIDO_MAX_S,
+        t_detenido_max_s: Optional[float] = T_DETENIDO_MAX_S,
     ) -> None:
         self.grafo = grafo
         self.registro = registro
@@ -444,7 +455,8 @@ class GestorMision:
 
     def _respaldo_por_ruta(self, mision: Mision, seq_antes: dict[str, int], clasificacion: str) -> None:
         detenido_hace_s = (self.ahora() - mision.t_detenido_desde) if mision.t_detenido_desde is not None else 0.0
-        suspender_por_detenido = clasificacion == CLASIF_DETENIDO and detenido_hace_s > self.t_detenido_max_s
+        suspender_por_detenido = (self.t_detenido_max_s is not None and clasificacion == CLASIF_DETENIDO
+                                  and detenido_hace_s > self.t_detenido_max_s)
         for iid in mision.orden:
             ep = mision.paradas[iid]
             if ep.estado not in _ESTADOS_VIGENTES:

@@ -28,6 +28,10 @@ PERFIL="${PERFIL:-20,8,15}"
 COLA_LARGO="${COLA_LARGO:-280}"
 PUERTO="${PUERTO:-8884}"
 SOLO="${SOLO:-}"   # p. ej. SOLO=cola_eta16 para correr un solo criterio
+# Suspensión por vehículo detenido del servidor (vacío = desactivada, el
+# valor por defecto desde el 2026-11-16; 5 = la regla de la campaña).
+T_DETENIDO="${T_DETENIDO:-}"
+SUFIJO="${SUFIJO:-}"   # se agrega a la etiqueta de cada corrida
 MOSQ="${MOSQ:-/c/Program Files (x86)/Mosquitto/mosquitto.exe}"
 
 conf="$(mktemp -d)/mosquitto_cola.conf"
@@ -40,11 +44,11 @@ sleep 1
 
 correr() {  # r_g eta etiqueta
   if [ -n "$SOLO" ] && [ "$SOLO" != "$3" ]; then return; fi
-  "$PY" scripts/campanas/lazo_centralizado.py --escenario lazo --config local \
+  SERVIDOR_T_DETENIDO_MAX_S="$T_DETENIDO" "$PY" scripts/campanas/lazo_centralizado.py --escenario lazo --config local \
     --broker-host 127.0.0.1 --broker-port "$PUERTO" --tls deploy/pki \
     --controlador-indra --cola "$PERFIL" --cola-largo-m "$COLA_LARGO" \
     --r-g "$1" --eta-emision "$2" \
-    --repeticiones "$REPS" --pausa-max 60 --etiqueta "$3" --host-rsu ninguno
+    --repeticiones "$REPS" --pausa-max 60 --etiqueta "$3$SUFIJO" --host-rsu ninguno
 }
 
 correr 150 8 cola_geocerca_eta8

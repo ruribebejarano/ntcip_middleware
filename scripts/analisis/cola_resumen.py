@@ -42,7 +42,8 @@ from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie
 ETIQUETAS = {
     "cola_geocerca_eta8": r"$R_g$ 150~m o ETA 8~s",
     "cola_geocerca_eta16": r"$R_g$ 150~m o ETA 16,3~s",
-    "cola_eta16": r"Solo ETA 16,3~s",
+    "cola_eta16": r"Solo ETA 16,3~s, suspensión a 5~s",
+    "cola_eta16_sin_suspension": r"Solo ETA 16,3~s, sin suspensión",
 }
 
 
@@ -168,7 +169,7 @@ def main() -> None:
         config = json.loads((d / "config.json").read_text(encoding="utf-8"))
         cola = config.get("cola") or {}
         reps = [analizar_repeticion(r, cola.get("largo_m", 280.0)) for r in sorted(d.glob("rep_*"))]
-        etiqueta = next((k for k in ETIQUETAS if d.name.endswith(k)), d.name)
+        etiqueta = next((k for k in sorted(ETIQUETAS, key=len, reverse=True) if d.name.endswith(k)), d.name)
         corridas.append({"corrida": d.name, "criterio": etiqueta, "cola": cola,
                          "r_g_m": config.get("r_g_m"), "eta_emision_s": config.get("eta_emision_s"),
                          "repeticiones": reps})

@@ -534,9 +534,11 @@ def test_detenido_lejos_de_la_rsu_suspende_la_solicitud_tras_el_margen():
     pretendia que seguia moviendose a VELOCIDAD_RESPALDO_KMH, lo que
     mantenia un ETA corto y la solicitud renovandose indefinidamente. Se
     tolera hasta T_DETENIDO_MAX_S (5 s por defecto) detenido antes de
-    suspender (M3 motivo="detenido", vuelve a "pendiente", no "cancelada")."""
+    suspender (M3 motivo="detenido", vuelve a "pendiente", no "cancelada").
+    Desde el 2026-11-16 la suspensión está desactivada por defecto (prueba
+    de colas); aquí se activa con t_detenido_max_s=5."""
     reloj = _Reloj()
-    gestor, reg = _gestor(parametros_geocerca=GEOCERCA_CHICA, ahora=reloj)
+    gestor, reg = _gestor(parametros_geocerca=GEOCERCA_CHICA, ahora=reloj, t_detenido_max_s=5.0)
     gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
     lat_a, lon_a = NODOS_RUTA["A"]
     lat, lon = desplazar(lat_a, lon_a, 0.0, 220.0)  # 68 m de SINT-C: ETA si, geocerca chica no
@@ -567,7 +569,7 @@ def test_al_retomar_movimiento_tras_la_suspension_se_vuelve_a_pedir():
     caer dentro del margen de anticipacion -- no requiere ningun MI/MF
     nuevo ni intervencion de la app."""
     reloj = _Reloj()
-    gestor, reg = _gestor(parametros_geocerca=GEOCERCA_CHICA, ahora=reloj)
+    gestor, reg = _gestor(parametros_geocerca=GEOCERCA_CHICA, ahora=reloj, t_detenido_max_s=5.0)
     gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
     lat_a, lon_a = NODOS_RUTA["A"]
     lat, lon = desplazar(lat_a, lon_a, 0.0, 220.0)
@@ -658,3 +660,24 @@ def test_umbral_de_emision_por_controlador_reemplaza_al_global():
     gestor.procesar_mp("obu-1", lat, lon, VELOCIDAD_KMH, rumbo_deg=0.0, fuente_velocidad="gps")
     assert gestor.misiones["obu-1"].paradas["SINT-C"].estado == ESTADO_PENDIENTE
     assert reg.m1 == []
+
+
+def test_por_defecto_una_solicitud_por_eta_no_se_suspende_al_detenerse():
+    """Prueba de colas (docs/PRUEBA_COLA.md): por defecto el servidor NO
+    suspende una solicitud sostenida solo por ETA aunque el vehículo lleve
+    60 s detenido fuera de la geocerca; la sigue renovando mientras la
+    misión siga armada."""
+    reloj = _Reloj()
+    gestor, reg = _gestor(parametros_geocerca=GEOCERCA_CHICA, ahora=reloj)
+    gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    lat_a, lon_a = NODOS_RUTA["A"]
+    lat, lon = desplazar(lat_a, lon_a, 0.0, 220.0)
+    gestor.procesar_mp("obu-1", lat, lon, VELOCIDAD_KMH, rumbo_deg=0.0, fuente_velocidad="gps")
+    ep = gestor.misiones["obu-1"].paradas["SINT-C"]
+    seq_inicial = ep.seq
+    for _ in range(60):
+        reloj.avanzar(1.0)
+        gestor.procesar_mp("obu-1", lat, lon, 0.0, rumbo_deg=0.0, fuente_velocidad="gps")
+    assert ep.estado == ESTADO_SOLICITADA
+    assert ep.seq == seq_inicial + 60
+    assert not any(c["motivo"] == "detenido" for _, c in reg.m3)

@@ -164,10 +164,13 @@ debe publicar nada aquí).
   `VELOCIDAD_RESPALDO_KMH` de `servidor/gestor_mision.py` solo para el
   caso "sin dato" (y solo si no hay una velocidad en movimiento reciente
   que reutilizar, ver `T_VALIDEZ_VEL_S` ahí mismo); para "detenido
-  medido" no calcula una solicitud nueva por ETA, y una solicitud ya
-  vigente se deja de renovar por ETA pasados
-  `T_DETENIDO_MAX_S` detenido sin cruzar (vuelve a pedirse sola si el
-  vehículo retoma movimiento) — ver
+  medido" no calcula una solicitud nueva por ETA; una solicitud ya
+  vigente se sigue renovando aunque el vehículo esté detenido, mientras la
+  misión siga armada (desde el 2026-11-16: la prueba de colas,
+  `docs/PRUEBA_COLA.md`, mostró que suspenderla cortaba el verde que
+  descarga la cola). `SERVIDOR_T_DETENIDO_MAX_S` reactiva la suspensión
+  pasados esos segundos detenido sin cruzar (5 en la campaña; vuelve a
+  pedirse sola si el vehículo retoma movimiento) — ver
   `servidor/gestor_mision.py::_respaldo_por_ruta` y su docstring para el
   detalle completo; la geocerca (`SeguidorAcceso`, posición pura) sigue
   renovando igual que antes mientras el vehículo esté dentro del radio,
