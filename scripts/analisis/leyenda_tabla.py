@@ -39,6 +39,7 @@ CORTAS = {
     "tab:rf11_indra": r"Anticipación $A_v$ con los tiempos del controlador INDRA.",
     "tab:separacion_rsu": r"Separación entre intersecciones consecutivas de una ruta real de 13 intersecciones.",
     "tab:entrega": r"Tasa de entrega por tipo de mensaje y enlace.",
+    "tab:cola": r"Emisión de la solicitud con el vehículo en una cola.",
 }
 
 

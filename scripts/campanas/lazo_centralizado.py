@@ -677,6 +677,44 @@ def _trayectoria_a_velocidad(base: Path, destino: Path, v_kmh: float) -> None:
             k += 1
 
 
+def _trayectoria_cola(base: Path, destino: Path, v_libre_kmh: float, parada_s: float, avance_s: float,
+                      v_avance_kmh: float, largo_cola_m: float, tras_cola_m: float = 150.0) -> None:
+    """Perfil de parada y arranque (prueba de colas, docs/PRUEBA_COLA.md):
+    sobre la misma recta de `lazo`, el vehículo empieza DETENIDO en la cola
+    y alterna `parada_s` segundos detenido con `avance_s` segundos a
+    `v_avance_kmh` hasta recorrer `largo_cola_m` (la cabeza de la cola, en
+    la línea de detención); desde ahí sigue a `v_libre_kmh` otros
+    `tras_cola_m`. Una muestra por segundo (RNF-02). El perfil no se acopla
+    a la fase del semáforo: es el mismo en cada repetición, para medir
+    cuándo y cómo emite el servidor, no la dinámica de la cola."""
+    with base.open(newline="", encoding="utf-8") as fh:
+        filas = list(csv.DictReader(fh))
+    rumbos = {fila["rumbo_deg"] for fila in filas}
+    if len(rumbos) != 1:
+        raise SystemExit(f"--cola: {base.name} no es una recta")
+    lat0, lon0 = float(filas[0]["lat"]), float(filas[0]["lon"])
+    rumbo = float(filas[0]["rumbo_deg"])
+    fin_m = largo_cola_m + tras_cola_m
+    d, k, fase, en_fase = 0.0, 0, "parada", 0.0
+    with destino.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh)
+        w.writerow(["t_s", "lat", "lon", "rumbo_deg", "velocidad_kmh"])
+        while d <= fin_m:
+            if d >= largo_cola_m:
+                v = v_libre_kmh
+            else:
+                if fase == "parada" and en_fase >= parada_s:
+                    fase, en_fase = "avance", 0.0
+                elif fase == "avance" and en_fase >= avance_s:
+                    fase, en_fase = "parada", 0.0
+                v = 0.0 if fase == "parada" else v_avance_kmh
+            lat, lon = desplazar(lat0, lon0, rumbo, d)
+            w.writerow([f"{float(k):.1f}", f"{lat:.7f}", f"{lon:.7f}", f"{rumbo:.1f}", f"{v:.1f}"])
+            d += v / 3.6
+            en_fase += 1.0
+            k += 1
+
+
 def _esperar_en_log(ruta_log: Path, fragmento: str, timeout: float = 8.0, intervalo: float = 0.1) -> bool:
     """Espera hasta `timeout` s a que `fragmento` aparezca en `ruta_log`.
     Los procesos lanzados aquí corren con `-u` (stdout sin búfer), así que
@@ -976,6 +1014,12 @@ def main() -> None:
     ap.add_argument("--repeticiones", type=int, default=None,
                      help="número fijo de repeticiones (reemplaza las cuotas por condición)")
     ap.add_argument("--etiqueta", default=None, help="sufijo del nombre de la carpeta de la corrida")
+    ap.add_argument("--cola", default=None, metavar="PARADA_S,AVANCE_S,V_AVANCE_KMH",
+                     help="perfil de parada y arranque en una cola (solo 'lazo'): segundos detenido, "
+                          "segundos avanzando y velocidad de avance; ver docs/PRUEBA_COLA.md")
+    ap.add_argument("--cola-largo-m", type=float, default=280.0,
+                     help="largo de la cola desde el inicio de la recta hasta la línea de detención, m "
+                          "(la RSU de 'lazo' está a 289 m del inicio)")
     args = ap.parse_args()
     tls_dir = Path(args.tls) if args.tls else None
     if args.controlador_indra and args.config != "local":
@@ -983,6 +1027,16 @@ def main() -> None:
     if args.velocidad_kmh is not None and args.escenario != "lazo":
         raise SystemExit("--velocidad-kmh solo aplica al escenario 'lazo' (trayectoria recta)")
     ctrl_args = CONTROLADOR_INDRA_ARGS if args.controlador_indra else None
+    cola = None
+    if args.cola is not None:
+        if args.escenario != "lazo":
+            raise SystemExit("--cola solo aplica al escenario 'lazo' (trayectoria recta)")
+        try:
+            parada_s, avance_s, v_avance = (float(x) for x in args.cola.split(","))
+        except ValueError:
+            raise SystemExit("--cola: formato PARADA_S,AVANCE_S,V_AVANCE_KMH, p. ej. 20,8,15")
+        cola = {"parada_s": parada_s, "avance_s": avance_s, "v_avance_kmh": v_avance,
+                "largo_m": args.cola_largo_m, "v_libre_kmh": args.velocidad_kmh or 36.0}
 
     _verificar_sin_agente_local_huerfano()
     if args.config != "local":
@@ -1042,6 +1096,7 @@ def main() -> None:
         "r_g_m": args.r_g,
         "eta_emision_s": args.eta_emision,
         "repeticiones_fijas": args.repeticiones,
+        "cola": cola,
         "reloj_pi_inicio": reloj_inicio,
         "estado_red_inicio": estado_red_inicio,
         # Memoria libre de la laptop ANTES de correr el escenario (ver
@@ -1094,7 +1149,11 @@ def main() -> None:
         for obu_id, nombre_base in obus_rep:
             destino = rep_dir / f"trayectoria_{obu_id}.csv"
             base = FIXTURES / nombre_base
-            if args.velocidad_kmh is not None:
+            if cola is not None:
+                base = rep_dir / f"base_cola_{obu_id}.csv"
+                _trayectoria_cola(FIXTURES / nombre_base, base, cola["v_libre_kmh"], cola["parada_s"],
+                                  cola["avance_s"], cola["v_avance_kmh"], cola["largo_m"])
+            elif args.velocidad_kmh is not None:
                 base = rep_dir / f"base_{args.velocidad_kmh:.0f}kmh_{obu_id}.csv"
                 _trayectoria_a_velocidad(FIXTURES / nombre_base, base, args.velocidad_kmh)
             _trayectoria_con_ruido(base, destino, semilla, args.sigma_pos)
