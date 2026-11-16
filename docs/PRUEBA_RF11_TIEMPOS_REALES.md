@@ -45,7 +45,11 @@ mínimo, su ámbar y su rojo-rojo (5 + 3 + 1 s). Así,
   comporta como antes. Pruebas en `tests/test_controller_emulator.py`.
 - `servidor/main.py`: el radio de la geocerca de emisión y el umbral de ETA
   se leen de `SERVIDOR_R_G_M` y `SERVIDOR_ETA_EMISION_S` (por defecto,
-  150 m y 8 s, los de la campaña). `R_g = 0` deja solo el ETA.
+  150 m y 8 s, los de la campaña). `R_g = 0` deja solo el ETA. Una
+  intersección del registro de RSU (`config/registro_rsu.json`) puede
+  declarar su propio umbral con el campo opcional `theta_eta_s`
+  (L + T_desp,max + T_m + Δt de su controlador); si lo declara, reemplaza
+  al global para esa intersección.
 - `scripts/campanas/lazo_centralizado.py`: `--velocidad-kmh` (rehace la
   trayectoria recta de `lazo` a otra velocidad), `--controlador-indra`,
   `--r-g`, `--eta-emision`, `--repeticiones` (número fijo, sin cuotas) y

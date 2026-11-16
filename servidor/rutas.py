@@ -90,6 +90,7 @@ class ParadaRsu:
     acceso_id: str
     distancia_llegada_m: float
     nodo_id: str
+    theta_eta_s: Optional[float] = None  # umbral de emisión de su controlador (registro de RSU)
 
 
 @dataclass(frozen=True)
@@ -309,6 +310,7 @@ def cruzar_con_registro(
                 acceso_id=acceso.acceso_id,
                 distancia_llegada_m=nodo.distancia_acumulada_m,
                 nodo_id=nodo.nodo_id,
+                theta_eta_s=inter.theta_eta_s,
             )
         )
     paradas.sort(key=lambda p: p.distancia_llegada_m)

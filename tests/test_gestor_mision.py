@@ -638,3 +638,23 @@ def test_registra_el_eta_a_la_siguiente_parada_con_cada_mp():
     assert extra["rsu_id"] == primera.rsu_id
     esperado = (primera.distancia_llegada_m - mision.distancia_recorrida_m) / (mision.ultima_velocidad_kmh / 3.6)
     assert abs(extra["eta_s"] - esperado) < 0.05
+
+
+def test_umbral_de_emision_por_controlador_reemplaza_al_global():
+    """θ_ETA por controlador (eq:umbral_eta, registro de RSU): a 69 m de
+    SINT-C y 10 m/s el ETA es de unos 6,9 s. Con el umbral global de 8 s
+    emite M1; si el registro declara theta_eta_s = 5 s para esa
+    intersección, todavía no emite."""
+    lat_a, lon_a = NODOS_RUTA["A"]
+    lat, lon = desplazar(lat_a, lon_a, 0.0, 220.0)
+    registro_5s = [
+        Interseccion("SINT-1", "SINT-C", -12.1074, -77.0320, (Acceso("S", 0.0, 1),), theta_eta_s=5.0),
+        REGISTRO_SINTETICO[1],
+    ]
+    gestor, reg = _gestor(registro=registro_5s, parametros_geocerca=GEOCERCA_CHICA)
+    mision = gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    assert gestor.umbral_emision_s(mision.ruta.paradas[0]) == 5.0
+    assert gestor.umbral_emision_s(mision.ruta.paradas[1]) == gestor.anticipacion_min_s
+    gestor.procesar_mp("obu-1", lat, lon, VELOCIDAD_KMH, rumbo_deg=0.0, fuente_velocidad="gps")
+    assert gestor.misiones["obu-1"].paradas["SINT-C"].estado == ESTADO_PENDIENTE
+    assert reg.m1 == []

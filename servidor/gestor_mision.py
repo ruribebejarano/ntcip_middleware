@@ -225,6 +225,13 @@ class GestorMision:
         if self.eventos is not None:
             self.eventos.log(tipo, id_ref, **extra)
 
+    def umbral_emision_s(self, parada) -> float:
+        """θ_ETA de la intersección (eq:umbral_eta de la tesis): el del
+        registro de RSU si su controlador lo declara (theta_eta_s), y si no
+        el umbral global del servidor (SERVIDOR_ETA_EMISION_S)."""
+        theta = getattr(parada, "theta_eta_s", None)
+        return self.anticipacion_min_s if theta is None else theta
+
     # --- MI / armado ----------------------------------------------------
 
     def armar_mision(
@@ -353,7 +360,7 @@ class GestorMision:
                           interseccion_id=siguiente.parada.interseccion_id, eta_s=round(eta_s, 2),
                           distancia_restante_m=round(distancia_restante, 1),
                           velocidad_kmh=round(mision.ultima_velocidad_kmh, 2))
-            if eta_s is not None and eta_s <= self.anticipacion_min_s:
+            if eta_s is not None and eta_s <= self.umbral_emision_s(siguiente.parada):
                 self._intentar_solicitar(mision, siguiente, eta_s)
 
         # 2) Geocerca (gateway.geometria.SeguidorAcceso), igual que antes

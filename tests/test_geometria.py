@@ -121,3 +121,15 @@ def test_registro_del_repositorio_carga():
     reg = cargar_registro(Path(__file__).resolve().parent.parent / "config" / "registro_rsu.json")
     assert [i.rsu_id for i in reg] == ["1", "2"]
     assert all(len(i.accesos) == 4 for i in reg)
+
+
+def test_cargar_registro_lee_theta_eta_opcional(tmp_path):
+    import json as _json
+    from gateway.geometria import cargar_registro as _cargar
+    base = {"rsu_id": "1", "interseccion_id": "X", "centro": {"lat": -12.0, "lon": -77.0},
+            "accesos": [{"acceso_id": "S", "rumbo_llegada_deg": 0.0, "grupo_semaforico": 1}]}
+    p = tmp_path / "registro.json"
+    p.write_text(_json.dumps({"rsu": [base, dict(base, interseccion_id="Y", theta_eta_s=16.3)]}), encoding="utf-8")
+    sin, con = _cargar(p)
+    assert sin.theta_eta_s is None
+    assert con.theta_eta_s == 16.3

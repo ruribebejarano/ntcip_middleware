@@ -63,6 +63,10 @@ class Interseccion:
     lon: float
     accesos: tuple[Acceso, ...]
     codigo_mml: Optional[str] = None
+    # Umbral de emisión por ETA de esta intersección (eq:umbral_eta):
+    # L + T_desp,max + T_m + Δt con el despeje máximo de SU controlador.
+    # None: el servidor usa su umbral global (SERVIDOR_ETA_EMISION_S).
+    theta_eta_s: Optional[float] = None
 
 
 @dataclass(frozen=True)
@@ -293,6 +297,7 @@ def cargar_registro(ruta: Path | str) -> list[Interseccion]:
                     for a in r["accesos"]
                 ),
                 codigo_mml=r.get("codigo_mml"),
+                theta_eta_s=float(r["theta_eta_s"]) if r.get("theta_eta_s") is not None else None,
             )
         )
     return registro
