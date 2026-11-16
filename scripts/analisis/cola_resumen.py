@@ -91,30 +91,53 @@ def analizar_repeticion(rep: Path, largo_cola_m: float) -> dict:
         previo = [e for e in mps if e["t"] <= t_m1]
         d_emision = largo_cola_m - d_de_mp(previo[-1]) if previo else None
 
-    # Verde por prioridad: decisión de la RSU con el controlador ya en verde
-    # (concesión inmediata) o primer cambio a verde con prioridad activa.
-    t_verde = None
+    # Línea de tiempo del acceso solicitado: fase del controlador (todos sus
+    # cambios quedan en ctrl_fase_cambio) y prioridad vigente. La prioridad
+    # empieza cuando el controlador pasa a verde con prioridad activa o
+    # cuando la RSU la pide con el controlador ya en verde (concesión
+    # inmediata), y termina con la liberación (snmp clear_*) o con el paso
+    # del controlador a otra fase.
+    tramos: list[tuple[float, float]] = []  # verde por prioridad (inicio, fin)
+    fase, inicio_prio, fase_al_cruce = None, None, None
     for e in ev:
-        if t_m1 is None or e["t"] < t_m1:
-            continue
-        if (e["nodo"].startswith("rsu") and e["tipo_evento"] == "snmp_set_tx"
-                and e["x"].get("accion") == "request_priority" and e["x"].get("fase") == "verde"):
-            t_verde = e["t"]
-            break
-        if (e["nodo"].startswith("ctrl") and e["tipo_evento"] == "ctrl_fase_cambio"
-                and e["x"].get("fase") == "verde" and e["x"].get("prioridad_activa")):
-            t_verde = e["t"]
-            break
+        if t_cruce is not None and fase_al_cruce is None and e["t"] > t_cruce:
+            fase_al_cruce = fase
+        es_ctrl = e["nodo"].startswith("ctrl") and e["tipo_evento"] == "ctrl_fase_cambio"
+        es_snmp = e["nodo"].startswith("rsu") and e["tipo_evento"] == "snmp_set_tx"
+        if es_ctrl:
+            fase = e["x"].get("fase")
+            if fase == "verde" and e["x"].get("prioridad_activa") and inicio_prio is None:
+                inicio_prio = e["t"]
+            elif fase != "verde" and inicio_prio is not None:
+                tramos.append((inicio_prio, e["t"]))
+                inicio_prio = None
+        elif es_snmp:
+            accion = e["x"].get("accion", "")
+            if accion == "request_priority" and e["x"].get("fase") == "verde" and inicio_prio is None:
+                inicio_prio = e["t"]
+            elif accion.startswith("clear") and inicio_prio is not None:
+                tramos.append((inicio_prio, e["t"]))
+                inicio_prio = None
+    if inicio_prio is not None:
+        tramos.append((inicio_prio, ev[-1]["t"]))
+    if t_cruce is not None and fase_al_cruce is None:
+        fase_al_cruce = fase
+
+    verde_cola = None
+    if t_cabeza is not None:
+        verde_cola = sum(max(0.0, min(fin, t_cabeza) - ini) for ini, fin in tramos)
 
     return {
         "repeticion": rep.name,
         "d_emision_m": d_emision,
         "t_previo_s": None if t_m1 is None else t_m1 - t_armado,
         "t_cola_s": None if t_cabeza is None else t_cabeza - t_armado,
-        "verde_cola_s": (None if t_verde is None or t_cabeza is None else max(0.0, t_cabeza - t_verde)),
+        "verde_cola_s": verde_cola,
+        "cortes_verde": sum(1 for ini, fin in tramos if t_cabeza is not None and fin < t_cabeza),
         "emisiones": len(m1_ini),
         "m3_detenido": sum(1 for e in m3 if e["x"].get("motivo") == "detenido"),
-        "obtuvo_verde": t_verde is not None and (t_cruce is None or t_verde <= t_cruce),
+        "fase_al_cruce": fase_al_cruce,
+        "obtuvo_verde": fase_al_cruce == "verde",
     }
 
 
@@ -122,12 +145,12 @@ def _num(x: float | None, dec: int = 1) -> str:
     return "--" if x is None else f"{x:.{dec}f}".replace(".", ",")
 
 
-def _rango(xs: list) -> str:
+def _rango(xs: list, dec: int = 1) -> str:
     xs = [x for x in xs if x is not None]
     if not xs:
         return "--"
     lo, hi = min(xs), max(xs)
-    return _num(lo) if abs(hi - lo) < 0.05 else f"{_num(lo)}--{_num(hi)}"
+    return _num(lo, dec) if abs(hi - lo) < 0.05 else f"{_num(lo, dec)}--{_num(hi, dec)}"
 
 
 def main() -> None:
@@ -153,7 +176,8 @@ def main() -> None:
         for r in reps:
             print(f"   {r['repeticion']}: d_emision={_num(r['d_emision_m'])} m, previo={_num(r['t_previo_s'])} s, "
                   f"cola={_num(r['t_cola_s'])} s, verde_en_cola={_num(r['verde_cola_s'])} s, "
-                  f"emisiones={r['emisiones']}, M3 detenido={r['m3_detenido']}, verde={r['obtuvo_verde']}")
+                  f"cortes={r['cortes_verde']}, emisiones={r['emisiones']}, M3 detenido={r['m3_detenido']}, "
+                  f"fase al cruce={r['fase_al_cruce']}")
 
     salida = Path(args.salida) if args.salida else dirs[-1].parent / "_cola"
     salida.mkdir(parents=True, exist_ok=True)
@@ -166,7 +190,8 @@ def main() -> None:
             f"{ETIQUETAS.get(c['criterio'], c['criterio'])} & {len(reps)} & "
             f"{_rango([r['d_emision_m'] for r in reps])} & {_rango([r['t_previo_s'] for r in reps])} & "
             f"{_rango([r['t_cola_s'] for r in reps])} & {_rango([r['verde_cola_s'] for r in reps])} & "
-            f"{_rango([float(r['emisiones']) for r in reps])} / {_rango([float(r['m3_detenido']) for r in reps])} & "
+            f"{_rango([float(r['cortes_verde']) for r in reps], 0)} & "
+            f"{_rango([float(r['emisiones']) for r in reps], 0)} / {_rango([float(r['m3_detenido']) for r in reps], 0)} & "
             f"{sum(1 for r in reps if r['obtuvo_verde'])}/{len(reps)} \\\\")
     cola = corridas[0]["cola"]
     perfil = (f"{_num(cola.get('parada_s'), 0)}~s detenido y {_num(cola.get('avance_s'), 0)}~s a "
@@ -176,13 +201,15 @@ def main() -> None:
         r"\caption{Emisión de la solicitud con el vehículo en una cola. Perfil de parada y arranque: "
         + perfil + r"; controlador con los tiempos INDRA. $d_{em}$: distancia a la línea de detención al "
         r"emitirse el primer M1; $t_{previo}$: tiempo en cola antes de ese M1; $t_{cola}$: tiempo total en "
-        r"cola; verde en cola: segundos de verde por prioridad con el vehículo todavía en la cola; "
+        r"cola; verde en cola: segundos de verde por prioridad con el vehículo todavía en la cola; cortes: "
+        r"veces que ese verde se liberó antes de que el vehículo saliera de la cola; verde al cruce: "
+        r"repeticiones con el acceso en verde cuando el servidor detectó el cruce; "
         r"emisiones / suspensiones: M1 iniciales y M3 por vehículo detenido. Rangos entre repeticiones. "
         r"Elaboración propia.}",
         r"\label{tab:cola}", r"\small", r"\resizebox{\textwidth}{!}{%",
-        r"\begin{tabular}{lrcccccc}", r"\toprule",
+        r"\begin{tabular}{lrccccccc}", r"\toprule",
         r"Criterio & Rep. & $d_{em}$ (m) & $t_{previo}$ (s) & $t_{cola}$ (s) & Verde en cola (s) "
-        r"& Emisiones / susp. & Con verde \\",
+        r"& Cortes & Emisiones / susp. & Verde al cruce \\",
         r"\midrule", *filas, r"\bottomrule", r"\end{tabular}}", r"\end{table}", ""])
     (salida / "tabla_cola.tex").write_text(formalizar(tex), encoding="utf-8")
     print(f"\nResumen: {salida / 'cola_resumen.json'}\nTabla:   {salida / 'tabla_cola.tex'}")

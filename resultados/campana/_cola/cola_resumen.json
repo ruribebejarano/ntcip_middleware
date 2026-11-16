@@ -1,0 +1,155 @@
+[
+  {
+    "corrida": "20261116-115949_lazo_local_cola_geocerca_eta8",
+    "criterio": "cola_geocerca_eta8",
+    "cola": {
+      "parada_s": 20.0,
+      "avance_s": 8.0,
+      "v_avance_kmh": 15.0,
+      "largo_m": 280.0,
+      "v_libre_kmh": 36.0
+    },
+    "r_g_m": 150.0,
+    "eta_emision_s": 8.0,
+    "repeticiones": [
+      {
+        "repeticion": "rep_01",
+        "d_emision_m": 138.3376634549806,
+        "t_previo_s": 134.30298495292664,
+        "t_cola_s": 248.30426692962646,
+        "verde_cola_s": 101.00504970550537,
+        "cortes_verde": 0,
+        "emisiones": 1,
+        "m3_detenido": 0,
+        "fase_al_cruce": "verde",
+        "obtuvo_verde": true
+      },
+      {
+        "repeticion": "rep_02",
+        "d_emision_m": 142.4963537114956,
+        "t_previo_s": 133.30313181877136,
+        "t_cola_s": 248.30411052703857,
+        "verde_cola_s": 110.97951436042786,
+        "cortes_verde": 0,
+        "emisiones": 1,
+        "m3_detenido": 0,
+        "fase_al_cruce": "verde",
+        "obtuvo_verde": true
+      },
+      {
+        "repeticion": "rep_03",
+        "d_emision_m": 138.3376634549806,
+        "t_previo_s": 134.3034327030182,
+        "t_cola_s": 248.30307841300964,
+        "verde_cola_s": 109.97066593170166,
+        "cortes_verde": 0,
+        "emisiones": 1,
+        "m3_detenido": 0,
+        "fase_al_cruce": "verde",
+        "obtuvo_verde": true
+      }
+    ]
+  },
+  {
+    "corrida": "20261116-121521_lazo_local_cola_geocerca_eta16",
+    "criterio": "cola_geocerca_eta16",
+    "cola": {
+      "parada_s": 20.0,
+      "avance_s": 8.0,
+      "v_avance_kmh": 15.0,
+      "largo_m": 280.0,
+      "v_libre_kmh": 36.0
+    },
+    "r_g_m": 150.0,
+    "eta_emision_s": 16.3,
+    "repeticiones": [
+      {
+        "repeticion": "rep_01",
+        "d_emision_m": 138.3376634549806,
+        "t_previo_s": 134.30344343185425,
+        "t_cola_s": 248.30364680290222,
+        "verde_cola_s": 113.98053812980652,
+        "cortes_verde": 0,
+        "emisiones": 1,
+        "m3_detenido": 0,
+        "fase_al_cruce": "verde",
+        "obtuvo_verde": true
+      },
+      {
+        "repeticion": "rep_02",
+        "d_emision_m": 142.4963537114956,
+        "t_previo_s": 133.3185384273529,
+        "t_cola_s": 248.3032853603363,
+        "verde_cola_s": 110.96258902549744,
+        "cortes_verde": 0,
+        "emisiones": 1,
+        "m3_detenido": 0,
+        "fase_al_cruce": "verde",
+        "obtuvo_verde": true
+      },
+      {
+        "repeticion": "rep_03",
+        "d_emision_m": 138.3376634549806,
+        "t_previo_s": 134.30268478393555,
+        "t_cola_s": 248.3033106327057,
+        "verde_cola_s": 109.96564555168152,
+        "cortes_verde": 0,
+        "emisiones": 1,
+        "m3_detenido": 0,
+        "fase_al_cruce": "verde",
+        "obtuvo_verde": true
+      }
+    ]
+  },
+  {
+    "corrida": "20261116-123053_lazo_local_cola_eta16",
+    "criterio": "cola_eta16",
+    "cola": {
+      "parada_s": 20.0,
+      "avance_s": 8.0,
+      "v_avance_kmh": 15.0,
+      "largo_m": 280.0,
+      "v_libre_kmh": 36.0
+    },
+    "r_g_m": 0.0,
+    "eta_emision_s": 16.3,
+    "repeticiones": [
+      {
+        "repeticion": "rep_01",
+        "d_emision_m": 54.997065934740306,
+        "t_previo_s": 194.30360293388367,
+        "t_cola_s": 248.30368423461914,
+        "verde_cola_s": 12.601197004318237,
+        "cortes_verde": 2,
+        "emisiones": 3,
+        "m3_detenido": 2,
+        "fase_al_cruce": "amarillo",
+        "obtuvo_verde": false
+      },
+      {
+        "repeticion": "rep_02",
+        "d_emision_m": 63.336685433161506,
+        "t_previo_s": 192.30430841445923,
+        "t_cola_s": 248.30380487442017,
+        "verde_cola_s": 9.975097179412842,
+        "cortes_verde": 1,
+        "emisiones": 3,
+        "m3_detenido": 2,
+        "fase_al_cruce": "rojo_general",
+        "obtuvo_verde": false
+      },
+      {
+        "repeticion": "rep_03",
+        "d_emision_m": 54.997065934740306,
+        "t_previo_s": 194.30373740196228,
+        "t_cola_s": 248.30313181877136,
+        "verde_cola_s": 11.980993270874023,
+        "cortes_verde": 2,
+        "emisiones": 3,
+        "m3_detenido": 2,
+        "fase_al_cruce": "amarillo",
+        "obtuvo_verde": false
+      }
+    ]
+  }
+]
