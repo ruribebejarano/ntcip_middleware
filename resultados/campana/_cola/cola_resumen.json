@@ -151,5 +151,56 @@
         "obtuvo_verde": false
       }
     ]
+  },
+  {
+    "corrida": "20261116-130401_lazo_local_cola_eta16_sin_suspension",
+    "criterio": "cola_eta16_sin_suspension",
+    "cola": {
+      "parada_s": 20.0,
+      "avance_s": 8.0,
+      "v_avance_kmh": 15.0,
+      "largo_m": 280.0,
+      "v_libre_kmh": 36.0
+    },
+    "r_g_m": 0.0,
+    "eta_emision_s": 16.3,
+    "repeticiones": [
+      {
+        "repeticion": "rep_01",
+        "d_emision_m": 54.997065934740306,
+        "t_previo_s": 194.30341863632202,
+        "t_cola_s": 248.303569316864,
+        "verde_cola_s": 53.791476011276245,
+        "cortes_verde": 0,
+        "emisiones": 1,
+        "m3_detenido": 0,
+        "fase_al_cruce": "verde",
+        "obtuvo_verde": true
+      },
+      {
+        "repeticion": "rep_02",
+        "d_emision_m": 63.336685433161506,
+        "t_previo_s": 192.3033971786499,
+        "t_cola_s": 248.30389666557312,
+        "verde_cola_s": 55.99793338775635,
+        "cortes_verde": 0,
+        "emisiones": 1,
+        "m3_detenido": 0,
+        "fase_al_cruce": "verde",
+        "obtuvo_verde": true
+      },
+      {
+        "repeticion": "rep_03",
+        "d_emision_m": 54.997065934740306,
+        "t_previo_s": 194.30372262001038,
+        "t_cola_s": 248.30333042144775,
+        "verde_cola_s": 53.98501110076904,
+        "cortes_verde": 0,
+        "emisiones": 1,
+        "m3_detenido": 0,
+        "fase_al_cruce": "verde",
+        "obtuvo_verde": true
+      }
+    ]
   }
 ]
