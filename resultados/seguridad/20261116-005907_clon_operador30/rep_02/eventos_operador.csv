@@ -1,0 +1,5 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794808862454255100,operador,alerta_rx,obu-clon-r02,"{""alerta"":""verificacion_despacho"",""obu_id"":""obu-clon-r02"",""severidad"":""info""}"
+1794808883754362200,operador,alerta_rx,obu-clon-r02,"{""alerta"":""salto_posicion"",""obu_id"":""obu-clon-r02"",""severidad"":""alta""}"
+1794808892466035200,operador,comando_tx,obu-clon-r02,"{""accion"":""suspender_obu"",""obu_id"":""obu-clon-r02"",""motivo"":""despacho_sin_emergencia""}"
+1794808913756153500,operador,comando_tx,obu-clon-r02,"{""accion"":""suspender_obu"",""obu_id"":""obu-clon-r02"",""motivo"":""alerta_salto_posicion""}"

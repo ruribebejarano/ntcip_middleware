@@ -1,0 +1,213 @@
+{
+  "cota_reloj_pi_ms": 0.0,
+  "nota_reloj": null,
+  "n_misiones": 12,
+  "n_paradas": 12,
+  "resultados": {
+    "concedida": 10,
+    "rechazada": 0,
+    "sin_verde": 2,
+    "sin_respuesta": 0
+  },
+  "sin_respuesta_por_etapa": {},
+  "cola_despeje": 2,
+  "t_OBU_srv_ms": {
+    "n": 630,
+    "media": 0.6428731746031746,
+    "mediana": 0.6852,
+    "p95": 0.7822,
+    "max": 1.1649,
+    "min": 0.2784
+  },
+  "t_RSU_ms": {
+    "n": 12,
+    "media": 6.222333333333334,
+    "mediana": 2.1455,
+    "p95": 15.4551,
+    "max": 15.4551,
+    "min": 1.7276
+  },
+  "RTT_srv_ms": {
+    "n": 12,
+    "media": 11.293066666666666,
+    "mediana": 8.3073,
+    "p95": 22.1511,
+    "max": 22.1511,
+    "min": 4.7888
+  },
+  "L_ms": {
+    "n": 12,
+    "media": 6.883983333333333,
+    "mediana": 2.776,
+    "p95": 16.3175,
+    "max": 16.3175,
+    "min": 2.3366
+  },
+  "t_verde_ms": {
+    "n": 10,
+    "media": 1884.97028,
+    "mediana": 2.9709,
+    "p95": 4024.0851,
+    "max": 4024.0851,
+    "min": 2.3366
+  },
+  "T_desp_ms": {
+    "n": 2,
+    "media": 1904.4054,
+    "mediana": 61.5868,
+    "p95": 3747.224,
+    "max": 3747.224,
+    "min": 61.5868
+  },
+  "anticipacion_real_s": {
+    "n": 10,
+    "media": 7.01506208,
+    "mediana": 5.2401594,
+    "p95": 9.9966303,
+    "max": 9.9966303,
+    "min": 3.9805287
+  },
+  "anticipacion_minima_s_rf8": 8.0,
+  "condicion_llegada_conteo": {
+    "ambar_todo_rojo": 2,
+    "rojo_general": 5,
+    "verde": 5
+  },
+  "por_condicion_llegada": {
+    "verde": {
+      "t_RSU_ms": {
+        "n": 5,
+        "media": 2.00096,
+        "mediana": 2.0499,
+        "p95": 2.1508,
+        "max": 2.1508,
+        "min": 1.7276
+      },
+      "RTT_srv_ms": {
+        "n": 5,
+        "media": 6.74506,
+        "mediana": 5.8647,
+        "p95": 9.1332,
+        "max": 9.1332,
+        "min": 4.7888
+      },
+      "L_ms": {
+        "n": 5,
+        "media": 2.68918,
+        "mediana": 2.7126,
+        "p95": 2.9709,
+        "max": 2.9709,
+        "min": 2.3366
+      },
+      "t_verde_ms": {
+        "n": 5,
+        "media": 2.68918,
+        "mediana": 2.7126,
+        "p95": 2.9709,
+        "max": 2.9709,
+        "min": 2.3366
+      },
+      "T_desp_ms": {
+        "n": 0
+      },
+      "anticipacion_real_s": {
+        "n": 5,
+        "media": 9.197353320000001,
+        "mediana": 8.9977364,
+        "p95": 9.9966303,
+        "max": 9.9966303,
+        "min": 8.9970651
+      }
+    },
+    "ambar_todo_rojo": {
+      "t_RSU_ms": {
+        "n": 2,
+        "media": 8.775,
+        "mediana": 2.1022,
+        "p95": 15.4478,
+        "max": 15.4478,
+        "min": 2.1022
+      },
+      "RTT_srv_ms": {
+        "n": 2,
+        "media": 13.08925,
+        "mediana": 8.3073,
+        "p95": 17.8712,
+        "max": 17.8712,
+        "min": 8.3073
+      },
+      "L_ms": {
+        "n": 2,
+        "media": 9.498999999999999,
+        "mediana": 2.6805,
+        "p95": 16.3175,
+        "max": 16.3175,
+        "min": 2.6805
+      },
+      "t_verde_ms": {
+        "n": 0
+      },
+      "T_desp_ms": {
+        "n": 2,
+        "media": 1904.4054,
+        "mediana": 61.5868,
+        "p95": 3747.224,
+        "max": 3747.224,
+        "min": 61.5868
+      },
+      "anticipacion_real_s": {
+        "n": 0
+      }
+    },
+    "rojo_general": {
+      "t_RSU_ms": {
+        "n": 5,
+        "media": 9.42264,
+        "mediana": 13.342,
+        "p95": 15.4551,
+        "max": 15.4551,
+        "min": 1.8425
+      },
+      "RTT_srv_ms": {
+        "n": 5,
+        "media": 15.1226,
+        "mediana": 18.4406,
+        "p95": 22.1511,
+        "max": 22.1511,
+        "min": 5.6093
+      },
+      "L_ms": {
+        "n": 5,
+        "media": 10.032779999999999,
+        "mediana": 13.9603,
+        "p95": 16.0573,
+        "max": 16.0573,
+        "min": 2.4563
+      },
+      "t_verde_ms": {
+        "n": 5,
+        "media": 3767.25138,
+        "mediana": 4019.5656,
+        "p95": 4024.0851,
+        "max": 4024.0851,
+        "min": 2759.9826
+      },
+      "T_desp_ms": {
+        "n": 0
+      },
+      "anticipacion_real_s": {
+        "n": 5,
+        "media": 4.83277084,
+        "mediana": 4.9796103,
+        "p95": 5.2401594,
+        "max": 5.2401594,
+        "min": 3.9805287
+      }
+    }
+  },
+  "rnf01_cumple_p95": true,
+  "reloj_pi_sincronizado": true,
+  "l_p95_peor_caso_ms": 16.3175,
+  "rnf01_cumple_p95_peor_caso": true,
+  "rnf01_veredicto_peor_caso": "CUMPLE"
+}

@@ -1,0 +1,2 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794808328434843100,operador,alerta_rx,obu-falsa-r03,"{""alerta"":""verificacion_despacho"",""obu_id"":""obu-falsa-r03"",""severidad"":""info""}"

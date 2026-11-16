@@ -1,0 +1,2 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794807677299256100,operador,alerta_rx,obu-legit-r03,"{""alerta"":""verificacion_despacho"",""obu_id"":""obu-legit-r03"",""severidad"":""info""}"

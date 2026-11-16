@@ -1,0 +1,118 @@
+{
+  "T_m_s": 2.0,
+  "A_v_max_s": 16.0,
+  "corridas": [
+    {
+      "corrida": "20261115-225721_lazo_local_rf11_indra_v36_geocerca",
+      "velocidad_kmh": 36.0,
+      "r_g_m": 150.0,
+      "eta_emision_s": 8.0,
+      "paradas": 12,
+      "sin_verde": 0,
+      "condiciones": {
+        "rojo_general": 6,
+        "verde": 5,
+        "ambar_todo_rojo": 1
+      },
+      "t_verde_s": {
+        "n": 12,
+        "min": 0.0026167,
+        "mediana": 3.07507645,
+        "max": 10.848216
+      },
+      "A_v_s": {
+        "n": 12,
+        "min": 3.1512447,
+        "mediana": 11.91513215,
+        "max": 15.996632
+      },
+      "A_v_bajo_T_m": 0,
+      "A_v_sobre_max": 0,
+      "A_v_dentro": 12
+    },
+    {
+      "corrida": "20261115-232554_lazo_local_rf11_indra_v60_geocerca",
+      "velocidad_kmh": 60.0,
+      "r_g_m": 150.0,
+      "eta_emision_s": 8.0,
+      "paradas": 12,
+      "sin_verde": 2,
+      "condiciones": {
+        "ambar_todo_rojo": 2,
+        "rojo_general": 5,
+        "verde": 5
+      },
+      "t_verde_s": {
+        "n": 10,
+        "min": 0.0023366,
+        "mediana": 1.38147675,
+        "max": 4.0240851
+      },
+      "A_v_s": {
+        "n": 10,
+        "min": 3.9805287,
+        "mediana": 7.11861225,
+        "max": 9.9966303
+      },
+      "A_v_bajo_T_m": 0,
+      "A_v_sobre_max": 0,
+      "A_v_dentro": 10
+    },
+    {
+      "corrida": "20261115-234726_lazo_local_rf11_indra_v36_eta",
+      "velocidad_kmh": 36.0,
+      "r_g_m": 0.0,
+      "eta_emision_s": 16.3,
+      "paradas": 12,
+      "sin_verde": 0,
+      "condiciones": {
+        "rojo_general": 6,
+        "verde": 5,
+        "ambar_todo_rojo": 1
+      },
+      "t_verde_s": {
+        "n": 12,
+        "min": 0.0025036999999999998,
+        "mediana": 4.020486549999999,
+        "max": 12.754597799999999
+      },
+      "A_v_s": {
+        "n": 12,
+        "min": 5.2445857,
+        "mediana": 15.4794205,
+        "max": 18.9970491
+      },
+      "A_v_bajo_T_m": 0,
+      "A_v_sobre_max": 5,
+      "A_v_dentro": 7
+    },
+    {
+      "corrida": "20261116-001557_lazo_local_rf11_indra_v60_eta",
+      "velocidad_kmh": 60.0,
+      "r_g_m": 0.0,
+      "eta_emision_s": 16.3,
+      "paradas": 12,
+      "sin_verde": 0,
+      "condiciones": {
+        "verde": 7,
+        "rojo_general": 4,
+        "ambar_todo_rojo": 1
+      },
+      "t_verde_s": {
+        "n": 12,
+        "min": 0.0024614,
+        "mediana": 0.0166759,
+        "max": 9.8350914
+      },
+      "A_v_s": {
+        "n": 12,
+        "min": 8.1606525,
+        "mediana": 16.4902709,
+        "max": 17.9960046
+      },
+      "A_v_bajo_T_m": 0,
+      "A_v_sobre_max": 6,
+      "A_v_dentro": 6
+    }
+  ]
+}

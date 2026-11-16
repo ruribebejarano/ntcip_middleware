@@ -1,0 +1,19 @@
+{
+  "fecha_inicio": "2026-11-16T00:37:25",
+  "commit": "3f65859-con-cambios-sin-commit",
+  "escenario": "base",
+  "repeticiones": 3,
+  "puerto": 8884,
+  "tls": "E:\\Tesis\\ntcip_middleware\\deploy\\pki",
+  "politica": "alertar",
+  "retardo_s": 30.0,
+  "sin_operador": true,
+  "confirmacion_s": 0.0,
+  "hz": 50.0,
+  "distancia_clon_m": 3000.0,
+  "clon_desde_s": 20,
+  "pausa_max": 21.0,
+  "etiqueta": "referencia",
+  "salida": "E:\\Tesis\\ntcip_middleware\\resultados\\seguridad",
+  "fecha_fin": "2026-11-16T00:42:50"
+}

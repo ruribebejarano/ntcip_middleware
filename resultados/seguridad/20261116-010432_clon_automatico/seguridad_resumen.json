@@ -1,0 +1,71 @@
+{
+  "corrida": "20261116-010432_clon_automatico",
+  "escenario": "clon",
+  "politica": "suspender",
+  "retardo_s": null,
+  "confirmacion_s": 0.0,
+  "hz": 50.0,
+  "repeticiones": [
+    {
+      "rep": "rep_01",
+      "atacante": "obu-clon-r01",
+      "alertas": [
+        "salto_posicion",
+        "verificacion_despacho"
+      ],
+      "t_deteccion_s": 0.0007547,
+      "origen_contencion": "automatico",
+      "motivo_contencion": "automatico_salto_posicion",
+      "t_contencion_s": 0.0002973,
+      "t_m3_rsu_ms": 1.0621,
+      "verdes_atacante": 0,
+      "s_verde_atacante": 0.0,
+      "t_liberacion_ms": 1.59,
+      "mp_atacante_tx": 89,
+      "mp_atacante_ignorados_min": 50
+    },
+    {
+      "rep": "rep_02",
+      "atacante": "obu-clon-r02",
+      "alertas": [
+        "salto_posicion",
+        "verificacion_despacho"
+      ],
+      "t_deteccion_s": 0.0007223,
+      "origen_contencion": "automatico",
+      "motivo_contencion": "automatico_salto_posicion",
+      "t_contencion_s": 0.0003559,
+      "t_m3_rsu_ms": 1.1776,
+      "verdes_atacante": 1,
+      "s_verde_atacante": 6.9988981,
+      "t_liberacion_ms": 1.7279,
+      "mp_atacante_tx": 89,
+      "mp_atacante_ignorados_min": 50
+    },
+    {
+      "rep": "rep_03",
+      "atacante": "obu-clon-r03",
+      "alertas": [
+        "salto_posicion",
+        "verificacion_despacho"
+      ],
+      "t_deteccion_s": 0.0005195,
+      "origen_contencion": "automatico",
+      "motivo_contencion": "automatico_salto_posicion",
+      "t_contencion_s": 0.0002868,
+      "t_m3_rsu_ms": 1.0771,
+      "verdes_atacante": 1,
+      "s_verde_atacante": 6.9976285,
+      "t_liberacion_ms": 1.6793,
+      "mp_atacante_tx": 89,
+      "mp_atacante_ignorados_min": 50
+    }
+  ],
+  "L_ms": {
+    "n": 0
+  },
+  "RTT_ms": {
+    "n": 0
+  },
+  "m1_entrega": "0/0"
+}

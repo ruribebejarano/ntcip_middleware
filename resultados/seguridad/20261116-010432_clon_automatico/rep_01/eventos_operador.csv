@@ -1,0 +1,3 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794809089126305000,operador,alerta_rx,obu-clon-r01,"{""alerta"":""verificacion_despacho"",""obu_id"":""obu-clon-r01"",""severidad"":""info""}"
+1794809110423921500,operador,alerta_rx,obu-clon-r01,"{""alerta"":""salto_posicion"",""obu_id"":""obu-clon-r01"",""severidad"":""alta""}"

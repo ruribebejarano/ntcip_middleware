@@ -1,0 +1,71 @@
+{
+  "corrida": "20261116-005907_clon_operador30",
+  "escenario": "clon",
+  "politica": "alertar",
+  "retardo_s": 30.0,
+  "confirmacion_s": 0.0,
+  "hz": 50.0,
+  "repeticiones": [
+    {
+      "rep": "rep_01",
+      "atacante": "obu-clon-r01",
+      "alertas": [
+        "salto_posicion",
+        "verificacion_despacho"
+      ],
+      "t_deteccion_s": 0.0007585,
+      "origen_contencion": "operador",
+      "motivo_contencion": "despacho_sin_emergencia",
+      "t_contencion_s": 8.7121219,
+      "t_m3_rsu_ms": null,
+      "verdes_atacante": 0,
+      "s_verde_atacante": 0.0,
+      "t_liberacion_ms": null,
+      "mp_atacante_tx": 89,
+      "mp_atacante_ignorados_min": 50
+    },
+    {
+      "rep": "rep_02",
+      "atacante": "obu-clon-r02",
+      "alertas": [
+        "salto_posicion",
+        "verificacion_despacho"
+      ],
+      "t_deteccion_s": 0.0006931,
+      "origen_contencion": "operador",
+      "motivo_contencion": "despacho_sin_emergencia",
+      "t_contencion_s": 8.713182,
+      "t_m3_rsu_ms": null,
+      "verdes_atacante": 1,
+      "s_verde_atacante": 8.9793607,
+      "t_liberacion_ms": null,
+      "mp_atacante_tx": 89,
+      "mp_atacante_ignorados_min": 50
+    },
+    {
+      "rep": "rep_03",
+      "atacante": "obu-clon-r03",
+      "alertas": [
+        "salto_posicion",
+        "verificacion_despacho"
+      ],
+      "t_deteccion_s": 0.0006787,
+      "origen_contencion": "operador",
+      "motivo_contencion": "despacho_sin_emergencia",
+      "t_contencion_s": 8.7094949,
+      "t_m3_rsu_ms": null,
+      "verdes_atacante": 1,
+      "s_verde_atacante": 8.9834835,
+      "t_liberacion_ms": null,
+      "mp_atacante_tx": 89,
+      "mp_atacante_ignorados_min": 50
+    }
+  ],
+  "L_ms": {
+    "n": 0
+  },
+  "RTT_ms": {
+    "n": 0
+  },
+  "m1_entrega": "0/0"
+}

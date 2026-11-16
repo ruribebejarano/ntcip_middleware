@@ -1,0 +1,16 @@
+\begin{table}[H]
+\centering
+\caption[Campaña 4G con el \emph{broker} en la nube]{Lazo por 4G con el \emph{broker} y el servidor en la laptop del banco (3-nov, red superpuesta) y en una máquina virtual en la nube (Santiago de Chile), escenarios de lazo y desvío combinados. $L$, ida y vuelta corregidas por el desfase de relojes; entre corchetes, intervalo de confianza al 95~\% del percentil 95 (\emph{bootstrap}). Elaboración propia.}
+\label{tab:campana_nube}
+\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+\emph{Broker} & Rep. & Pares & $L$ med. & $L$ p95 [IC] & Ida p95 & Vuelta p95 & RTT med. & Entrega & Racha máx. \\
+ & & & (ms) & (ms) & (ms) & (ms) & (ms) & & (s) \\
+\midrule
+Laptop (3-nov) & 29 & 423 & 95,9 & 330,9 [314,1; 336,6] & 329,5 & 91,0 & 167,3 & 3432/3432 & 2,00 \\
+Nube, S1 (15-nov) & 36 & 525 & 155,7 & 528,3 [377,7; 654,0] & 527,5 & 98,0 & 233,7 & 4249/4249 & 2,53 \\
+\bottomrule
+\end{tabular}}
+\end{table}

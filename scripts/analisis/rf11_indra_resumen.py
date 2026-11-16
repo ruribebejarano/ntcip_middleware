@@ -124,7 +124,7 @@ def main() -> None:
         criterio = f"Geocerca {r['r_g_m']:.0f}~m" if r["r_g_m"] else f"ETA {_fmt(r['eta_emision_s'])}~s"
         a, t = r["A_v_s"], r["t_verde_s"]
         filas_tex.append(
-            f"{r['velocidad_kmh']:.0f} & {criterio} & {a.get('n', 0)} & "
+            f"{r['velocidad_kmh']:.0f} & {criterio} & {r['paradas']} & {r['sin_verde']} & "
             f"{_fmt(t.get('mediana'))} / {_fmt(t.get('max'))} & "
             f"{_fmt(a.get('min'))} / {_fmt(a.get('mediana'))} / {_fmt(a.get('max'))} & "
             f"{r['A_v_dentro']} / {r['A_v_bajo_T_m']} / {r['A_v_sobre_max']} \\\\")
@@ -135,10 +135,11 @@ def main() -> None:
         r"y criterio de emisión. Límites de RF-11: $T_m = 2$~s y $A_{v,max} = "
         + f"{A_V_MAX_S:.0f}" + r"$~s. Elaboración propia.}",
         r"\label{tab:rf11_indra}", r"\small",
-        r"\begin{tabular}{rlrccc}", r"\toprule",
-        r"km/h & Emisión & Paradas & $t_{verde}$ med. / máx. (s) & $A_v$ mín. / med. / máx. (s) "
+        r"\resizebox{\textwidth}{!}{%",
+        r"\begin{tabular}{rlrrccc}", r"\toprule",
+        r"km/h & Emisión & Paradas & Sin verde & $t_{verde}$ med. / máx. (s) & $A_v$ mín. / med. / máx. (s) "
         r"& Dentro / $<T_m$ / $>A_{v,max}$ \\",
-        r"\midrule", *filas_tex, r"\bottomrule", r"\end{tabular}", r"\end{table}", ""])
+        r"\midrule", *filas_tex, r"\bottomrule", r"\end{tabular}}", r"\end{table}", ""])
     (salida / "tabla_rf11_indra.tex").write_text(tex, encoding="utf-8")
     print(f"\nResumen: {salida / 'rf11_indra_resumen.json'}\nTabla:   {salida / 'tabla_rf11_indra.tex'}")
 

@@ -1,0 +1,13 @@
+id_solicitud,mision_id,rsu_id,resultado,etapa_alcanzada,cola_despeje,t_srv_ms,t_srv_RSU_ms,t_RSU_ms,RTT_srv_ms,L_ms,t_verde_ms,T_desp_ms,anticipacion_real_s,obtuvo_verde,ultimo_m3_motivo,fase_decision,condicion_llegada
+mis-b45b4d6f-C,mis-b45b4d6f,1,concedida,,False,0.5521,0.6938,25.7602,32.6858,26.454,4480.3745,,13.5197143,True,cruce,rojo_general,rojo_general
+mis-c2df9775-C,mis-c2df9775,1,concedida,,False,0.5597,0.6566,2.5206,9.2018,3.1772,3.1772,,18.9970491,True,cruce,verde,verde
+mis-bd90b54c-C,mis-bd90b54c,1,concedida,,False,0.5759,0.617,20.3681,24.53,20.9851,4031.0428,,14.9686261,True,cruce,rojo_general,rojo_general
+mis-7b9ab51a-C,mis-7b9ab51a,1,concedida,,False,0.5888,0.6606,18.6146,22.7709,19.2752,4034.8956,,13.9648285,True,cruce,rojo_general,rojo_general
+mis-8c99e978-C,mis-8c99e978,1,concedida,,False,0.5109,0.5692,12.3595,18.8507,12.9287,12.9287,,16.9873344,True,cruce,verde,verde
+mis-992798e1-C,mis-992798e1,1,concedida,,False,0.7353,1.16,1.9846,5.5423,3.1446,3.1446,,18.9960214,True,cruce,verde,verde
+mis-7b99288b-C,mis-7b99288b,1,concedida,,False,0.5319,0.6311,1.8726,5.1279,2.5037,2.5037,,17.9979883,True,cruce,verde,verde
+mis-7a0c4bd1-C,mis-7a0c4bd1,1,concedida,,True,0.4812,0.5497,13.482,16.7243,14.0317,12754.5978,3828.1493,5.2445857,True,cruce,amarillo,ambar_todo_rojo
+mis-456e0749-C,mis-456e0749,1,concedida,,False,0.5724,0.6381,2.4002,9.6969,3.0383,4014.0485,,15.9861552,True,cruce,rojo_general,rojo_general
+mis-059f457d-C,mis-059f457d,1,concedida,,False,0.5351,0.6925,25.0317,28.4974,25.7242,25.7242,,17.9741107,True,cruce,verde,verde
+mis-2377a6a9-C,mis-2377a6a9,1,concedida,,False,0.563,0.6771,2.0496,5.6491,2.7267,4026.9246,,14.9726858,True,cruce,rojo_general,rojo_general
+mis-4d4614ad-C,mis-4d4614ad,1,concedida,,False,0.7122,0.995,2.4328,6.7347,3.4278,8733.1386,,9.2664836,True,cruce,rojo_general,rojo_general

@@ -1,0 +1,13 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794810102253706800,operador,alerta_rx,obu-legit-r01,"{""alerta"":""verificacion_despacho"",""obu_id"":""obu-legit-r01"",""severidad"":""info""}"
+1794810102481083600,operador,alerta_rx,obu-flood-r01,"{""alerta"":""verificacion_despacho"",""obu_id"":""obu-flood-r01"",""severidad"":""info""}"
+1794810102857357300,operador,alerta_rx,obu-flood-r01,"{""alerta"":""inundacion"",""obu_id"":""obu-flood-r01"",""severidad"":""alta""}"
+1794810112862225700,operador,alerta_rx,obu-flood-r01,"{""alerta"":""inundacion"",""obu_id"":""obu-flood-r01"",""severidad"":""alta""}"
+1794810122866847600,operador,alerta_rx,obu-flood-r01,"{""alerta"":""inundacion"",""obu_id"":""obu-flood-r01"",""severidad"":""alta""}"
+1794810132867562600,operador,alerta_rx,obu-flood-r01,"{""alerta"":""inundacion"",""obu_id"":""obu-flood-r01"",""severidad"":""alta""}"
+1794810142872518800,operador,alerta_rx,obu-flood-r01,"{""alerta"":""inundacion"",""obu_id"":""obu-flood-r01"",""severidad"":""alta""}"
+1794810152877343600,operador,alerta_rx,obu-flood-r01,"{""alerta"":""inundacion"",""obu_id"":""obu-flood-r01"",""severidad"":""alta""}"
+1794810162877752900,operador,alerta_rx,obu-flood-r01,"{""alerta"":""inundacion"",""obu_id"":""obu-flood-r01"",""severidad"":""alta""}"
+1794810172878081600,operador,alerta_rx,obu-flood-r01,"{""alerta"":""inundacion"",""obu_id"":""obu-flood-r01"",""severidad"":""alta""}"
+1794810182882946400,operador,alerta_rx,obu-flood-r01,"{""alerta"":""inundacion"",""obu_id"":""obu-flood-r01"",""severidad"":""alta""}"
+1794810192887400500,operador,alerta_rx,obu-flood-r01,"{""alerta"":""inundacion"",""obu_id"":""obu-flood-r01"",""severidad"":""alta""}"

@@ -1,0 +1,21 @@
+\begin{table}[H]
+\centering
+\caption[Respuesta ante una OBU comprometida o que satura el \emph{broker}]{Respuesta ante una OBU comprometida o que satura el \emph{broker}, tres repeticiones por variante en la condición local. Detección: primer mensaje anómalo (o misión armada) $\to$ alerta. Contención: alerta $\to$ suspensión aplicada en el servidor. Liberación: suspensión $\to$ el controlador sale de la prioridad del atacante. El tiempo de respuesta del operador es un parámetro de la prueba, no una medición. Elaboración propia.}
+\label{tab:seguridad_operativa}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.3cm} >{\raggedright\arraybackslash}X *{5}{>{\centering\arraybackslash}p{1.45cm}}}
+\toprule
+Ataque & Respuesta & Detección (s) & Contención (s) & Rep. con verde & Verde máx. (s) & $L$ legítima p95 (ms) \\
+\midrule
+Ninguno (referencia) & -- & -- & -- & -- & -- & 0,88 \\
+Misión falsa & Operador a 30~s & 0,00 & 30,02 & 2/3 & 15,65 & -- \\
+Misión falsa & Operador a 120~s & 0,00 & -- & 2/3 & 15,99 & -- \\
+Misión falsa & Confirmación obligatoria en 20~s & 20,30 & 0,00 & 2/3 & 5,99 & -- \\
+Certificado clonado & Operador a 30~s & 0,00 & 8,71 & 2/3 & 8,98 & -- \\
+Certificado clonado & Suspensión automática & 0,00 & 0,00 & 2/3 & 7,00 & -- \\
+Inundación, 50~Hz & Solo alerta & 0,30 & -- & 0/3 & 0,00 & 0,70 \\
+Inundación, 50~Hz & Suspensión automática & 0,30 & 0,00 & 0/3 & 0,00 & 1,13 \\
+Inundación, 200~Hz & Solo alerta & 0,08 & -- & 0/3 & 0,00 & 0,89 \\
+\bottomrule
+\end{tabularx}
+\end{table}

@@ -1,0 +1,4 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794809758311032300,operador,alerta_rx,obu-legit-r01,"{""alerta"":""verificacion_despacho"",""obu_id"":""obu-legit-r01"",""severidad"":""info""}"
+1794809758518855600,operador,alerta_rx,obu-flood-r01,"{""alerta"":""verificacion_despacho"",""obu_id"":""obu-flood-r01"",""severidad"":""info""}"
+1794809759120728600,operador,alerta_rx,obu-flood-r01,"{""alerta"":""inundacion"",""obu_id"":""obu-flood-r01"",""severidad"":""alta""}"

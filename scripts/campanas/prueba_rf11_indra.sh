@@ -29,12 +29,16 @@ PY="${PY:-.venv/Scripts/python.exe}"
 REPS="${REPS:-12}"
 ETA_SOLO="${ETA_SOLO:-16.3}"
 BROKER_PORT="${BROKER_PORT:-8883}"
+# Alias SSH de la Pi para la verificación de choque de client_id. Con un
+# broker propio en otro puerto (BROKER_PORT=8884) no hay choque posible y se
+# puede pasar HOST_RSU=ninguno para saltar la consulta a la Pi.
+HOST_RSU="${HOST_RSU:-rsu}"
 
 correr() {  # velocidad r_g eta etiqueta
   "$PY" scripts/campanas/lazo_centralizado.py --escenario lazo --config local \
     --broker-host 127.0.0.1 --broker-port "$BROKER_PORT" --tls deploy/pki \
     --controlador-indra --velocidad-kmh "$1" --r-g "$2" --eta-emision "$3" \
-    --repeticiones "$REPS" --pausa-max 110 --etiqueta "$4"
+    --repeticiones "$REPS" --pausa-max 110 --etiqueta "$4" --host-rsu "$HOST_RSU"
 }
 
 correr 36 150 8 rf11_indra_v36_geocerca

@@ -1,0 +1,5 @@
+ts_ns,nodo,tipo_evento,id_solicitud,extra_json
+1794807033802326900,ctrl_1,ctrl_inicio,-,"{""desfase_s"":0.0,""epoch_wall_ns"":1794807033802310900,""verde_s"":5,""amarillo_ds"":30,""todo_rojo_ds"":10,""rojo_general_s"":56.0,""verde_plan_s"":50.0,""fases_conflicto_s"":[28.0,20.0],""verde_min_conflicto_s"":null}"
+1794807097652277100,ctrl_1,ctrl_fase_cambio,-,"{""fase"":""rojo_general"",""prioridad_activa"":false,""motivo"":""ciclo_normal""}"
+1794807101668657400,ctrl_1,ctrl_fase_cambio,mis-4012eb5c-C,"{""fase"":""verde"",""prioridad_activa"":true,""motivo"":""verde_tras_despeje_conflicto""}"
+1794807115623517200,ctrl_1,ctrl_fase_cambio,mis-4012eb5c-C,"{""fase"":""amarillo"",""prioridad_activa"":false,""motivo"":""liberacion_manual"",""fase_plan"":""rojo_general""}"

@@ -155,7 +155,9 @@ def _fmt(x) -> str:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--dir", action="append", default=None)
+    ap.add_argument("--tabla", default=None, help="escribe aquí la tabla LaTeX de todas las corridas")
     args = ap.parse_args()
+    filas_tex: list[str] = []
     dirs = [Path(d) for d in args.dir] if args.dir else sorted(
         p for p in (RAIZ / "resultados" / "seguridad").glob("2*_*") if p.is_dir())
     for d in dirs:
@@ -186,10 +188,65 @@ def main() -> None:
             if r.get("L_ms") is not None and "m1_tx" in r:
                 print(f"  {r['rep']}: legítima M1 {r['m1_rx']}/{r['m1_tx']}, verde={r.get('verde_legit')}, "
                       f"L med {_fmt(statistics.median(r['L_ms']) if r['L_ms'] else None)} ms")
+        filas_tex.append(_fila_tex(resumen))
         if L:
             e = resumen["L_ms"]
             print(f"  L legítima (ms): n={e['n']} mediana={_fmt(e['mediana'])} p95={_fmt(e['p95'])} max={_fmt(e['max'])}; "
                   f"RTT p95={_fmt(resumen['RTT_ms'].get('p95'))}; entrega M1 {resumen['m1_entrega']}")
+
+    if args.tabla:
+        tex = "\n".join([
+            r"\begin{table}[H]", r"\centering",
+            r"\caption[Respuesta ante una OBU comprometida o que satura el \emph{broker}]{Respuesta ante una "
+            r"OBU comprometida o que satura el \emph{broker}, tres repeticiones por variante en la condición "
+            r"local. Detección: primer mensaje anómalo (o misión armada) $\to$ alerta. Contención: alerta $\to$ "
+            r"suspensión aplicada en el servidor. Liberación: suspensión $\to$ el controlador sale de la "
+            r"prioridad del atacante. El tiempo de respuesta del operador es un parámetro de la prueba, no una "
+            r"medición. Elaboración propia.}",
+            r"\label{tab:seguridad_operativa}", r"\small",
+            r"\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.3cm} >{\raggedright\arraybackslash}X "
+            r"*{5}{>{\centering\arraybackslash}p{1.45cm}}}",
+            r"\toprule",
+            r"Ataque & Respuesta & Detección (s) & Contención (s) & Rep. con verde & Verde máx. (s) & $L$ legítima p95 (ms) \\",
+            r"\midrule", *filas_tex, r"\bottomrule", r"\end{tabularx}", r"\end{table}", ""])
+        Path(args.tabla).write_text(tex, encoding="utf-8")
+        print(f"\nTabla: {args.tabla}")
+
+
+ESCENARIO_TEX = {"base": "Ninguno (referencia)", "mision_falsa": "Misión falsa",
+                 "clon": "Certificado clonado", "inundacion": "Inundación"}
+
+
+def _num(x, d=2) -> str:
+    return "--" if x is None else f"{x:.{d}f}".replace(".", ",")
+
+
+def _fila_tex(r: dict) -> str:
+    reps = r["repeticiones"]
+    esc = r["escenario"]
+    if esc == "inundacion":
+        esc_tex = f"Inundación, {r['hz']:.0f}~Hz"
+    else:
+        esc_tex = ESCENARIO_TEX[esc]
+    if esc == "base":
+        resp = "--"
+    elif r["politica"] == "suspender":
+        resp = "Suspensión automática"
+    elif r.get("confirmacion_s"):
+        resp = f"Confirmación obligatoria en {r['confirmacion_s']:.0f}~s"
+    elif r.get("retardo_s") is not None:
+        resp = f"Operador a {r['retardo_s']:.0f}~s"
+    else:
+        resp = "Solo alerta"
+    con_atacante = [x for x in reps if x.get("atacante")]
+    det = [x["t_deteccion_s"] for x in con_atacante if x.get("t_deteccion_s") is not None]
+    cont = [x["t_contencion_s"] for x in con_atacante if x.get("t_contencion_s") is not None]
+    con_verde = sum(1 for x in con_atacante if x.get("verdes_atacante"))
+    verde_max = max((x.get("s_verde_atacante") or 0.0 for x in con_atacante), default=None)
+    L = r["L_ms"]
+    return (f"{esc_tex} & {resp} & {_num(max(det)) if det else '--'} & {_num(max(cont)) if cont else '--'} & "
+            f"{(str(con_verde) + '/' + str(len(con_atacante))) if con_atacante else '--'} & "
+            f"{_num(verde_max) if con_atacante else '--'} & {_num(L.get('p95')) if L.get('n') else '--'} \\\\")
 
 
 if __name__ == "__main__":
