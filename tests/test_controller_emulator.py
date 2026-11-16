@@ -188,3 +188,104 @@ def test_desfase_inicial_adelanta_el_ciclo():
     assert Controller(desfase_s=12.0).status()["fase"] == "todo_rojo"  # 8 + 3 + 1
     assert Controller(desfase_s=15.0).status()["fase"] == "rojo_general"
     assert Controller(desfase_s=21.5).status()["fase"] == "verde"      # vuelta completa
+
+
+# --- Modo multifase (2026-11-16): tiempos del manual INDRA ----------------
+# Ciclo: verde de plan 50 s + ámbar 3 + rojo-rojo 1 (t = 0..54), fase B
+# 28 s + 4 (54..86), fase C 20 s + 4 (86..110). Verde mínimo 5 s.
+
+def _ctrl_indra():
+    return Controller(phase_minimum_green_s=5, phase_yellow_change_ds=30, phase_red_clear_ds=10,
+                      verde_plan_s=50, fases_conflicto_s=[28, 20])
+
+
+def test_multifase_ciclo_de_110_s():
+    reloj = _RelojFalso()
+    with patch("controller.controller_emulator.time.monotonic", reloj):
+        ctrl = _ctrl_indra()
+        assert ctrl.timing()["rojo_general_efectivo_seg"] == 56.0
+        for dt, fase in ((49.9, "verde"), (50.5, "amarillo"), (53.5, "todo_rojo"),
+                         (60.0, "rojo_general"), (109.9, "rojo_general"), (110.1, "verde")):
+            reloj.t = 1000.0 + dt
+            assert ctrl.status()["fase"] == fase, (dt, fase)
+
+
+def test_multifase_llegada_al_inicio_de_fase_en_conflicto_espera_despeje_completo():
+    """Llega 1 s después de empezar el verde de B: B cumple su verde mínimo
+    (4 s más), ámbar 3 s y rojo-rojo 1 s -> verde a los 8 s."""
+    reloj = _RelojFalso()
+    with patch("controller.controller_emulator.time.monotonic", reloj):
+        ctrl = _ctrl_indra()
+        reloj.t = 1000.0 + 55.0
+        ctrl.request_priority("amb", 8, "s1")
+        assert ctrl.status()["fase"] == "rojo_general"
+        reloj.t += 7.9
+        assert ctrl.status()["fase"] == "rojo_general"
+        reloj.t += 0.2
+        assert ctrl.status()["fase"] == "verde"
+
+
+def test_multifase_llegada_con_verde_minimo_cumplido_solo_espera_ambar_y_rojo_rojo():
+    reloj = _RelojFalso()
+    with patch("controller.controller_emulator.time.monotonic", reloj):
+        ctrl = _ctrl_indra()
+        reloj.t = 1000.0 + 70.0  # 16 s dentro del verde de B
+        ctrl.request_priority("amb", 8, "s1")
+        reloj.t += 3.9
+        assert ctrl.status()["fase"] == "rojo_general"
+        reloj.t += 0.2
+        assert ctrl.status()["fase"] == "verde"
+
+
+def test_multifase_llegada_en_transicion_de_conflicto_espera_lo_que_falta():
+    reloj = _RelojFalso()
+    with patch("controller.controller_emulator.time.monotonic", reloj):
+        ctrl = _ctrl_indra()
+        reloj.t = 1000.0 + 108.5  # rojo-rojo de C, faltan 1,5 s para el verde del plan
+        ctrl.request_priority("amb", 8, "s1")
+        reloj.t += 1.4
+        assert ctrl.status()["fase"] == "rojo_general"
+        reloj.t += 0.2
+        assert ctrl.status()["fase"] == "verde"
+
+
+def test_multifase_renovacion_no_reinicia_la_espera_y_cancelar_antes_del_verde_no_da_verde():
+    reloj = _RelojFalso()
+    with patch("controller.controller_emulator.time.monotonic", reloj):
+        ctrl = _ctrl_indra()
+        reloj.t = 1000.0 + 55.0
+        ctrl.request_priority("amb", 8, "s1")  # verde a los 8 s
+        reloj.t += 4.0
+        ctrl.request_priority("amb", 7, "s1")  # renovación (M1 seq+1)
+        reloj.t += 4.1
+        assert ctrl.status()["fase"] == "verde"
+
+        ctrl2 = _ctrl_indra()
+        reloj.t = ctrl2._epoch + 55.0
+        ctrl2.request_priority("amb", 8, "s2")
+        reloj.t += 2.0
+        ctrl2.clear_priority("s2")
+        estado = ctrl2.status()
+        assert estado["fase"] == "rojo_general" and not estado["prioridad_activa"]
+        assert not ctrl2.status()["en_salida"]
+
+
+def test_multifase_sostenimiento_cuenta_desde_el_verde():
+    reloj = _RelojFalso()
+    with patch("controller.controller_emulator.time.monotonic", reloj):
+        ctrl = _ctrl_indra()
+        reloj.t = 1000.0 + 55.0
+        ctrl.request_priority("amb", 8, "s1")  # verde a t+8, sostenimiento hasta t+8+15
+        reloj.t += 22.9
+        assert ctrl.status()["prioridad_activa"]
+        reloj.t += 0.2
+        assert not ctrl.status()["prioridad_activa"]
+
+
+def test_sin_multifase_rojo_general_sigue_dando_verde_inmediato():
+    reloj = _RelojFalso()
+    with patch("controller.controller_emulator.time.monotonic", reloj):
+        ctrl = Controller()
+        reloj.t = 1000.0 + 15.0  # rojo_general del ciclo por defecto (13..21)
+        ctrl.request_priority("amb", 8, "s1")
+        assert ctrl.status()["fase"] == "verde"

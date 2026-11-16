@@ -52,9 +52,9 @@ sys.path.insert(0, str(RAIZ))
 
 from common.events import EventLogger  # noqa: E402
 from common.mqtt_tls import aplicar_tls  # noqa: E402
-from gateway.geometria import cargar_registro  # noqa: E402
+from gateway.geometria import ParametrosGeometria, cargar_registro  # noqa: E402
 from servidor import rutas as rutas_mod  # noqa: E402
-from servidor.gestor_mision import GestorMision  # noqa: E402
+from servidor.gestor_mision import ANTICIPACION_MINIMA_S, GestorMision  # noqa: E402
 
 MQTT_BROKER_HOST = os.environ.get("MQTT_BROKER_HOST", "127.0.0.1")
 MQTT_BROKER_PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
@@ -73,6 +73,15 @@ GRAFO_SINTETICO = os.environ.get("GRAFO_SINTETICO", "0").strip().lower()
 TLS_CA_CERT = os.environ.get("SERVIDOR_TLS_CA")
 TLS_CERTFILE = os.environ.get("SERVIDOR_TLS_CERT")
 TLS_KEYFILE = os.environ.get("SERVIDOR_TLS_KEY")
+
+# Criterio de emisión de M1 (sección de emisión de la tesis): la solicitud
+# sale al entrar en la geocerca de radio R_g o cuando el ETA a la RSU baja
+# del umbral, lo que ocurra primero. Por defecto, los valores de la campaña
+# (150 m y 8 s); configurables para la prueba de RF-11 con tiempos de un
+# controlador real (docs/PRUEBA_RF11_TIEMPOS_REALES.md). Un R_g de 0 deja
+# solo el criterio de ETA.
+EMISION_R_G_M = float(os.environ.get("SERVIDOR_R_G_M", ParametrosGeometria().r_g_m))
+EMISION_ETA_S = float(os.environ.get("SERVIDOR_ETA_EMISION_S", ANTICIPACION_MINIMA_S))
 
 EVENTOS = EventLogger("servidor")
 
@@ -243,7 +252,11 @@ def main() -> None:
         grafo, registro,
         enviar_m1=_enviar_m1, enviar_m3=_enviar_m3, enviar_mr=_enviar_mr, enviar_me=_enviar_me,
         eventos=EVENTOS,
+        parametros_geocerca=ParametrosGeometria(r_g_m=EMISION_R_G_M),
+        anticipacion_min_s=EMISION_ETA_S,
     )
+    print(f"[servidor] Emisión de M1: geocerca R_g={EMISION_R_G_M:.0f} m o ETA <= {EMISION_ETA_S:.1f} s")
+    EVENTOS.log("servidor_inicio", "-", r_g_m=EMISION_R_G_M, eta_emision_s=EMISION_ETA_S)
 
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"servidor-{SERVIDOR_ID}",
                          protocol=mqtt.MQTTv5)

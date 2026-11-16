@@ -69,6 +69,22 @@ en cuyo caso el controlador sostiene "verde" -- igual que una fase de
 preemption real para un vehiculo de emergencia (EVP) -- hasta que se pida
 clear_priority o venza PRIORITY_HOLD_SECONDS.
 
+Modo multifase (2026-11-16, --fases-conflicto): por defecto, una solicitud
+que llega en "rojo_general" recibe el verde de inmediato, como si ninguna
+otra fase tuviera verde. Un controlador real no puede hacer eso: si el
+grupo solicitado esta en rojo es porque otra fase tiene verde, y esa fase
+debe cumplir su verde minimo, su ambar y su todo rojo antes de ceder
+(ecuacion de T_desp de la tesis). Con --fases-conflicto 28,20 el
+"rojo_general" pasa a ser la secuencia de esas fases (verde de cada una +
+ambar + todo rojo, con los tiempos de phaseYellowChange/phaseRedClear), y
+una solicitud que llega en medio de ella espera ese despeje: mientras
+espera, el grupo sigue reportando "rojo_general" y la prioridad cuenta su
+tiempo de sostenimiento desde que se concede el verde. --verde-plan fija la
+duracion del verde del grupo solicitado en el plan (por defecto, el verde
+minimo, como antes). Tiempos de referencia: tabla 21-23 del manual del
+controlador INDRA (ejemplo E06-01: ambar 3 s, rojo-rojo 1 s, verde minimo
+5 s, verdes de plan 50/28/20 s).
+
 Solo escucha en localhost: el unico cliente esperado es el adaptador del
 middleware (agent/rsu_middleware.py), en la misma Raspberry Pi. No expone
 nada a la red -- eso lo hace el middleware, vía SNMP.
@@ -115,12 +131,23 @@ class Controller:
         phase_red_clear_ds: int = DEFAULT_PHASE_RED_CLEAR_DS,
         rojo_general_s: int = DEFAULT_ROJO_GENERAL_S,
         desfase_s: float = 0.0,
+        verde_plan_s: float | None = None,
+        fases_conflicto_s: list[float] | None = None,
+        verde_min_conflicto_s: float | None = None,
     ) -> None:
         self._lock = threading.Lock()
         self._phase_minimum_green_s = phase_minimum_green_s
         self._phase_yellow_change_ds = phase_yellow_change_ds
         self._phase_red_clear_ds = phase_red_clear_ds
         self._rojo_general_s = rojo_general_s
+        # Modo multifase (ver docstring del modulo): None/[] = comportamiento
+        # anterior (verde inmediato en rojo_general).
+        self._verde_plan_s = verde_plan_s
+        self._fases_conflicto_s = [float(g) for g in (fases_conflicto_s or [])]
+        self._verde_min_conflicto_s = verde_min_conflicto_s
+        # Instante (monotonic) en que se concede el verde a una solicitud que
+        # llego durante el verde de una fase en conflicto; None si no hay espera.
+        self._verde_en: float | None = None
         # Ancla del ciclo normal: un reloj CONTINUO desde la construccion,
         # nunca se reinicia ni se congela (ver _fase_normal_locked). Una
         # solicitud de prioridad activa SOLO sobre-escribe lo que se
@@ -158,12 +185,48 @@ class Controller:
     def _cycle_locked(self) -> list[tuple[str, float]]:
         """Duraciones vigentes en SEGUNDOS, recalculadas en cada llamada
         para reflejar cambios aplicados por set_timing en vivo."""
+        verde = float(self._verde_plan_s) if self._verde_plan_s is not None else float(self._phase_minimum_green_s)
         return [
-            ("verde", float(self._phase_minimum_green_s)),
+            ("verde", verde),
             ("amarillo", self._phase_yellow_change_ds / 10.0),
             ("todo_rojo", self._phase_red_clear_ds / 10.0),
-            ("rojo_general", float(self._rojo_general_s)),
+            ("rojo_general", self._rojo_general_efectivo_locked()),
         ]
+
+    def _rojo_general_efectivo_locked(self) -> float:
+        """Duracion del rojo_general: en modo multifase, la suma de las fases
+        en conflicto con su ambar y su todo rojo; si no, rojo_general_s."""
+        if not self._fases_conflicto_s:
+            return float(self._rojo_general_s)
+        transicion = self._phase_yellow_change_ds / 10.0 + self._phase_red_clear_ds / 10.0
+        return sum(g + transicion for g in self._fases_conflicto_s)
+
+    def _espera_conflicto_locked(self, ahora: float) -> float:
+        """Modo multifase: segundos hasta poder dar el verde a una solicitud
+        que llega en `ahora` durante el rojo_general del plan. La fase en
+        conflicto en curso cumple su verde minimo (desde que empezo su
+        verde), y luego su ambar y su todo rojo (T_desp de la tesis). Si
+        llega durante una de esas transiciones, espera lo que le falta."""
+        if not self._fases_conflicto_s:
+            return 0.0
+        cycle = self._cycle_locked()
+        total = sum(d for _, d in cycle)
+        inicio_rg = sum(d for nombre, d in cycle if nombre != "rojo_general")
+        u = ((ahora - self._epoch) % total) - inicio_rg
+        if u < 0:
+            return 0.0
+        ambar = self._phase_yellow_change_ds / 10.0
+        todo_rojo = self._phase_red_clear_ds / 10.0
+        vmin = (float(self._verde_min_conflicto_s) if self._verde_min_conflicto_s is not None
+                else float(self._phase_minimum_green_s))
+        for g in self._fases_conflicto_s:
+            if u < g:
+                return max(0.0, min(vmin, g) - u) + ambar + todo_rojo
+            u -= g
+            if u < ambar + todo_rojo:
+                return ambar + todo_rojo - u
+            u -= ambar + todo_rojo
+        return 0.0
 
     def _fase_en_offset_locked(self, offset_s: float) -> str:
         """Fase nominal a `offset_s` segundos desde self._epoch, calculada
@@ -215,6 +278,8 @@ class Controller:
 
     def _fase_actual_locked(self) -> str:
         if self._priority_vehicle is not None:
+            if self._verde_en is not None and time.monotonic() < self._verde_en:
+                return "rojo_general"  # la fase en conflicto todavia despeja
             return "verde"
         if self._salida_ambar is not None:
             t = time.monotonic() - self._salida_ambar
@@ -277,6 +342,7 @@ class Controller:
             print(f"[controlador] Prioridad de '{vehiculo_vencido}' vencio, "
                   f"sale por ambar y todo rojo")
             self._priority_vehicle = None
+            self._verde_en = None
             self._iniciar_salida_locked(self._priority_until)
             self._log_liberacion_locked(id_vencido, "caducidad_prioridad", vehiculo_id=vehiculo_vencido)
         elif self._priority_vehicle is None:
@@ -312,6 +378,11 @@ class Controller:
                 "phase_yellow_change": self._phase_yellow_change_ds,
                 "phase_red_clear": self._phase_red_clear_ds,
                 "rojo_general_seg": self._rojo_general_s,
+                # modo multifase (2026-11-16); el middleware no los usa
+                "verde_plan_seg": self._verde_plan_s,
+                "fases_conflicto_seg": list(self._fases_conflicto_s),
+                "verde_min_conflicto_seg": self._verde_min_conflicto_s,
+                "rojo_general_efectivo_seg": self._rojo_general_efectivo_locked(),
             }
 
     def set_timing(
@@ -337,6 +408,7 @@ class Controller:
         return self.timing()
 
     def request_priority(self, vehiculo_id: str, eta_seg: float, id_solicitud: str = "-") -> None:
+        espera = 0.0
         with self._lock:
             ahora = time.monotonic()
             fase_previa = self._fase_actual_locked()
@@ -344,25 +416,56 @@ class Controller:
                 # ya estaba en verde: el verde mínimo cuenta desde su inicio
                 self._verde_desde = (self._verde_desde if self._salida_ambar is not None
                                      else self._inicio_verde_plan_locked(ahora))
+                self._verde_en = None
             elif self._priority_vehicle is None:
-                self._verde_desde = ahora
+                # Modo multifase: si el plan está en el verde (o la transición)
+                # de una fase en conflicto, el verde llega cuando esta despeja.
+                if fase_previa == "rojo_general" and self._salida_ambar is None:
+                    espera = self._espera_conflicto_locked(ahora)
+                self._verde_en = ahora + espera if espera > 0 else None
+                self._verde_desde = ahora + espera
             self._salida_ambar = None
             self._priority_vehicle = vehiculo_id
-            self._priority_until = time.monotonic() + PRIORITY_HOLD_SECONDS
+            # El sostenimiento máximo cuenta desde que se concede el verde.
+            inicio_verde = self._verde_en if (self._verde_en is not None and self._verde_en > ahora) else ahora
+            self._priority_until = inicio_verde + PRIORITY_HOLD_SECONDS
             self._priority_request_id = id_solicitud
             self._log_si_cambio_locked(
                 id_solicitud, motivo="solicitud_prioridad", vehiculo_id=vehiculo_id, eta_seg=eta_seg
             )
-        print(f"[controlador] Prioridad solicitada por '{vehiculo_id}' (ETA {eta_seg}s) "
-              f"-> fase forzada a verde por {PRIORITY_HOLD_SECONDS:.0f}s")
+            if espera > 0:
+                # Registra el cambio a verde en su instante, sin esperar al
+                # siguiente poll (el análisis mide A_v desde ese evento).
+                timer = threading.Timer(espera + 0.005, self._conceder_tras_despeje, args=(id_solicitud,))
+                timer.daemon = True
+                timer.start()
+        if espera > 0:
+            print(f"[controlador] Prioridad solicitada por '{vehiculo_id}' (ETA {eta_seg}s) "
+                  f"-> verde en {espera:.2f}s, tras el despeje de la fase en conflicto")
+        else:
+            print(f"[controlador] Prioridad solicitada por '{vehiculo_id}' (ETA {eta_seg}s) "
+                  f"-> fase forzada a verde por {PRIORITY_HOLD_SECONDS:.0f}s")
+
+    def _conceder_tras_despeje(self, id_solicitud: str) -> None:
+        with self._lock:
+            if self._priority_vehicle is None or self._priority_request_id != id_solicitud:
+                return  # cancelada mientras esperaba el despeje
+            self._log_si_cambio_locked(id_solicitud, motivo="verde_tras_despeje_conflicto")
 
     def clear_priority(self, id_solicitud: str = "-") -> None:
         with self._lock:
             id_para_log = id_solicitud if id_solicitud != "-" else self._priority_request_id
             if self._priority_vehicle is None:
                 return  # nada que liberar (p. ej. M3 tras una caducidad)
+            ahora = time.monotonic()
             self._priority_vehicle = None
-            self._iniciar_salida_locked(time.monotonic())
+            if self._verde_en is not None and ahora < self._verde_en:
+                # cancelada antes de recibir el verde: el grupo nunca salió del rojo
+                self._verde_en = None
+                self._log_liberacion_locked(id_para_log, "liberacion_manual_sin_verde")
+                return
+            self._verde_en = None
+            self._iniciar_salida_locked(ahora)
             self._log_liberacion_locked(id_para_log, "liberacion_manual")
         print("[controlador] Prioridad liberada manualmente, sale por ambar y todo rojo")
 
@@ -435,7 +538,15 @@ def main() -> None:
                          help="segundos (sin equivalente NTCIP, ver docstring del modulo)")
     parser.add_argument("--desfase-s", type=float, default=0.0,
                          help="segundos ya transcurridos del ciclo al arrancar (0 = arranca en verde)")
+    parser.add_argument("--verde-plan", type=float, default=None,
+                         help="segundos de verde del grupo solicitado en el plan (por defecto, el verde minimo)")
+    parser.add_argument("--fases-conflicto", default="",
+                         help="verdes de plan de las fases en conflicto, en s, separados por coma "
+                              "(p. ej. 28,20); activa el modo multifase y reemplaza --rojo-general")
+    parser.add_argument("--verde-min-conflicto", type=float, default=None,
+                         help="verde minimo de las fases en conflicto, en s (por defecto, --phase-minimum-green)")
     args = parser.parse_args()
+    fases_conflicto = [float(x) for x in args.fases_conflicto.split(",") if x.strip()]
 
     eventos = EventLogger(f"ctrl_{RSU_ID}")
     controller = Controller(
@@ -445,11 +556,16 @@ def main() -> None:
         phase_red_clear_ds=args.phase_red_clear,
         rojo_general_s=args.rojo_general,
         desfase_s=args.desfase_s,
+        verde_plan_s=args.verde_plan,
+        fases_conflicto_s=fases_conflicto,
+        verde_min_conflicto_s=args.verde_min_conflicto,
     )
     t0 = controller.timing()
     eventos.log("ctrl_inicio", "-", desfase_s=args.desfase_s, epoch_wall_ns=controller._epoch_wall_ns,
                 verde_s=t0["phase_minimum_green"], amarillo_ds=t0["phase_yellow_change"],
-                todo_rojo_ds=t0["phase_red_clear"], rojo_general_s=t0["rojo_general_seg"])
+                todo_rojo_ds=t0["phase_red_clear"], rojo_general_s=t0["rojo_general_efectivo_seg"],
+                verde_plan_s=t0["verde_plan_seg"], fases_conflicto_s=t0["fases_conflicto_seg"],
+                verde_min_conflicto_s=t0["verde_min_conflicto_seg"])
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind((LISTEN_HOST, args.port))
@@ -463,7 +579,10 @@ def main() -> None:
     print(f"Tiempos: verde={t['phase_minimum_green']}s "
           f"amarillo={t['phase_yellow_change']/10:.1f}s "
           f"todo_rojo={t['phase_red_clear']/10:.1f}s "
-          f"rojo_general={t['rojo_general_seg']}s")
+          f"rojo_general={t['rojo_general_efectivo_seg']}s")
+    if fases_conflicto:
+        print(f"Modo multifase: verde de plan={t['verde_plan_seg']}s, fases en conflicto={fases_conflicto} s, "
+              f"verde minimo en conflicto={t['verde_min_conflicto_seg'] or t['phase_minimum_green']}s")
     print("Ctrl+C para detener.\n")
 
     try:

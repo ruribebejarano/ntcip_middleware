@@ -137,6 +137,14 @@ Uso:
     python scripts/campanas/lazo_centralizado.py --escenario desvio \\
         --config pi-lan --broker-host 127.0.0.1 --host-rsu rsu --factor 1
 
+    # Prueba de RF-11 con tiempos de un controlador real (config=local,
+    # docs/PRUEBA_RF11_TIEMPOS_REALES.md): velocidad, tiempos del
+    # controlador, criterio de emisión y número fijo de repeticiones:
+    python scripts/campanas/lazo_centralizado.py --escenario lazo --config local \\
+        --broker-host 127.0.0.1 --broker-port 8883 --tls deploy/pki \\
+        --velocidad-kmh 60 --controlador-indra --r-g 150 --eta-emision 8 \\
+        --repeticiones 12 --pausa-max 110 --etiqueta indra_v60_geocerca
+
 Análisis, al terminar:
     python scripts/analisis/lazo_centralizado.py --dir <corrida>
 """
@@ -158,7 +166,7 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(RAIZ))
-from gateway.geometria import desplazar  # noqa: E402
+from gateway.geometria import desplazar, proyeccion_local  # noqa: E402
 from scripts.seguridad import generar_ca  # noqa: E402
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
@@ -168,6 +176,14 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 # rojo general 8 s = 21 s. Un poco más, para no sesgar hacia el principio
 # del ciclo.
 PAUSA_MAX_DEFAULT_S = 25.0
+
+# Tiempos del controlador INDRA (manual de programación, tablas 21-23,
+# ejemplo de intersección E06-01): ámbar 3 s, rojo-rojo 1 s, verde mínimo
+# 5 s, verdes de plan 50/28/20 s (ciclo de 110 s). El grupo solicitado es
+# el de la fase de 50 s; las otras dos son las fases en conflicto.
+CONTROLADOR_INDRA_ARGS = ["--phase-minimum-green", "5", "--phase-yellow-change", "30",
+                          "--phase-red-clear", "10", "--verde-plan", "50",
+                          "--fases-conflicto", "28,20"]
 
 CONTROLLER_PORT = 9000
 SNMP_PORT = 1161
@@ -377,12 +393,48 @@ def _verificar_sin_agente_local_huerfano() -> None:
             f"de reintentar.")
 
 
+def _broker_de_la_pi(host_rsu: str) -> str | None:
+    """MQTT_BROKER_HOST del agente de la Pi (drop-in broker.conf), o None si
+    no se pudo leer."""
+    try:
+        r = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", host_rsu,
+                            "grep -h '^Environment=MQTT_BROKER_HOST=' "
+                            "/etc/systemd/system/rsu-agent.service.d/broker.conf"],
+                           capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
+                           encoding="utf-8", errors="replace")
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    m = re.search(r"MQTT_BROKER_HOST=(\S+)", r.stdout)
+    return m.group(1) if m else None
+
+
+def _hosts_broker_laptop() -> set[str]:
+    """Direcciones con que la Pi alcanza el broker de esta laptop: HOST_LAPTOP
+    de scripts/pi_broker.sh (única fuente) y el nombre de la laptop."""
+    hosts = {"laptopricardoub"}
+    try:
+        texto = (RAIZ / "scripts" / "pi_broker.sh").read_text(encoding="utf-8")
+        m = re.search(r'^HOST_LAPTOP="([^"]+)"', texto, re.M)
+        if m:
+            hosts.add(m.group(1))
+    except OSError:
+        pass
+    return hosts
+
+
 def _verificar_pi_agente_inactivo(host_rsu: str) -> None:
     """Solo para config=local: el agente de la Pi NO debe estar apuntando
     a este mismo broker con el mismo client_id (causa real de la campaña
     contaminada del 2026-10-28)."""
     r = _pi_sh("status", "agent", host_rsu)
     salida = r.stdout + r.stderr
+    broker_pi = _broker_de_la_pi(host_rsu)
+    if "Active: active (running)" in salida and broker_pi and broker_pi not in _hosts_broker_laptop():
+        # Caso de la campaña 4G en la nube (docs/CAMPANA_4G_NUBE.md): la Pi
+        # está conectada a OTRO broker, así que no comparte client_id con este.
+        print(f"[campaña] rsu-agent.service activo en '{host_rsu}', pero conectado a otro broker "
+              f"({broker_pi}): sin riesgo de choque de client_id con el broker de esta laptop.")
+        return
     if "Active: active (running)" in salida:
         raise SystemExit(
             f"[campaña] config=local, pero rsu-agent.service SIGUE ACTIVO en "
@@ -600,6 +652,31 @@ def _trayectoria_con_ruido(base: Path, destino: Path, semilla: int, sigma_pos_m:
             w.writerow([fila["t_s"], f"{lat:.7f}", f"{lon:.7f}", fila["rumbo_deg"], fila["velocidad_kmh"]])
 
 
+def _trayectoria_a_velocidad(base: Path, destino: Path, v_kmh: float) -> None:
+    """Rehace una trayectoria base RECTA y a velocidad constante (la de
+    `lazo`) a otra velocidad: mismo punto de partida, mismo rumbo y mismo
+    largo, una muestra por segundo (RNF-02). No sirve para trayectorias con
+    giros ni detenciones: aborta si la base no es así."""
+    with base.open(newline="", encoding="utf-8") as fh:
+        filas = list(csv.DictReader(fh))
+    rumbos = {fila["rumbo_deg"] for fila in filas}
+    if len(rumbos) != 1 or any(float(f["velocidad_kmh"]) <= 0 for f in filas):
+        raise SystemExit(f"--velocidad-kmh: {base.name} no es una recta a velocidad constante")
+    lat0, lon0 = float(filas[0]["lat"]), float(filas[0]["lon"])
+    x, y = proyeccion_local(float(filas[-1]["lat"]), float(filas[-1]["lon"]), lat0, lon0)
+    largo = (x * x + y * y) ** 0.5
+    rumbo = float(filas[0]["rumbo_deg"])
+    paso = v_kmh / 3.6
+    with destino.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh)
+        w.writerow(["t_s", "lat", "lon", "rumbo_deg", "velocidad_kmh"])
+        k = 0
+        while k * paso <= largo:
+            lat, lon = desplazar(lat0, lon0, rumbo, k * paso)
+            w.writerow([f"{float(k):.1f}", f"{lat:.7f}", f"{lon:.7f}", f"{rumbo:.1f}", f"{v_kmh:.1f}"])
+            k += 1
+
+
 def _esperar_en_log(ruta_log: Path, fragmento: str, timeout: float = 8.0, intervalo: float = 0.1) -> bool:
     """Espera hasta `timeout` s a que `fragmento` aparezca en `ruta_log`.
     Los procesos lanzados aquí corren con `-u` (stdout sin búfer), así que
@@ -621,6 +698,7 @@ def _esperar_en_log(ruta_log: Path, fragmento: str, timeout: float = 8.0, interv
 
 def _lanzar_local(rep_dir: Path, tls_dir: Path | None,
                   broker_host: str = "127.0.0.1", broker_port: int = 1883,
+                  ctrl_args: list[str] | None = None,
                   ) -> tuple[subprocess.Popen, subprocess.Popen]:
     """config=local: esta máquina hace también de RSU. Devuelve
     (controller, agent) ya lanzados Y CONFIRMADOS listos (puerto TCP
@@ -646,7 +724,7 @@ def _lanzar_local(rep_dir: Path, tls_dir: Path | None,
         entorno.update(RSU_TLS_CA=ca, RSU_TLS_CERT=cert, RSU_TLS_KEY=key)
     ctrl_log = rep_dir / "controller.log"
     ctrl = subprocess.Popen([PY, "-u", str(RAIZ / "controller" / "controller_emulator.py"),
-                             "--port", str(CONTROLLER_PORT)],
+                             "--port", str(CONTROLLER_PORT), *(ctrl_args or [])],
                             stdout=ctrl_log.open("w", encoding="utf-8"), stderr=subprocess.STDOUT,
                             env=entorno, cwd=RAIZ)
     if not _esperar_en_log(ctrl_log, "escuchando en"):
@@ -669,10 +747,17 @@ def _lanzar_local(rep_dir: Path, tls_dir: Path | None,
 
 
 def _lanzar_servidor(rep_dir: Path, grafo: str, registro: Path, broker_host: str, broker_port: int,
-                     tls_dir: Path | None = None) -> subprocess.Popen:
+                     tls_dir: Path | None = None, r_g_m: float | None = None,
+                     eta_emision_s: float | None = None) -> subprocess.Popen:
     entorno = dict(os.environ, RSU_EVENTOS_DIR=str(rep_dir), GRAFO_SINTETICO=grafo,
                    REGISTRO_RSU_PATH=str(registro), MQTT_BROKER_HOST=broker_host,
                    MQTT_BROKER_PORT=str(broker_port))
+    # Criterio de emisión de M1 (servidor/main.py): solo si se pide, para no
+    # cambiar las campañas ya hechas.
+    if r_g_m is not None:
+        entorno["SERVIDOR_R_G_M"] = str(r_g_m)
+    if eta_emision_s is not None:
+        entorno["SERVIDOR_ETA_EMISION_S"] = str(eta_emision_s)
     if tls_dir:
         ca, cert, key = _rutas_tls(tls_dir, "servidor", None)
         entorno.update(SERVIDOR_TLS_CA=ca, SERVIDOR_TLS_CERT=cert, SERVIDOR_TLS_KEY=key)
@@ -879,8 +964,25 @@ def main() -> None:
              "Si se da, TLS 1.3 + mTLS en el servidor, la RSU local (config=local) y cada OBU "
              "emulada -- requisito de la campaña pi-4g (redaccion/plan_pruebas_4G.md).",
     )
+    ap.add_argument("--velocidad-kmh", type=float, default=None,
+                     help="rehace la trayectoria base (solo 'lazo', recta) a esta velocidad")
+    ap.add_argument("--controlador-indra", action="store_true",
+                     help="config=local: controlador emulado con los tiempos del manual INDRA "
+                          "(modo multifase, ciclo de 110 s; ver CONTROLADOR_INDRA_ARGS)")
+    ap.add_argument("--r-g", type=float, default=None,
+                     help="radio de la geocerca de emisión de M1, m (servidor; 0 = solo ETA)")
+    ap.add_argument("--eta-emision", type=float, default=None,
+                     help="umbral de ETA para emitir M1, s (servidor)")
+    ap.add_argument("--repeticiones", type=int, default=None,
+                     help="número fijo de repeticiones (reemplaza las cuotas por condición)")
+    ap.add_argument("--etiqueta", default=None, help="sufijo del nombre de la carpeta de la corrida")
     args = ap.parse_args()
     tls_dir = Path(args.tls) if args.tls else None
+    if args.controlador_indra and args.config != "local":
+        raise SystemExit("--controlador-indra solo aplica a config=local (el controlador de la Pi no se relanza)")
+    if args.velocidad_kmh is not None and args.escenario != "lazo":
+        raise SystemExit("--velocidad-kmh solo aplica al escenario 'lazo' (trayectoria recta)")
+    ctrl_args = CONTROLADOR_INDRA_ARGS if args.controlador_indra else None
 
     _verificar_sin_agente_local_huerfano()
     if args.config != "local":
@@ -900,7 +1002,8 @@ def main() -> None:
     registro_path = FIXTURES / esc["registro"]
 
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-    corrida = Path(args.salida) / f"{ts}_{args.escenario}_{args.config}"
+    sufijo = f"_{args.etiqueta}" if args.etiqueta else ""
+    corrida = Path(args.salida) / f"{ts}_{args.escenario}_{args.config}{sufijo}"
     corrida.mkdir(parents=True, exist_ok=True)
 
     reloj_inicio = _reloj_pi(args.host_rsu) if args.config != "local" else None
@@ -934,6 +1037,11 @@ def main() -> None:
         "semilla_base": args.semilla_base,
         "pausa_max_s": args.pausa_max,
         "sigma_pos_m": args.sigma_pos,
+        "velocidad_kmh": args.velocidad_kmh,
+        "controlador_args": ctrl_args,
+        "r_g_m": args.r_g,
+        "eta_emision_s": args.eta_emision,
+        "repeticiones_fijas": args.repeticiones,
         "reloj_pi_inicio": reloj_inicio,
         "estado_red_inicio": estado_red_inicio,
         # Memoria libre de la laptop ANTES de correr el escenario (ver
@@ -961,10 +1069,14 @@ def main() -> None:
           f"config={args.config}, broker={config['broker']}, "
           f"memoria_libre_mb_inicio={config['memoria_libre_mb_inicio']}")
 
+    def _seguir() -> bool:
+        if args.repeticiones is not None:
+            return i < args.repeticiones
+        return i < args.tope_repeticiones and any(
+            conteo_por_condicion[c] < args.meta_por_condicion for c in CONDICIONES_LLEGADA)
+
     i = 0
-    while i < args.tope_repeticiones and any(
-        conteo_por_condicion[c] < args.meta_por_condicion for c in CONDICIONES_LLEGADA
-    ):
+    while _seguir():
         i += 1
         rep_nombre = f"rep_{i:02d}"
         rep_dir = corrida / rep_nombre
@@ -981,7 +1093,11 @@ def main() -> None:
         trayectorias = []
         for obu_id, nombre_base in obus_rep:
             destino = rep_dir / f"trayectoria_{obu_id}.csv"
-            _trayectoria_con_ruido(FIXTURES / nombre_base, destino, semilla, args.sigma_pos)
+            base = FIXTURES / nombre_base
+            if args.velocidad_kmh is not None:
+                base = rep_dir / f"base_{args.velocidad_kmh:.0f}kmh_{obu_id}.csv"
+                _trayectoria_a_velocidad(FIXTURES / nombre_base, base, args.velocidad_kmh)
+            _trayectoria_con_ruido(base, destino, semilla, args.sigma_pos)
             trayectorias.append(destino)
 
         pausa = random.Random(semilla + 10_000).uniform(0, args.pausa_max)
@@ -1003,11 +1119,11 @@ def main() -> None:
             # controlador real ya viene corriendo de antes (no se
             # relanza), asi que ahi la pausa cumple su proposito aunque
             # vaya antes.
-            ctrl, agent = _lanzar_local(rep_dir, tls_dir, args.broker_host, args.broker_port)
+            ctrl, agent = _lanzar_local(rep_dir, tls_dir, args.broker_host, args.broker_port, ctrl_args)
         else:
             time.sleep(pausa)
         servidor = _lanzar_servidor(rep_dir, esc["grafo"], registro_path, args.broker_host, args.broker_port,
-                                    tls_dir)
+                                    tls_dir, args.r_g, args.eta_emision)
         if args.config == "local":
             time.sleep(pausa)
         try:
@@ -1047,7 +1163,7 @@ def main() -> None:
                       f"{rep_nombre}/chronyc_tracking.txt para que el análisis lo trate como "
                       f"'no evaluable', no 'NO CUMPLE'.")
 
-    tope_alcanzado = i >= args.tope_repeticiones and any(
+    tope_alcanzado = args.repeticiones is None and i >= args.tope_repeticiones and any(
         conteo_por_condicion[c] < args.meta_por_condicion for c in CONDICIONES_LLEGADA
     )
     config["meta_por_condicion_cubierta"] = not tope_alcanzado
