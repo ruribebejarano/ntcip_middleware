@@ -582,7 +582,14 @@ class GestorMision:
             "mision_id": mision.mision_id,
             "obu_id": mision.obu_id,
             "clase": mision.clase,
+            # Una RSU por controlador, no por intersección (2026-11-16): un
+            # controlador puede gobernar varias intersecciones, así que el
+            # tema de la RSU ya no basta para saber a cuál se refiere el
+            # acceso. M1 lleva la intersección y el grupo semafórico del
+            # controlador (numerado por controlador, como en NTCIP 1202).
+            "interseccion_id": ep.parada.interseccion_id,
             "acceso": ep.parada.acceso_id,
+            "grupo_semaforico": self._grupo_semaforico(ep.parada),
             "t_servicio": max(1, round(eta_s)),
             "seq": ep.seq,
             "ts_ms": int(self.ahora() * 1000),

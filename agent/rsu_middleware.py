@@ -776,8 +776,12 @@ def _procesar_m1(msg, data: dict) -> None:
     servidor (servidor/gestor_mision.py::_cuerpo_m1), con campos minimos
     id_solicitud/clase/acceso/t_servicio -- ya no "vehiculo_id" (acepta
     "obu_id" o "mision_id" en su lugar, solo para el registro de eventos y
-    el id_solicitud numerico de NTCIP 1211) ni "interseccion_id" (la RSU ya
-    sabe cual es su propia interseccion). El camino legado
+    el id_solicitud numerico de NTCIP 1211). Desde el 2026-11-16 trae
+    tambien "interseccion_id" y "grupo_semaforico": hay una RSU por
+    CONTROLADOR, y un controlador puede gobernar varias intersecciones, asi
+    que el tema de la RSU ya no identifica la interseccion. El controlador
+    emulado tiene un solo grupo y no los usa; un adaptador hacia un
+    controlador de varias intersecciones elige con ellos la fase. El camino legado
     (gateway/obu_emulada.py anterior a 2026-10-22) sigue aceptandose: si
     llega "vehiculo_id" se usa ese; si no, "obu_id"/"mision_id"."""
     response_topic, correlation = _respuesta_de(msg)
@@ -793,6 +797,7 @@ def _procesar_m1(msg, data: dict) -> None:
     duplicado = _es_duplicado(id_solicitud, seq)
     EVENTOS.log(EVT_M1_RX, id_solicitud, seq=seq, vehiculo_id=vehiculo_id,
                 interseccion_id=data.get("interseccion_id"), acceso=data.get("acceso"),
+                grupo_semaforico=data.get("grupo_semaforico"),
                 velocidad_kmh=data.get("velocidad_kmh"), ts_obu_ms=data.get("ts_ms"),
                 duplicado=duplicado, topic=msg.topic)
     if duplicado:
