@@ -55,11 +55,16 @@ from common.mqtt_tls import aplicar_tls  # noqa: E402
 from gateway.geometria import ParametrosGeometria, cargar_registro  # noqa: E402
 from servidor import rutas as rutas_mod  # noqa: E402
 from servidor.gestor_mision import ANTICIPACION_MINIMA_S, GestorMision  # noqa: E402
+from servidor.seguridad import MonitorSeguridad  # noqa: E402
 
 MQTT_BROKER_HOST = os.environ.get("MQTT_BROKER_HOST", "127.0.0.1")
 MQTT_BROKER_PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
 SERVIDOR_ID = os.environ.get("SERVIDOR_ID", "central")
 TOPIC_RESPUESTAS_SERVIDOR = f"servidor/{SERVIDOR_ID}/respuestas"
+# Seguridad operativa (servidor/seguridad.py): alertas hacia el operador de
+# la central y comandos desde él (identidad "operador-central" en la ACL).
+TOPIC_ALERTAS = f"servidor/{SERVIDOR_ID}/alertas"
+TOPIC_COMANDOS = f"servidor/{SERVIDOR_ID}/comandos"
 
 REGISTRO_RSU_PATH = os.environ.get("REGISTRO_RSU_PATH", str(RAIZ / "config" / "registro_rsu.json"))
 GRAFO_PATH = os.environ.get("GRAFO_PATH", str(RAIZ / "data" / "grafo_san_miguel_real.graphml"))
@@ -92,6 +97,7 @@ _mi_pendiente: dict[str, dict] = {}
 
 _MQTT_CLIENT: mqtt.Client | None = None
 GESTOR: GestorMision | None = None
+MONITOR: MonitorSeguridad | None = None
 
 
 # --- Publicación hacia RSU / OBU -------------------------------------------
@@ -124,6 +130,18 @@ def _enviar_me(obu_id: str, cuerpo: dict) -> None:
         _MQTT_CLIENT.publish(f"obu/{obu_id}/estado", json.dumps(cuerpo), qos=1)
 
 
+def _publicar_alerta(alerta: dict) -> None:
+    if _MQTT_CLIENT is not None:
+        _MQTT_CLIENT.publish(TOPIC_ALERTAS, json.dumps(alerta), qos=1)
+
+
+def _suspender_mision(obu_id: str, motivo: str) -> None:
+    """Contención: desarma la misión de la OBU (M3 a toda RSU con una
+    solicitud abierta) y descarta un MI que esperaba su primera MP."""
+    _mi_pendiente.pop(obu_id, None)
+    GESTOR.desarmar_mision(obu_id, motivo=motivo)
+
+
 # --- Suscripción desde OBU / RSU -------------------------------------------
 
 
@@ -133,6 +151,7 @@ def _on_connect(client: mqtt.Client, _userdata, _flags, reason_code, _properties
         ("obu/+/mision", 1),
         ("obu/+/posicion", 1),
         (TOPIC_RESPUESTAS_SERVIDOR, 1),
+        (TOPIC_COMANDOS, 1),
     ])
 
 
@@ -143,8 +162,14 @@ def _on_message(_client, _userdata, msg) -> None:
         print(f"[servidor] Mensaje inválido en '{msg.topic}': {exc}")
         return
 
+    MONITOR.revisar_confirmaciones()
     if msg.topic == TOPIC_RESPUESTAS_SERVIDOR:
         _procesar_m2(data)
+        return
+    if msg.topic == TOPIC_COMANDOS:
+        error = MONITOR.comando(data)
+        if error:
+            print(f"[servidor] {error}")
         return
 
     partes = msg.topic.split("/")
@@ -175,11 +200,14 @@ def _procesar_mi(obu_id: str, data: dict) -> None:
     except (KeyError, TypeError, ValueError) as exc:
         print(f"[servidor] MI inválido de '{obu_id}': {exc}")
         return
+    if not MONITOR.al_recibir_mi(obu_id):
+        return
 
     origen = data.get("origen")
     if origen is not None:
         origen_t = (float(origen["lat"]), float(origen["lon"]))
-        GESTOR.armar_mision(obu_id, clase, origen_t, destino_t)
+        mision = GESTOR.armar_mision(obu_id, clase, origen_t, destino_t)
+        MONITOR.al_armar_mision(obu_id, mision.mision_id)
     else:
         _mi_pendiente[obu_id] = {"clase": clase, "destino": destino_t}
         print(f"[servidor] MI de '{obu_id}' sin posición inicial: se arma la misión con la primera MP")
@@ -207,9 +235,13 @@ def _procesar_mp(obu_id: str, data: dict) -> None:
         print(f"[servidor] MP inválido de '{obu_id}': {exc}")
         return
 
+    if not MONITOR.al_recibir_mp(obu_id, lat, lon, data.get("ts_ms")):
+        return
+
     pendiente = _mi_pendiente.pop(obu_id, None)
     if pendiente is not None and obu_id not in GESTOR.misiones:
-        GESTOR.armar_mision(obu_id, pendiente["clase"], (lat, lon), pendiente["destino"])
+        mision = GESTOR.armar_mision(obu_id, pendiente["clase"], (lat, lon), pendiente["destino"])
+        MONITOR.al_armar_mision(obu_id, mision.mision_id)
 
     GESTOR.procesar_mp(obu_id, lat, lon, velocidad_kmh, rumbo_deg, fuente_velocidad=fuente_velocidad, seq=data.get("seq"))
 
@@ -240,7 +272,7 @@ def _cargar_grafo():
 
 
 def main() -> None:
-    global _MQTT_CLIENT, GESTOR
+    global _MQTT_CLIENT, GESTOR, MONITOR
 
     print("=== Servidor central (arquitectura centralizada) ===")
     print(f"SERVIDOR_ID={SERVIDOR_ID} -- registro de eventos en {EVENTOS.path}")
@@ -256,6 +288,9 @@ def main() -> None:
         anticipacion_min_s=EMISION_ETA_S,
     )
     print(f"[servidor] Emisión de M1: geocerca R_g={EMISION_R_G_M:.0f} m o ETA <= {EMISION_ETA_S:.1f} s")
+    MONITOR = MonitorSeguridad(EVENTOS, _publicar_alerta, _suspender_mision)
+    print(f"[servidor] Seguridad operativa: {MONITOR.parametros()}")
+    EVENTOS.log("seguridad_inicio", "-", **MONITOR.parametros())
     EVENTOS.log("servidor_inicio", "-", r_g_m=EMISION_R_G_M, eta_emision_s=EMISION_ETA_S)
 
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"servidor-{SERVIDOR_ID}",

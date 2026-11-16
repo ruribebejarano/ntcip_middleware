@@ -163,7 +163,11 @@ def _nombre(tipo: str, id_: str | None) -> tuple[str, str, Path]:
                 "gateway/obu_emulada.py para una OBU emulada de campaña)",
             )
         return id_, f"obu-{id_}", PKI / "obu" / id_
-    raise SystemExit(f"--tipo desconocido: {tipo!r} (servidor|rsu|obu)")
+    if tipo == "operador":
+        # Operador de la central (servidor/seguridad.py): recibe alertas y
+        # envía comandos (suspender una misión u OBU). Identidad fija.
+        return "operador-central", "operador-central", PKI / "operador"
+    raise SystemExit(f"--tipo desconocido: {tipo!r} (servidor|rsu|obu|operador)")
 
 
 def emitir(tipo: str, id_: str | None, san: str | None = None) -> None:
@@ -277,7 +281,7 @@ def main() -> None:
     sub = ap.add_subparsers(dest="accion", required=True)
     sub.add_parser("init")
     p_emitir = sub.add_parser("emitir")
-    p_emitir.add_argument("--tipo", required=True, choices=["servidor", "rsu", "obu"])
+    p_emitir.add_argument("--tipo", required=True, choices=["servidor", "rsu", "obu", "operador"])
     p_emitir.add_argument("--id", default=None)
     p_emitir.add_argument(
         "--san", default=None,
@@ -285,7 +289,7 @@ def main() -> None:
              f"(default: {','.join(SAN_SERVIDOR_POR_DEFECTO)}).",
     )
     p_revocar = sub.add_parser("revocar")
-    p_revocar.add_argument("--tipo", required=True, choices=["servidor", "rsu", "obu"])
+    p_revocar.add_argument("--tipo", required=True, choices=["servidor", "rsu", "obu", "operador"])
     p_revocar.add_argument("--id", default=None)
     sub.add_parser("listar")
 
