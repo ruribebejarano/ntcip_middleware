@@ -39,6 +39,9 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analisis"))
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
+
 RAIZ = Path(__file__).resolve().parent.parent.parent
 PY = sys.executable
 PUERTO = 9190
@@ -161,7 +164,7 @@ def main() -> None:
            f"Transiciones de verde a rojo sin ámbar & {res['transiciones_prohibidas']} \\\\\n"
            f"Verde mínimo no respetado & {res['verde_minimo_violado']} \\\\\n"
            "\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (salida / "tabla_recuperacion_plan.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_recuperacion_plan.tex").write_text(formalizar(tex), encoding="utf-8")
 
     import matplotlib
     matplotlib.use("Agg")

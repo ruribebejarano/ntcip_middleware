@@ -36,6 +36,9 @@ import statistics
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analisis"))
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
+
 RAIZ = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(RAIZ))
 from common.events import iter_eventos  # noqa: E402
@@ -209,7 +212,7 @@ def main() -> None:
             r"\toprule",
             r"Ataque & Respuesta & Detección (s) & Contención (s) & Rep. con verde & Verde máx. (s) & $L$ legítima p95 (ms) \\",
             r"\midrule", *filas_tex, r"\bottomrule", r"\end{tabularx}", r"\end{table}", ""])
-        Path(args.tabla).write_text(tex, encoding="utf-8")
+        Path(args.tabla).write_text(formalizar(tex), encoding="utf-8")
         print(f"\nTabla: {args.tabla}")
 
 

@@ -40,6 +40,8 @@ rsu_reposo.bytes_por_hora de esa corrida) y deja igual misiones y conexión.
 """
 from __future__ import annotations
 
+import sys
+
 import argparse
 import csv
 import json
@@ -47,6 +49,9 @@ import statistics
 from pathlib import Path
 
 # (nombre en la tabla, cargo mensual por SIM en US$, US$ por MB)
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analisis"))
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
+
 PLANES = (
     ("1NCE (US\\$/mes)", 0.60, 12.00 / 1000),
     ("Telnyx (US\\$/mes)", 0.0, 0.0625),
@@ -122,8 +127,8 @@ def main() -> None:
     cap = ("\\caption[Costo mensual de datos de una RSU con planes IoT]{Costo mensual de datos de una RSU con "
            "TLS~1.3 en dos planes IoT de tarifa publicada que cubren Perú, a partir de la proyección de la "
            "Tabla~\\ref{tab:proyeccion_datos}. " + nota_reposo + TARIFAS + "}")
-    (a.salida / "tabla_costo_planes.tex").write_text(
-        tabla(cap, "tab:costo_planes", "Misiones por día", filas), encoding="utf-8")
+    (a.salida / "tabla_costo_planes.tex").write_text(formalizar(
+        tabla(cap, "tab:costo_planes", "Misiones por día", filas)), encoding="utf-8")
 
     # OBU: tasa medida por segundo de misión, proyectada a horas de misión por día
     durs = duracion_misiones_s(a.bytes_tls)
@@ -138,8 +143,8 @@ def main() -> None:
            f"{coma(tasa_B_s * 3600 / 1e6)}~MB por hora de misión ({coma(r['bytes']['tls']['obu_mision'] / 1000, 1)}~kB "
            f"en misiones de {coma(dur, 1)}~s, Tabla~\\ref{{tab:bytes}}). Las horas por día son escenarios, no una "
            "medición de la operación de un vehículo. " + TARIFAS + "}")
-    (a.salida / "tabla_costo_obu.tex").write_text(
-        tabla(cap, "tab:costo_obu", "Horas de misión por día", filas), encoding="utf-8")
+    (a.salida / "tabla_costo_obu.tex").write_text(formalizar(
+        tabla(cap, "tab:costo_obu", "Horas de misión por día", filas)), encoding="utf-8")
 
 
 if __name__ == "__main__":

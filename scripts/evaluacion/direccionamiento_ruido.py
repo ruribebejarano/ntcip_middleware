@@ -42,6 +42,9 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analisis"))
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
+
 RAIZ = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(RAIZ))
 
@@ -176,7 +179,7 @@ def main() -> None:
            "\\textbf{Sin cruce (otro)} & \\textbf{Omitidas} & "
            "\\textbf{M1 espurios} & \\textbf{Rep. con recálculo} \\\\\n\\midrule\n" + "\n".join(fil) +
            "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (salida / "tabla_direccionamiento.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_direccionamiento.tex").write_text(formalizar(tex), encoding="utf-8")
 
     import matplotlib
     matplotlib.use("Agg")

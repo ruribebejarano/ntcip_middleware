@@ -1,6 +1,6 @@
 \begin{table}[H]
 \centering
-\caption[Latencia servidor--RSU por mensaje]{Latencia servidor--RSU por mensaje, sobre todos los pares M1/M2 (solicitud inicial y renovaciones), en ms. El RTT y la retención en la RSU usan un solo reloj; la ida, la vuelta y $L$ (ida más retención) se corrigen con el desfase entre los relojes del servidor y de la RSU, estimado en cada repetición con las cuatro marcas de tiempo del par M1/M2 (sección~\ref{ssec:instrumentacion}). Entre corchetes, intervalo de confianza del 95~\% por remuestreo de repeticiones completas.}
+\caption{Latencia servidor--RSU por mensaje, por condición de enlace.}
 \label{tab:latencia_mensaje}
 \small
 \begin{tabular}{lllll}
@@ -22,4 +22,5 @@
 \quad $L$ & 155,7 [139,2; 177,2] & 528,3 [377,7; 654,0] & 910,3 [752,0; 1240,9] & 1625,1 \\
 \bottomrule
 \end{tabular}
+\par\vspace{3pt}{\footnotesize\raggedright\textit{Nota:} El RTT y la retención en la RSU usan un solo reloj; la ida, la vuelta y $L$ (ida más retención) se corrigen con el desfase entre los relojes del servidor y de la RSU, estimado en cada repetición con las cuatro marcas de tiempo del par M1/M2 (sección~\ref{ssec:instrumentacion}). Entre corchetes, intervalo de confianza del 95~\% por remuestreo de repeticiones completas. Elaboración propia.\par}
 \end{table}

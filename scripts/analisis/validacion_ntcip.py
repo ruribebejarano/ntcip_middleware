@@ -42,6 +42,9 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analisis"))
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
+
 RAIZ = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(RAIZ / "scripts" / "analisis"))
 sys.path.insert(0, str(RAIZ))
@@ -148,7 +151,7 @@ def tabla_rechazo_latex(resultados: dict[str, bool], salida: Path) -> None:
         esperado_esc = esperado.replace("_", "\\_")
         lineas.append(f"{caso_esc} & {esperado_esc} & {obtenido_txt} \\\\")
     lineas += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
-    (salida / "tabla_ntcip_rechazo.tex").write_text("\n".join(lineas) + "\n", encoding="utf-8")
+    (salida / "tabla_ntcip_rechazo.tex").write_text(formalizar("\n".join(lineas) + "\n"), encoding="utf-8")
 
 
 def analizar_traduccion(dirs: list[Path]) -> dict:
@@ -226,7 +229,7 @@ def tabla_traduccion_latex(r: dict, salida: Path) -> None:
         f"M3 recibido $\\to$ cancelación NTCIP & {r['n_m3']} & {pct(r['n_m3_cancelado_ok'], r['n_m3'])} & -- & -- \\\\",
     ]
     lineas += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
-    (salida / "tabla_ntcip_traduccion.tex").write_text("\n".join(lineas) + "\n", encoding="utf-8")
+    (salida / "tabla_ntcip_traduccion.tex").write_text(formalizar("\n".join(lineas) + "\n"), encoding="utf-8")
 
 
 def main() -> None:

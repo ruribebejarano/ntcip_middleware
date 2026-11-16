@@ -41,6 +41,8 @@ Uso (raíz del repo):
 """
 from __future__ import annotations
 
+import sys
+
 import argparse
 import csv
 import glob
@@ -50,6 +52,9 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analisis"))
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
 
 RAIZ = Path(__file__).resolve().parent.parent.parent
 C = RAIZ / "resultados" / "campana"
@@ -386,7 +391,7 @@ def main() -> None:
            "\\textbf{Métrica} & \\textbf{Mediana} & \\textbf{p95} & "
            "\\textbf{p99} & \\textbf{Máx.} \\\\\n\\midrule\n" + "\n".join(fil[:-1]) +
            "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (salida / "tabla_latencia_mensaje.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_latencia_mensaje.tex").write_text(formalizar(tex), encoding="utf-8")
 
     # --- tabla: anticipación A_v frente a [T_m; A_v,max] (RF-11) ------------
     fil = []
@@ -402,7 +407,7 @@ def main() -> None:
            "\\begin{tabular}{llrrrrrrr}\n\\toprule\n\\textbf{Enlace} & \\textbf{Escenario} & \\textbf{Repet.} & "
            "\\textbf{Cruces} & \\textbf{Mediana} & \\textbf{p95} & \\textbf{Mín.} & \\textbf{Máx.} & "
            "\\textbf{Fuera} \\\\\n\\midrule\n" + "\n".join(fil) + "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (salida / "tabla_anticipacion.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_anticipacion.tex").write_text(formalizar(tex), encoding="utf-8")
 
     # --- tabla: condición de llegada (solo T_desp y A_v) -------------------
     fil = []
@@ -424,7 +429,7 @@ def main() -> None:
            "\\textbf{$T_{desp}$ med.} & \\textbf{$T_{desp}$ p95} & \\textbf{$A_v$ med.} & \\textbf{$A_v$ p95} & "
            "\\textbf{$A_v$ mín.} \\\\\n\\midrule\n" + "\n".join(fil[:-1]) +
            "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (salida / "tabla_condicion_llegada.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_condicion_llegada.tex").write_text(formalizar(tex), encoding="utf-8")
 
     # --- figura: CDF de A_v por enlace con los dos límites -----------------
     import matplotlib
@@ -466,7 +471,7 @@ def main() -> None:
            "\\begin{tabular}{llrrrrl}\n\\toprule\n\\textbf{Mensaje} & \\textbf{Enlace} & \\textbf{Enviados} & "
            "\\textbf{Recibidos} & \\textbf{Perdidos} & \\textbf{Duplicados} & \\textbf{Entrega (\\%)} \\\\\n"
            "\\midrule\n" + "\n".join(fil[:-1]) + "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (salida / "tabla_entrega.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_entrega.tex").write_text(formalizar(tex), encoding="utf-8")
 
     for cond, x in res.items():
         print(f"== {cond} ({x['repeticiones']} rep.)")

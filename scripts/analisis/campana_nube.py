@@ -23,6 +23,9 @@ import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analisis"))
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
+
 RAIZ = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import recalculo_por_mensaje as rpm  # noqa: E402
@@ -75,7 +78,7 @@ def main() -> None:
         r"\emph{Broker} & Rep. & Pares & $L$ med. & $L$ p95 [IC] & Ida p95 & Vuelta p95 & RTT med. & Entrega & Racha máx. \\",
         r" & & & (ms) & (ms) & (ms) & (ms) & (ms) & & (s) \\",
         r"\midrule", *filas, r"\bottomrule", r"\end{tabular}}", r"\end{table}", ""])
-    (salida / "tabla_campana_nube.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_campana_nube.tex").write_text(formalizar(tex), encoding="utf-8")
     print(f"Tabla: {salida / 'tabla_campana_nube.tex'}")
 
 

@@ -16,10 +16,15 @@ Uso: .venv/Scripts/python.exe scripts/analisis/separacion_rsu.py --salida <dir>
 """
 from __future__ import annotations
 
+import sys
+
 import argparse
 import json
 import statistics
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analisis"))
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
 
 RAIZ = Path(__file__).resolve().parent.parent.parent
 FUENTE = RAIZ / "scripts" / "campanas" / "fixtures" / "ruta_completa" / "validacion_sin_red.json"
@@ -49,7 +54,7 @@ def main() -> None:
            "\\\\\n\\midrule\n" + "\n".join(filas) + "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
     salida = Path(args.salida)
     salida.mkdir(parents=True, exist_ok=True)
-    (salida / "tabla_separacion_rsu.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_separacion_rsu.tex").write_text(formalizar(tex), encoding="utf-8")
     print(f"{len(sep)} separaciones: min {min(sep):.1f} m, mediana {statistics.median(sep):.1f} m, "
           f"max {max(sep):.1f} m; t min a 60 km/h = {min(sep) / (60 / 3.6):.1f} s")
 

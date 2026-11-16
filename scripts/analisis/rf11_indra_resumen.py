@@ -32,6 +32,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analisis"))
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
+
 RAIZ = Path(__file__).resolve().parent.parent.parent
 T_M_S = 2.0
 T_DESP_MAX_S = (3.0 + 1.0) + (5.0 + 3.0 + 1.0)
@@ -140,7 +143,7 @@ def main() -> None:
         r"km/h & Emisión & Paradas & Sin verde & $t_{verde}$ med. / máx. (s) & $A_v$ mín. / med. / máx. (s) "
         r"& Dentro / $<T_m$ / $>A_{v,max}$ \\",
         r"\midrule", *filas_tex, r"\bottomrule", r"\end{tabular}}", r"\end{table}", ""])
-    (salida / "tabla_rf11_indra.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_rf11_indra.tex").write_text(formalizar(tex), encoding="utf-8")
     print(f"\nResumen: {salida / 'rf11_indra_resumen.json'}\nTabla:   {salida / 'tabla_rf11_indra.tex'}")
 
 

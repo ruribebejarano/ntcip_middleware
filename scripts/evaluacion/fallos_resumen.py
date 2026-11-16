@@ -22,9 +22,14 @@ Uso: .venv/Scripts/python.exe scripts/evaluacion/fallos_resumen.py --dir <corrid
 """
 from __future__ import annotations
 
+import sys
+
 import argparse
 import json
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analisis"))
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
 
 NOMBRE = {
     "broker": "Caída del \\emph{broker} (local)",
@@ -104,7 +109,7 @@ def main() -> None:
            "\\textbf{Fallo} & \\textbf{n} & \\textbf{Misión reanudada} & \\textbf{$t_{lib}$ med./máx. (s)} & "
            "\\textbf{$T_{rec}$ med./máx. (s)} & \\textbf{Retenidas} \\\\\n\\midrule\n" + "\n".join(filas) +
            "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (salida / "tabla_fallos.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_fallos.tex").write_text(formalizar(tex), encoding="utf-8")
     print(tex)
 
 

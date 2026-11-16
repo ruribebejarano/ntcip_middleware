@@ -52,6 +52,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analisis"))
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
+
 RAIZ = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(RAIZ / "scripts" / "analisis"))
 sys.path.insert(0, str(RAIZ))
@@ -281,7 +284,7 @@ def tabla_latex(resultados: dict[str, dict], salida: Path, nota: str):
                 lineas.append(f"{nombre} & {etq} & {m['n']} & {_coma(m['mediana'])} & {_coma(m['p95'])} & "
                               f"{_coma(m['max'])} \\\\")
     lineas += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
-    (salida / "tabla_latencia.tex").write_text("\n".join(lineas) + "\n", encoding="utf-8")
+    (salida / "tabla_latencia.tex").write_text(formalizar("\n".join(lineas) + "\n"), encoding="utf-8")
 
 
 #: etiqueta de presentación para cada condición de llegada (ver
@@ -322,7 +325,7 @@ def tabla_condicion_latex(resultados: dict[str, dict], salida: Path, nota: str):
                     lineas.append(f"{nombre} & {etq} & {NOMBRE_CONDICION[cond]} & {m['n']} & "
                                   f"{_coma(m['mediana'])} & {_coma(m['p95'])} \\\\")
     lineas += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
-    (salida / "tabla_condicion.tex").write_text("\n".join(lineas) + "\n", encoding="utf-8")
+    (salida / "tabla_condicion.tex").write_text(formalizar("\n".join(lineas) + "\n"), encoding="utf-8")
 
 
 def _recolectar_valores(filas: list[dict], clave: str) -> list[float]:

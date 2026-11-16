@@ -1,6 +1,6 @@
 \begin{table}[H]
 \centering
-\caption[Latencia de la solicitud inicial y del tramo OBU--servidor]{Latencia de la solicitud inicial (primer M1 de cada parada) y del tramo OBU$\to$servidor por enlace, escenarios de lazo y desvío combinados, en ms. $L$ sin corregir se reporta solo en la condición local, donde todos los procesos comparten el reloj; con la RSU física, la latencia corregida por el desfase de relojes está en la Tabla~\ref{tab:latencia_mensaje}. El tramo OBU$\to$servidor no sale de la laptop en ninguna condición: la OBU emulada, el \emph{broker} y el servidor corren en ella.}
+\caption{Latencia de la solicitud inicial y del tramo OBU--servidor, por enlace.}
 \label{tab:latencia_inicial}
 \small
 \begin{tabular}{llrrrr}
@@ -19,4 +19,5 @@ $t_{OBU\to srv}$ & Wi-Fi & 3162 & 0,88 & 1,06 & 27,57 \\
 $t_{OBU\to srv}$ & 4G & 2547 & 0,65 & 0,86 & 13,24 \\
 \bottomrule
 \end{tabular}
+\par\vspace{3pt}{\footnotesize\raggedright\textit{Nota:} Latencia de la solicitud inicial (primer M1 de cada parada) y del tramo OBU$\to$servidor por enlace, escenarios de lazo y desvío combinados, en ms. $L$ sin corregir se reporta solo en la condición local, donde todos los procesos comparten el reloj; con la RSU física, la latencia corregida por el desfase de relojes está en la Tabla~\ref{tab:latencia_mensaje}. El tramo OBU$\to$servidor no sale de la laptop en ninguna condición: la OBU emulada, el \emph{broker} y el servidor corren en ella. Elaboración propia.\par}
 \end{table}

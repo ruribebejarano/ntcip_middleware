@@ -35,6 +35,9 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analisis"))
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
+
 RAIZ = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(RAIZ))
 
@@ -152,7 +155,7 @@ def main() -> None:
            "\\textbf{Nivel} & \\textbf{n} & \\textbf{Proc. med. (ms)} & \\textbf{Proc. p95 (ms)} & "
            "\\textbf{RTT med. (ms)} & \\textbf{Bytes sol./resp.} & \\textbf{Errores} \\\\\n\\midrule\n" +
            "\n".join(fil) + "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (salida / "tabla_snmp_niveles.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_snmp_niveles.tex").write_text(formalizar(tex), encoding="utf-8")
     print(json.dumps(res, indent=1))
     print(f"Salida en {salida}")
 

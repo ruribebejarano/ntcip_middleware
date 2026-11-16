@@ -12,11 +12,16 @@ Uso: .venv/Scripts/python.exe scripts/evaluacion/resumen_fase4.py \
 """
 from __future__ import annotations
 
+import sys
+
 import argparse
 import csv
 import json
 from collections import defaultdict
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analisis"))
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
 
 RSU_REALES = {"201", "202", "203"}
 SOBRECARGA_TLS13 = 22  # encabezado 5 + tipo de contenido 1 + etiqueta AES-GCM 16
@@ -114,7 +119,7 @@ def carga(dir_: Path, salida: Path) -> dict:
            "\\textbf{RTT sint. med./p95 (ms)} & \\textbf{Pérdidas MP / M2} & \\textbf{CPU srv. p95 (\\%)} & "
            "\\textbf{CPU broker p95 (\\%)} \\\\\n\\midrule\n" + "\n".join(filas) +
            "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (salida / "tabla_carga.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_carga.tex").write_text(formalizar(tex), encoding="utf-8")
 
     import matplotlib
     matplotlib.use("Agg")
@@ -178,7 +183,7 @@ def handshake(dirs: dict[str, Path], salida: Path) -> dict:
            "\\textbf{Total med. (ms)} & \\textbf{Total p95 (ms)} & \\textbf{Solo TLS med. (ms)} & "
            "\\textbf{Bytes} \\\\\n\\midrule\n" + "\n".join(filas[:-1]) +
            "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (salida / "tabla_handshake.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_handshake.tex").write_text(formalizar(tex), encoding="utf-8")
     return resumen
 
 
@@ -238,7 +243,7 @@ def bytes_mensaje(d_tls: Path, d_sin: Path, salida: Path, reposo_tls: Path | Non
            "\\textbf{Con TLS 1.3 (B)} \\\\\n\\midrule\n" + "\n".join(filas) + "\n\\addlinespace\n" +
            "\n".join(f"{n} & {coma(a, 0)} & {coma(b, 0)} \\\\" for n, a, b in agregados) +
            "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (salida / "tabla_bytes.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_bytes.tex").write_text(formalizar(tex), encoding="utf-8")
 
     # proyección mensual por RSU, con TLS: reposo + misiones + una conexión por día
     hs = res["tls"]["rsu_total"] - res["tls"]["rsu_mision"]
@@ -254,7 +259,7 @@ def bytes_mensaje(d_tls: Path, d_sin: Path, salida: Path, reposo_tls: Path | Non
            "encabezados IP ni TCP, por lo que el consumo facturado es algo mayor).}\n\\label{tab:proyeccion_datos}\n"
            "\\small\n\\begin{tabular}{rr}\n\\toprule\n\\textbf{Misiones por día} & \\textbf{MB por mes} \\\\\n"
            "\\midrule\n" + "\n".join(filas) + "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (salida / "tabla_proyeccion_datos.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_proyeccion_datos.tex").write_text(formalizar(tex), encoding="utf-8")
     return res
 
 
@@ -274,7 +279,7 @@ def snmp_niveles(d: Path, salida: Path) -> dict:
            "\\footnotesize\n\\begin{tabular}{lrrrrr}\n\\toprule\n\\textbf{Nivel} & \\textbf{n} & "
            "\\textbf{Proc. med./p95 (ms)} & \\textbf{RTT med. (ms)} & \\textbf{Bytes} & \\textbf{Errores} "
            "\\\\\n\\midrule\n" + "\n".join(filas) + "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (salida / "tabla_snmp_niveles.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_snmp_niveles.tex").write_text(formalizar(tex), encoding="utf-8")
     return r["niveles"]
 
 
