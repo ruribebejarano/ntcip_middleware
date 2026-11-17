@@ -45,6 +45,10 @@ ETIQUETAS = {
     "cola_eta16": r"Solo ETA 16,3~s, suspensión a 5~s",
     "cola_eta16_sin_suspension": r"Solo ETA 16,3~s, sin suspensión",
 }
+GRUPOS = {  # corridas que se reportan en una sola fila de la tabla
+    "cola_geocerca_eta8": r"$R_g$ 150~m o ETA (8~s o 16,3~s)",
+    "cola_geocerca_eta16": r"$R_g$ 150~m o ETA (8~s o 16,3~s)",
+}
 
 
 def _eventos(rep: Path) -> list[dict]:
@@ -184,11 +188,17 @@ def main() -> None:
     salida.mkdir(parents=True, exist_ok=True)
     (salida / "cola_resumen.json").write_text(json.dumps(corridas, indent=2, ensure_ascii=False),
                                               encoding="utf-8")
-    filas = []
+    # Una fila por grupo: las dos corridas con geocerca dan el mismo punto de
+    # emisión (con la geocerca, el umbral de ETA no llega a actuar en la cola),
+    # así que se reportan juntas.
+    grupos: dict[str, list[dict]] = {}
     for c in corridas:
-        reps = c["repeticiones"]
+        etiqueta = GRUPOS.get(c["criterio"], ETIQUETAS.get(c["criterio"], c["criterio"]))
+        grupos.setdefault(etiqueta, []).extend(c["repeticiones"])
+    filas = []
+    for etiqueta, reps in grupos.items():
         filas.append(
-            f"{ETIQUETAS.get(c['criterio'], c['criterio'])} & {len(reps)} & "
+            f"{etiqueta} & {len(reps)} & "
             f"{_rango([r['d_emision_m'] for r in reps])} & {_rango([r['t_previo_s'] for r in reps])} & "
             f"{_rango([r['t_cola_s'] for r in reps])} & {_rango([r['verde_cola_s'] for r in reps])} & "
             f"{_rango([float(r['cortes_verde']) for r in reps], 0)} & "
