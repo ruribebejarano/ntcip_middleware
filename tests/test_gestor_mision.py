@@ -681,3 +681,22 @@ def test_por_defecto_una_solicitud_por_eta_no_se_suspende_al_detenerse():
     assert ep.estado == ESTADO_SOLICITADA
     assert ep.seq == seq_inicial + 60
     assert not any(c["motivo"] == "detenido" for _, c in reg.m3)
+
+
+def test_el_gestor_usa_el_estimador_de_eta_inyectado():
+    """El estimador de ETA es reemplazable (servidor/estimador_eta.py): con
+    uno que siempre responde 1 s, la solicitud sale en el primer MP, a 289 m
+    de SINT-C, donde el estimador por defecto daría 28,9 s."""
+    from servidor.estimador_eta import EstimadorServicioExterno
+
+    consultas = []
+
+    def consultar(origen, destino):
+        consultas.append((origen, destino))
+        return 1.0
+
+    gestor, reg = _gestor(parametros_geocerca=GEOCERCA_CHICA, estimador_eta=EstimadorServicioExterno(consultar))
+    gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
+    gestor.procesar_mp("obu-1", *NODOS_RUTA["A"], VELOCIDAD_KMH, rumbo_deg=0.0, fuente_velocidad="gps")
+    assert gestor.misiones["obu-1"].paradas["SINT-C"].estado == ESTADO_SOLICITADA
+    assert consultas[0] == (NODOS_RUTA["A"], (-12.1074, -77.0320))

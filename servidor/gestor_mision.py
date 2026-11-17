@@ -57,6 +57,7 @@ from gateway.geometria import (
 from servidor import conflictos as conflictos_mod
 from servidor import rutas as rutas_mod
 from servidor.rutas import ParadaRsu, Ruta
+from servidor.estimador_eta import ContextoETA, EstimadorETA, EstimadorVelocidadConstante
 
 try:
     from common.events import (
@@ -168,6 +169,7 @@ class Mision:
     ultima_velocidad_kmh: float = VELOCIDAD_RESPALDO_KMH  # la que de verdad usa _eta(): suavizada o sustituida, ver _actualizar_velocidad()
     motivo_fin: Optional[str] = None  # "boton" | "destino" | "tiempo_maximo"; None mientras activa=True
     ultimo_mp_seq: Optional[int] = None  # seq del ultimo MP aceptado; detecta reordenamientos/duplicados
+    ultima_posicion: Optional[tuple[float, float]] = None  # (lat, lon) del último MP aceptado, para el estimador de ETA
     version: int = 1  # version del MR vigente; sube en cada recalculo por desvio (docs/CONTRATO_OBU.md §MR)
     # --- Velocidad detenido vs. sin dato (item P2) --------------------
     t_detenido_desde: Optional[float] = None  # None = no está "detenido medido" ahora mismo
@@ -205,9 +207,15 @@ class GestorMision:
         t_validez_vel_s: float = T_VALIDEZ_VEL_S,
         ventana_mediana_s: float = VENTANA_MEDIANA_S,
         t_detenido_max_s: Optional[float] = T_DETENIDO_MAX_S,
+        estimador_eta: Optional[EstimadorETA] = None,
     ) -> None:
         self.grafo = grafo
         self.registro = registro
+        # Componente reemplazable (servidor/estimador_eta.py): por defecto,
+        # distancia / velocidad; en un despliegue, un servicio de rutas con
+        # tráfico en tiempo real.
+        self.estimador_eta: EstimadorETA = estimador_eta or EstimadorVelocidadConstante()
+        self._centros = {i.interseccion_id: (i.lat, i.lon) for i in registro}
         self.enviar_m1 = enviar_m1
         self.enviar_m3 = enviar_m3
         self.enviar_mr = enviar_mr
@@ -329,6 +337,7 @@ class GestorMision:
             return
         if seq is not None:
             mision.ultimo_mp_seq = seq
+        mision.ultima_posicion = (lat, lon)
 
         self._log(EVT_MP_RX, mision.mision_id, lat=lat, lon=lon,
                   velocidad_kmh=velocidad_kmh, fuente_velocidad=fuente_velocidad, rumbo_deg=rumbo_deg, seq=seq)
@@ -364,7 +373,7 @@ class GestorMision:
         siguiente = mision.siguiente_parada_pendiente()
         if siguiente is not None and clasificacion != CLASIF_DETENIDO:
             distancia_restante = siguiente.parada.distancia_llegada_m - mision.distancia_recorrida_m
-            eta_s = self._eta(distancia_restante, mision.ultima_velocidad_kmh)
+            eta_s = self._eta(mision, siguiente.parada, distancia_restante)
             siguiente.eta_s = eta_s
             if eta_s is not None:
                 self._log(EVT_ETA_ESTIMADO, mision.mision_id, rsu_id=siguiente.parada.rsu_id,
@@ -480,15 +489,17 @@ class GestorMision:
                               interseccion_id=iid, segundos_detenido=round(detenido_hace_s, 1))
                     self._cancelar_parada(mision, ep, motivo="detenido", volver_a_pendiente=True)
                 continue
-            ep.eta_s = self._eta(distancia_restante, mision.ultima_velocidad_kmh)
+            ep.eta_s = self._eta(mision, ep.parada, distancia_restante)
             if ep.seq == seq_antes.get(iid):
                 self._renovar(mision, ep)
 
-    def _eta(self, distancia_restante_m: float, velocidad_kmh: float) -> Optional[float]:
-        if distancia_restante_m <= 0:
-            return 0.0
-        velocidad_m_s = max(velocidad_kmh, 1.0) / 3.6
-        return distancia_restante_m / velocidad_m_s
+    def _eta(self, mision: Mision, parada: ParadaRsu, distancia_restante_m: float) -> Optional[float]:
+        return self.estimador_eta.estimar(ContextoETA(
+            distancia_restante_m=distancia_restante_m,
+            velocidad_kmh=mision.ultima_velocidad_kmh,
+            posicion=mision.ultima_posicion,
+            interseccion=self._centros.get(parada.interseccion_id),
+        ))
 
     def _aplicar_decision_geocerca(self, mision: Mision, dec: Decision) -> None:
         if dec.accion == NINGUNA or dec.asignacion is None:
