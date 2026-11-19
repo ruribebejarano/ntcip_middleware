@@ -1,22 +1,14 @@
 #!/usr/bin/env python3
 """Simulador de OBU (unidad de a bordo) -- lado V2I del lazo EVP.
 
-*** LEGADO (P0-P3, pre-arquitectura centralizada, 2026-10-22) ***
-Publica un M1 directo a la RSU (`rsu/v2i/solicitud_prioridad`) con un ETA a
-mano, sin pasar por el servidor central ni por una misión armada. Sigue
-funcionando (agent/rsu_middleware.py mantiene ese camino sin cambios, ver
-`_procesar_m1_legado`), pero ya NO representa el diseño vigente de la OBU:
-ver gateway/obu_emulada.py para el cliente delgado (MI/MP/MF hacia el
-servidor, que es quien decide a qué RSU y cuándo). Se conserva solo para
-las pruebas que ya dependían de este camino directo (demo_asesor.sh).
-
 *** SIMULADOR, NO ES LA OBU REAL ***
-Publica por MQTT una solicitud de prioridad semaforica hacia la RSU, tal
-como hacia la aplicacion del operador antes de la arquitectura centralizada
-(OE4, ver CLAUDE.md); hoy el ETA a cada RSU lo calcula el servidor central
-a partir de la velocidad y la posicion GNSS que publica la OBU
-(servidor/gestor_mision.py). Por ahora el vehiculo y el ETA se pasan a mano
-por argumento -- no hay calculo cinematico en este script.
+Publica un M1 simplificado directo a la RSU (`rsu/v2i/solicitud_prioridad`)
+con un ETA a mano, sin pasar por el servidor central ni por una misión
+armada (agent/rsu_middleware.py lo atiende en `_procesar_m1_legado`). No
+es el diseño de la OBU: ver gateway/obu_emulada.py para el cliente delgado
+(MI/MP/MF hacia el servidor, que decide a qué RSU y cuándo). Sirve para
+probar la RSU de forma aislada (demo_asesor.sh). El vehiculo y el ETA se
+pasan por argumento -- no hay calculo cinematico en este script.
 
 Requiere que la RSU (Raspberry Pi) tenga agent/rsu_middleware.py corriendo
 y un broker mosquitto accesible en la red (puerto 1883). Ver

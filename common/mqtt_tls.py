@@ -1,10 +1,9 @@
 """Helper TLS 1.3 + mTLS común para los clientes paho-mqtt del proyecto
-(prompt_seguridad.md, S1): servidor/main.py, agent/rsu_middleware.py,
-gateway/obu_emulada.py y gateway/obu_simulator.py construían cada uno su
-propio ssl.SSLContext (o, en el caso del servidor, pasaban
-tls_version=ssl.PROTOCOL_TLS_CLIENT a tls_set(), que deja que la
-librería negocie hasta TLS 1.2 si el otro lado no ofrece 1.3 -- no fija
-un mínimo). Este módulo construye el contexto una sola vez, con:
+(servidor/main.py, agent/rsu_middleware.py, gateway/obu_emulada.py y
+gateway/obu_simulator.py). Pasar tls_version=ssl.PROTOCOL_TLS_CLIENT a
+tls_set() deja que la librería negocie hasta TLS 1.2 si el otro lado no
+ofrece 1.3 (no fija un mínimo); este módulo construye el contexto una sola
+vez, con:
 
 - TLS 1.3 como versión MÍNIMA (no solo "la más alta disponible").
 - Verificación del nombre del servidor (hostname) contra el SAN del
@@ -69,7 +68,7 @@ def aplicar_tls(
     broker de desarrollo en 1883) y devuelve False -- salvo que `puerto`
     sea el de TLS por convención (8883): ahí falla explícito, porque
     conectar en claro a ese puerto sería un error de configuración
-    silencioso, no un modo soportado (S1.3 de prompt_seguridad.md).
+    silencioso, no un modo soportado.
 
     Si solo ALGUNAS rutas están presentes, es una configuración a medio
     hacer: falla explícito en vez de adivinar.

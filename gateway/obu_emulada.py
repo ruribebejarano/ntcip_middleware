@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""OBU EMULADA: cliente delgado de la arquitectura centralizada (2026-10-22).
+"""OBU EMULADA: cliente delgado de la arquitectura centralizada.
 
-*** La OBU ya NO decide a qué RSU ni a qué acceso dirigirse. *** Solo:
+*** La OBU NO decide a qué RSU ni a qué acceso dirigirse. *** Solo:
 
 1. Al arrancar, arma la misión (MI) con la clase de vehículo y el destino
    (el último punto de la trayectoria) -- equivalente al botón "Iniciar
@@ -10,7 +10,7 @@
    posición a 1 Hz (MP) -- el servidor calcula la ruta, la lista ordenada
    de RSU/accesos, el ETA a cada una y decide cuándo pedir prioridad
    (servidor/gestor_mision.py). La OBU no conoce el registro de RSU
-   (config/registro_rsu.json): ya no lo descarga (ssec:registro).
+   (config/registro_rsu.json) (ssec:registro).
 3. Recibe la ruta (MR) y los cambios de estado (ME) del servidor, los
    imprime y los registra.
 4. Al terminar la trayectoria (o con Ctrl+C), desarma la misión (MF).
@@ -39,10 +39,8 @@ institucional en servicio), nunca en reposo; ver la nueva ssec:conflictos /
 ssec:ruta_servidor propuesta en el inventario de redacción para la
 justificación completa y la política de retención [DATO: por definir].
 
-Legado (gateway/obu_simulator.py, consola/backend/obu_local.py): esos dos
-módulos implementan el esquema ANTERIOR (OBU decide localmente) y no se
-tocaron en esta migración más allá de una nota en su docstring -- ver
-sección 3.2 de E:\\Tesis\\prompt_arquitectura_centralizada.md.
+gateway/obu_simulator.py publica un M1 simplificado directo a la RSU, sin
+servidor; sirve solo para probar la RSU de forma aislada.
 
 Uso (broker del servidor central; sin TLS en esta etapa salvo que se
 configure mTLS, ver scripts/seguridad/):

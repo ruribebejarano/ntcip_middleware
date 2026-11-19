@@ -1,11 +1,9 @@
-"""Gestor de misión: el corazón de la arquitectura centralizada (ver
-E:\\Tesis\\prompt_arquitectura_centralizada.md, sección 1.1, "Servidor
-central"). Un objeto `GestorMision` por proceso servidor (servidor/main.py
+"""Gestor de misión: el corazón de la arquitectura centralizada. Un objeto `GestorMision` por proceso servidor (servidor/main.py
 lo instancia una vez); NO tiene estado de red: recibe datos ya parseados
 (MI/MP/MF/M2) y llama callbacks `enviar_*` para publicar (MR/ME/M1/M3). Eso
 hace que se pueda probar sin MQTT (ver tests/test_gestor_mision.py).
 
-Ciclo de vida de una misión (RF nuevos, ver inventario de redacción):
+Ciclo de vida de una misión:
 1. armar_mision()  -- MI: calcula la ruta (servidor/rutas.py) cruzada con el
    registro de RSU, publica MR.
 2. procesar_mp()   -- MP (1 Hz, solo con misión activa): actualiza el
@@ -87,7 +85,7 @@ ANTICIPACION_MINIMA_S = 8.0       # margen mínimo servidor->RSU + transición d
 VELOCIDAD_RESPALDO_KMH = 30.0     # "sin dato" de velocidad y sin una en movimiento reciente que reutilizar [REVISAR con asesor]
 MARGEN_CRUCE_M = 20.0             # cuanto puede "pasarse" la distancia acumulada antes de considerar la parada cruzada [REVISAR con asesor]
 
-# --- Velocidad detenido vs. sin dato (item P2 de prompt_cierre_repo_2026-11-02.md) ---
+# --- Velocidad detenido vs. sin dato ---
 # docs/CONTRATO_OBU.md §MP: velocidad_kmh=None (u omitido) es "sin dato";
 # velocidad_kmh<=UMBRAL_DETENIDO_KMH con fuente_velocidad != "respaldo" es
 # "detenido, medido". Ver _clasificar_velocidad().
@@ -96,24 +94,23 @@ T_VALIDEZ_VEL_S = 5.0             # "sin dato": cuánto se reutiliza la última 
 VENTANA_MEDIANA_S = 3.0           # "en movimiento": ventana de suavizado por mediana para el ETA, en vez de la muestra instantánea [REVISAR con asesor]
 # "Detenido medido": cuánto se tolera detenido, sin cruzar, una solicitud
 # sostenida solo por ETA antes de suspenderla (M3 motivo "detenido").
-# None (por defecto desde el 2026-11-16) = no se suspende: la solicitud se
+# None (por defecto) = no se suspende: la solicitud se
 # renueva mientras la misión siga armada, igual que dentro de la geocerca.
 # La prueba de colas (docs/PRUEBA_COLA.md, tesis ssec:resultados_cola)
 # mostró que con 5 s la suspensión corta el verde que descarga la cola y
 # el vehículo cruza sin verde cuando la emisión depende solo del ETA. El
 # costo: un vehículo detenido sin estar en una cola (estacionado con la
 # misión armada) sostiene la prioridad hasta el desarme o hasta
-# TIEMPO_MAXIMO_MISION_S. SERVIDOR_T_DETENIDO_MAX_S restituye el valor
-# anterior (5) para reproducir la campaña. [REVISAR con asesor]
+# TIEMPO_MAXIMO_MISION_S. SERVIDOR_T_DETENIDO_MAX_S=5 reproduce la
+# configuración de la campaña de medición. [REVISAR con asesor]
 T_DETENIDO_MAX_S: Optional[float] = None
-# B3 (app_obu/PROPUESTA_FIN_MISION.md §1): el umbral de llegada a destino no
-# estaba definido. [REVISAR con asesor] -- se elige el valor más
-# conservador, igual a MARGEN_CRUCE_M, para no introducir un orden de
+# Umbral de llegada a destino: no hay un valor de referencia. [REVISAR con
+# asesor] -- se elige el valor más conservador, igual a MARGEN_CRUCE_M, para no introducir un orden de
 # magnitud nuevo sin validar con datos de campo.
 UMBRAL_LLEGADA_DESTINO_M = MARGEN_CRUCE_M
 
-# item 2a.4 de prompt_integracion_app_obu.md: un MI repetido cuyo destino
-# cambia mas alla de esta tolerancia ya no es el mismo encargo (p. ej. el
+# Un MI repetido cuyo destino cambia mas alla de esta tolerancia ya no es
+# el mismo encargo (p. ej. el
 # operador armo otra mision mientras la OBU estaba desconectada y el MF
 # anterior se perdio) -- se cierra la mision vieja y se arma la nueva.
 # Dentro de la tolerancia sigue siendo MI_repetido. [REVISAR con asesor]
@@ -137,7 +134,7 @@ _ESTADO_DESDE_M2 = {
     "cancelada": ESTADO_CANCELADA,
 }
 
-# Clasificación de velocidad de un MP (item P2, ver _clasificar_velocidad).
+# Clasificación de velocidad de un MP (ver _clasificar_velocidad).
 CLASIF_MOVIMIENTO = "movimiento"
 CLASIF_DETENIDO = "detenido"
 CLASIF_SIN_DATO = "sin_dato"
@@ -171,7 +168,7 @@ class Mision:
     ultimo_mp_seq: Optional[int] = None  # seq del ultimo MP aceptado; detecta reordenamientos/duplicados
     ultima_posicion: Optional[tuple[float, float]] = None  # (lat, lon) del último MP aceptado, para el estimador de ETA
     version: int = 1  # version del MR vigente; sube en cada recalculo por desvio (docs/CONTRATO_OBU.md §MR)
-    # --- Velocidad detenido vs. sin dato (item P2) --------------------
+    # --- Velocidad detenido vs. sin dato ---------------------------------
     t_detenido_desde: Optional[float] = None  # None = no está "detenido medido" ahora mismo
     ultima_velocidad_movimiento_kmh: Optional[float] = None  # último valor realmente medido en movimiento
     ts_ultima_velocidad_movimiento: Optional[float] = None   # su timestamp, para T_VALIDEZ_VEL_S
@@ -342,8 +339,7 @@ class GestorMision:
         self._log(EVT_MP_RX, mision.mision_id, lat=lat, lon=lon,
                   velocidad_kmh=velocidad_kmh, fuente_velocidad=fuente_velocidad, rumbo_deg=rumbo_deg, seq=seq)
 
-        # B3 (app_obu/PROPUESTA_FIN_MISION.md): llegada a destino, antes de
-        # seguir con la geocerca -- la detecta el servidor, no la app (ver
+        # Llegada a destino, antes de seguir con la geocerca -- la detecta el servidor, no la app (ver
         # docs/CONTRATO_OBU.md §5).
         destino_lat, destino_lon = mision.destino
         x, y = proyeccion_local(lat, lon, destino_lat, destino_lon)
@@ -366,7 +362,7 @@ class GestorMision:
         # 1) Anticipación por ETA: la primera parada pendiente, si ya está
         #    dentro del margen de anticipación mínima, se solicita AUNQUE la
         #    geocerca todavía no la haya detectado (RF8). "Detenido medido"
-        #    (item P2) no dispara una solicitud NUEVA por ETA: no tiene
+        #    no dispara una solicitud NUEVA por ETA: no tiene
         #    sentido anticipar la llegada de un vehículo que, por ahora, no
         #    se está moviendo -- vuelve a evaluarse solo cuando retome
         #    movimiento (velocidad "en movimiento" o "sin dato").
@@ -383,13 +379,12 @@ class GestorMision:
             if eta_s is not None and eta_s <= self.umbral_emision_s(siguiente.parada):
                 self._intentar_solicitar(mision, siguiente, eta_s)
 
-        # 2) Geocerca (gateway.geometria.SeguidorAcceso), igual que antes
-        #    pero alimentada con la posición MP del servidor: confirma el
+        # 2) Geocerca (gateway.geometria.SeguidorAcceso), alimentada con la
+        #    posición MP del servidor: confirma el
         #    acceso, renueva a 1 Hz, y cancela al cruzar/salir/divergir. Es
         #    puramente de posición -- sigue renovando igual con el vehículo
         #    detenido DENTRO del radio (p. ej. parado en el semáforo que
-        #    pidió), que es el comportamiento correcto, no el bug de este
-        #    item (ver _respaldo_por_ruta).
+        #    pidió), que es el comportamiento correcto (ver _respaldo_por_ruta).
         for dec in mision.seguidor.actualizar(lat, lon, rumbo_deg):
             self._aplicar_decision_geocerca(mision, dec)
 
@@ -399,9 +394,8 @@ class GestorMision:
         #    Sin esto, una solicitud emitida por ETA (paso 1) en una
         #    intersección que la geocerca no sigue (p. ej. excluida tras un
         #    giro lejos del centro, como en el rodeo del escenario
-        #    hospital_nino) nunca se renovaba y la RSU la daba por caducada
-        #    (RNF-03) antes de que llegara el vehículo; ver
-        #    docs/bitacora/2026-10-30_consola-multi-rsu.md.
+        #    hospital_nino) nunca se renovaría y la RSU la daría por caducada
+        #    (RNF-03) antes de que llegara el vehículo.
         self._respaldo_por_ruta(mision, seq_antes, clasificacion)
 
         self._revisar_tiempo_maximo(mision)
@@ -612,9 +606,9 @@ class GestorMision:
             "mision_id": mision.mision_id,
             "obu_id": mision.obu_id,
             "clase": mision.clase,
-            # Una RSU por controlador, no por intersección (2026-11-16): un
-            # controlador puede gobernar varias intersecciones, así que el
-            # tema de la RSU ya no basta para saber a cuál se refiere el
+            # Una RSU por controlador, no por intersección: un controlador
+            # puede gobernar varias intersecciones, así que el tema de la
+            # RSU no basta para saber a cuál se refiere el
             # acceso. M1 lleva la intersección y el grupo semafórico del
             # controlador (numerado por controlador, como en NTCIP 1202).
             "interseccion_id": ep.parada.interseccion_id,
@@ -642,7 +636,7 @@ class GestorMision:
             self._log(EVT_M3_TX, ep.id_solicitud, mision_id=mision.mision_id, motivo=motivo, origen="servidor")
             self._solicitud_a_parada.pop(ep.id_solicitud, None)
         if volver_a_pendiente:
-            # Suspensión por "detenido" (item P2), no un cierre definitivo
+            # Suspensión por "detenido", no un cierre definitivo
             # ni un conflicto: vuelve a "pendiente" para que el paso 1 de
             # procesar_mp la re-solicite sola en cuanto el vehículo retome
             # movimiento -- no promueve a otras misiones en_espera de la

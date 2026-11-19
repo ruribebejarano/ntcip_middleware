@@ -12,7 +12,7 @@ espera una fase concreta como sí hace demo_asesor.sh, para mantener esto
 simple y sin bloquear la interfaz. Pasos 2 (ciclo del controlador, ~25s de
 observacion) y 7 (lazo V2I via MQTT) no tienen un boton equivalente aqui:
 el primero no es una accion puntual, y el segundo requiere un cliente MQTT
-además de SNMP -- ver bitacora del panel para esta limitacion."""
+además de SNMP."""
 
 from __future__ import annotations
 

@@ -1,11 +1,9 @@
-"""*** LEGADO (pre-arquitectura centralizada, 2026-10-22) ***
+"""*** SIN ALIMENTACION ***
 Esta pagina depende de resultados/obu_vivo/estado.json, que
-gateway/obu_emulada.py YA NO escribe (la OBU paso a ser un cliente delgado;
-la posicion viaja en MP hacia el servidor, que calcula la asignacion de
-RSU/acceso -- ver servidor/gestor_mision.py). Queda sin alimentacion hasta
-que se adapte para mostrar la MR/ME del servidor en su lugar (pendiente,
-ver docs/bitacora/2026-10-22_arquitectura-centralizada.md). No se borra:
-documenta como se veia el panel con el esquema anterior (E2+E4).
+gateway/obu_emulada.py no escribe (la OBU es un cliente delgado; la
+posicion viaja en MP hacia el servidor, que calcula la asignacion de
+RSU/acceso -- ver servidor/gestor_mision.py). No muestra datos nuevos
+hasta que se adapte para mostrar la MR/ME del servidor.
 
 Pagina "Lazo V2I en vivo" del panel: el lazo de priorizacion completo en
 una sola pantalla, para la demo con la OBU emulada (gateway/obu_emulada.py).

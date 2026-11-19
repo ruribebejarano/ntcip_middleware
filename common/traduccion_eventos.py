@@ -1,9 +1,7 @@
 """Traduccion de eventos del lazo (common/events.py) a frases en espanol.
 
-Extraido de scripts/demo/linea_tiempo.py (que lo usa igual que antes, solo
-importando de aqui) para que consola/ pueda reutilizar la MISMA logica de
-traduccion sin duplicarla -- ver docs/CONSOLA.md y el prompt que origino
-este modulo. Sin red, sin estado: funcion pura sobre (origen, evento)."""
+Lo usan scripts/demo/linea_tiempo.py y consola/ para compartir la MISMA
+logica de traduccion sin duplicarla -- ver docs/CONSOLA.md. Sin red, sin estado: funcion pura sobre (origen, evento)."""
 
 from __future__ import annotations
 

@@ -78,7 +78,7 @@ EVT_MUESTRA = "muestra"          # OBU lee una fila de la trayectoria, antes de
                                   # alguno. Permite medir t_OBU = M1_tx - muestra
                                   # con el reloj de la propia OBU (docs/MEDICION_LATENCIA.md).
 
-# --- Arquitectura centralizada (2026-10-22): el servidor decide, ver
+# --- Arquitectura centralizada: el servidor decide, ver
 # servidor/gestor_mision.py. id_solicitud en estos eventos puede ser
 # mision_id (mision_armada/ruta_*/MP_rx/mision_desarmada) o id_solicitud de
 # M1 (M1_tx/conflicto_arbitrado) segun el evento, documentado en cada caso.
@@ -88,7 +88,7 @@ EVT_RUTA_RECALCULADA = "ruta_recalculada"      # desvio detectado: nueva ruta; e
 EVT_MP_RX = "MP_rx"                             # servidor recibe una posicion de la OBU; extra: lat, lon, velocidad_kmh, rumbo_deg
 EVT_CONFLICTO_ARBITRADO = "conflicto_arbitrado"  # servidor/conflictos.py decidio entre misiones; extra: rsu_id, atendidos (mision_id de los que quedan atendidos), en_espera (mision_id de los que esperan), candidatos (clase/eta_s de cada uno, para auditar la decision)
 EVT_MISION_DESARMADA = "mision_desarmada"      # fin de mision (MF, tiempo maximo, o boton); extra: motivo
-# --- Seguridad operativa (2026-11-16, servidor/seguridad.py): deteccion de
+# --- Seguridad operativa (servidor/seguridad.py): deteccion de
 # una OBU comprometida o que satura el broker, y respuesta del operador de
 # la central (docs/PRUEBA_SEGURIDAD_OPERATIVA.md).
 EVT_ALERTA_SEGURIDAD = "alerta_seguridad"      # servidor detecta una anomalia; extra: tipo, obu_id, severidad, evidencia
@@ -96,7 +96,7 @@ EVT_COMANDO_OPERADOR = "comando_operador"      # servidor recibe y aplica un com
 EVT_MP_RECHAZADO_SUSPENDIDA = "MP_rechazado_suspendida"  # servidor ignora un MP/MI de una OBU suspendida (uno de cada N, ver seguridad.py); extra: obu_id, ignorados
 EVT_MI_TX = "MI_tx"                             # OBU publica el inicio de mision; extra: clase, destino_lat, destino_lon
 EVT_MF_TX = "MF_tx"                             # OBU publica el fin de mision; extra: motivo
-EVT_MP_TX = "MP_tx"                             # OBU publica una posicion (reemplaza a M1_tx/M3_tx del lado OBU); extra: lat, lon, velocidad_kmh, rumbo_deg, seq
+EVT_MP_TX = "MP_tx"                             # OBU publica una posicion; extra: lat, lon, velocidad_kmh, rumbo_deg, seq
 EVT_MR_RX = "MR_rx"                             # OBU recibe la ruta calculada por el servidor; extra: n_paradas, longitud_m
 EVT_ME_RX = "ME_rx"                             # OBU recibe un cambio de estado de la mision; extra: proximo, conflicto
 EVT_MI_REPETIDO = "MI_repetido"                 # servidor recibe un MI para un obu_id con mision ya armada (p. ej. reenvio tras una reconexion MQTT, ver app_obu/obu/ObuSessionService.kt): se ignora, no duplica la mision ni recalcula la ruta

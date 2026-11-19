@@ -2,8 +2,7 @@
 """Proceso del servidor central: MQTT 5 + servidor/gestor_mision.py, análogo
 a agent/rsu_middleware.py del lado de la RSU.
 
-Temas (tab:mensajes de la sección 1.2 del prompt de arquitectura
-centralizada):
+Temas (tab:mensajes):
 
   MI  <- obu/{obu_id}/mision      {tipo:"MI", obu_id, clase, destino:{lat,lon},
                                     origen:{lat,lon} opcional, ts_ms}
@@ -24,17 +23,15 @@ centralizada):
 exige, solo "obu_id, clase, destino, marca de tiempo"): el servidor no
 puede calcular la ruta hasta tener una posición. Se guarda la misión como
 "pendiente" y se arma con la PRIMERA muestra MP que llegue de esa OBU (ver
-_mi_pendiente abajo). Esto es una decisión de implementación, no está en el
-prompt original -- documentarla en docs/CONTRATO_OBU.md.
+_mi_pendiente abajo); ver docs/CONTRATO_OBU.md.
 
-*** Seguridad (P4, servidor/gestor_mision.py no decide esto) ***
+*** Seguridad (servidor/gestor_mision.py no decide esto) ***
 La identidad del servidor (único publicador autorizado en
 `rsu/+/solicitudes`) y la identidad de cada OBU (autorizada solo en sus
 propios `obu/{obu_id}/mision` y `obu/{obu_id}/posicion`) se hacen cumplir en
 el BROKER (ACL de Mosquitto + mTLS, ver scripts/seguridad/), no en este
 proceso: este código confía en que, si el mensaje llegó, el broker ya
-validó quién lo podía publicar. Ver docs/bitacora/2026-10-22_arquitectura-centralizada.md
-para el estado real de esa configuración en este entorno.
+validó quién lo podía publicar.
 """
 
 from __future__ import annotations
@@ -73,8 +70,8 @@ GRAFO_PATH = os.environ.get("GRAFO_PATH", str(RAIZ / "data" / "grafo_san_miguel_
 # conflictos -- ver evidencia/2026-10-22_arquitectura-centralizada/)
 GRAFO_SINTETICO = os.environ.get("GRAFO_SINTETICO", "0").strip().lower()
 
-# mTLS opcional (P4, ver scripts/seguridad/generar_ca.py). Si no se definen
-# estas tres variables, se conecta sin TLS (como hoy agent/rsu_middleware.py).
+# mTLS opcional (ver scripts/seguridad/generar_ca.py). Si no se definen
+# estas tres variables, se conecta sin TLS (igual que agent/rsu_middleware.py).
 TLS_CA_CERT = os.environ.get("SERVIDOR_TLS_CA")
 TLS_CERTFILE = os.environ.get("SERVIDOR_TLS_CERT")
 TLS_KEYFILE = os.environ.get("SERVIDOR_TLS_KEY")
@@ -227,8 +224,7 @@ def _procesar_mp(obu_id: str, data: dict) -> None:
         lat = float(data["lat"])
         lon = float(data["lon"])
         # velocidad_kmh admite None (ausente u omitido): "sin dato de
-        # velocidad", NO "detenido" (docs/CONTRATO_OBU.md §MP, item P2 de
-        # prompt_cierre_repo_2026-11-02.md) -- float(None) lanzaría
+        # velocidad", NO "detenido" (docs/CONTRATO_OBU.md §MP) -- float(None) lanzaría
         # TypeError, así que no se fuerza a float cuando es None.
         velocidad_kmh_raw = data.get("velocidad_kmh")
         velocidad_kmh = float(velocidad_kmh_raw) if velocidad_kmh_raw is not None else None
@@ -307,7 +303,7 @@ def main() -> None:
         print("[servidor] mTLS habilitado (TLS 1.3 minimo, CA/cert/key por variables de entorno)")
     else:
         print("[servidor] AVISO: sin mTLS -- variables SERVIDOR_TLS_CA/CERT/KEY no definidas "
-              "(ver scripts/seguridad/generar_ca.py y docs/bitacora/2026-10-22_arquitectura-centralizada.md)")
+              "(ver scripts/seguridad/generar_ca.py)")
 
     client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, keepalive=30)
     _MQTT_CLIENT = client

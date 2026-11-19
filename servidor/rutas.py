@@ -24,14 +24,11 @@ sintetico para el caso de uso real. El area es la caja que envuelve las dos
 intersecciones de config/registro_rsu.json (OSM-C24 y OSM-C902, San Miguel,
 Lima, cerca de la PUCP) mas un margen de ~650 m. 415 nodos, 725 aristas.
 Ver scripts/datos/regenerar_grafo.py para repetir la descarga (p. ej. si
-cambia el registro de RSU o el area de interes) y
-docs/bitacora/2026-10-22_arquitectura-centralizada.md para el detalle de la
-corrida.
+cambia el registro de RSU o el area de interes).
 
 [DATO: medir en campo] la caja no cubre necesariamente la ruta completa
-Cia. de Bomberos San Miguel N.o 83 -> Hospital Centro Medico Naval citada en
-el prompt de arquitectura centralizada: no se intento geocodificar esos dos
-puntos (Nominatim no resolvio los nombres, ver bitacora) y NO se inventaron
+Cia. de Bomberos San Miguel N.o 83 -> Hospital Centro Medico Naval: no se
+geocodificaron esos dos puntos (Nominatim no resolvio los nombres) y NO se inventaron
 sus coordenadas. Antes de usar este grafo para el escenario de referencia
 completo de la tesis, el autor debe confirmar las coordenadas reales de esos
 dos puntos y, si quedan fuera de la caja actual, volver a correr
@@ -202,7 +199,7 @@ def construir_grafo_cruce_sintetico() -> nx.DiGraph:
     con dos misiones que llegan al MISMO punto por accesos con rumbos de
     llegada distintos (0° y 90°). Usado por tests/test_gestor_mision.py y
     por evidencia/2026-10-22_arquitectura-centralizada/ (escenario de
-    conflicto de la fase 3.8)."""
+    conflicto)."""
     G = nx.DiGraph()
     nodos = {
         "S": (-12.1087, -77.0320), "X": (-12.1074, -77.0320), "N": (-12.1061, -77.0320),
