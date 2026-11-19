@@ -1,5 +1,5 @@
 """Servidor central de la arquitectura centralizada (ver docstring de
-servidor/gestor_mision.py y E:\\Tesis\\prompt_arquitectura_centralizada.md).
+servidor/gestor_mision.py).
 
 El servidor es el UNICO decisor: calcula la ruta (servidor/rutas.py),
 administra el ciclo de vida de la mision y la verificacion por geocerca

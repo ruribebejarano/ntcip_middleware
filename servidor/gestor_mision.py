@@ -328,7 +328,7 @@ class GestorMision:
         # con seq <= el ultimo aceptado llega desordenado o duplicado (p.
         # ej. reintentos a nivel de red) y se descarta antes de tocar el
         # estado de la mision; seq=None (clientes que no lo envien) no se
-        # puede ordenar y se procesa igual, como hasta ahora.
+        # puede ordenar y se procesa igual.
         if seq is not None and mision.ultimo_mp_seq is not None and seq <= mision.ultimo_mp_seq:
             self._log(EVT_MP_DESCARTADO, mision.mision_id, seq=seq, ultimo_seq=mision.ultimo_mp_seq)
             return
@@ -420,10 +420,10 @@ class GestorMision:
         - "sin dato": la última velocidad en movimiento conocida, si es más
           reciente que `t_validez_vel_s`; si no, `velocidad_respaldo_kmh`.
         - "detenido medido": NO se actualiza -- se congela en el último
-          valor conocido (evita el bug de este item: pretender que el
-          vehículo se mueve a `velocidad_respaldo_kmh` mientras está
-          genuinamente detenido, lo que mantenía un ETA corto y la
-          solicitud renovándose indefinidamente). Se registra la
+          valor conocido (no se pretende que el vehículo se mueve a
+          `velocidad_respaldo_kmh` mientras está genuinamente detenido,
+          lo que mantendría un ETA corto y la solicitud renovándose
+          indefinidamente). Se registra la
           transición (una vez, no en cada MP detenido) para el análisis.
         """
         ahora = self.ahora()

@@ -72,7 +72,7 @@ una solicitud que llega en medio de ella espera ese despeje: mientras
 espera, el grupo sigue reportando "rojo_general" y la prioridad cuenta su
 tiempo de sostenimiento desde que se concede el verde. --verde-plan fija la
 duracion del verde del grupo solicitado en el plan (por defecto, el verde
-minimo, como antes). Tiempos de referencia: tabla 21-23 del manual del
+minimo). Tiempos de referencia: tabla 21-23 del manual del
 controlador INDRA (ejemplo E06-01: ambar 3 s, rojo-rojo 1 s, verde minimo
 5 s, verdes de plan 50/28/20 s).
 

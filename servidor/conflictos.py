@@ -1,6 +1,4 @@
-"""Política de arbitraje de conflictos entre misiones (sección 1.3 del
-prompt de arquitectura centralizada / nueva ssec:conflictos propuesta en el
-inventario de redacción).
+"""Política de arbitraje de conflictos entre misiones (ssec:conflictos).
 
 *** POLÍTICA PROVISIONAL -- cada criterio va marcado [REVISAR con asesor] ***
 
