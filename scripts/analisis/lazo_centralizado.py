@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
-"""Análisis del lazo con la ARQUITECTURA CENTRALIZADA (2026-10-22), sobre
-las corridas de scripts/campanas/lazo_centralizado.py. Reemplaza, para este
-propósito, a scripts/analisis/lazo_emulado.py (ver su docstring: quedó
-obsoleto junto con scripts/campanas/lazo_emulado.py). Definiciones
-completas en docs/MEDICION_LATENCIA.md, sección 8.
+"""Análisis del lazo con la ARQUITECTURA CENTRALIZADA, sobre las corridas
+de scripts/campanas/lazo_centralizado.py. Definiciones completas en docs/MEDICION_LATENCIA.md, sección 8.
 
-Dos niveles de agrupación (el servidor ya no recibe M1 de la OBU: la OBU
-solo emite MI/MP/MF; es servidor/gestor_mision.py quien decide y emite
+Dos niveles de agrupación (la OBU solo emite MI/MP/MF; es servidor/gestor_mision.py quien decide y emite
 M1/M3 a la RSU):
 
   misión   (mision_id, p. ej. "mis-0716b5ef"): una OBU, un recorrido.
@@ -34,8 +30,7 @@ de fórmula/reloj/confiabilidad):
 cruzan dos máquinas cuando config != "local" (ver config.json de la
 corrida) -- se reportan SIEMPRE que haya datos, con una cota de error de
 reloj adjunta (ver cota_reloj_pi_ms(), NOTA_RELOJ más abajo), nunca
-excluidas por un umbral binario (eso era un error de método, corregido
-el 2026-10-28). t_srv, t_RSU, T_desp y RTT_srv usan un solo reloj
+excluidas por un umbral binario. t_srv, t_RSU, T_desp y RTT_srv usan un solo reloj
 siempre y no llevan esa cota: son las métricas de referencia para
 config=pi-lan/pi-4g precisamente porque no dependen de sincronizar dos
 relojes.
@@ -79,8 +74,7 @@ ANTICIPACION_MINIMA_S = 8.0  # RF8, ver servidor/gestor_mision.py
 ACCIONES_DECISION = ("request_priority", "en_cola_despeje")
 
 #: las 3 condiciones de llegada pedidas para la campana estratificada (ver
-#: scripts/campanas/lazo_centralizado.py y
-#: docs/bitacora/2026-10-29_fase-controlador-emulado.md).
+#: scripts/campanas/lazo_centralizado.py).
 CONDICIONES_LLEGADA = ("verde", "ambar_todo_rojo", "rojo_general")
 
 
@@ -144,15 +138,11 @@ NOTA_RELOJ = (
 
 def cota_reloj_pi_ms(texto_reloj: str | None) -> float | None:
     """Cota de error de reloj del lado de la Pi, en ms, a partir del texto
-    de `scripts/pi.sh clock` (ver NOTA_RELOJ). Antes de esta versión se
-    comparaba el OFFSET PUNTUAL de chrony contra un umbral fijo de 10 ms
-    para decidir si "confiar" o "excluir" una métrica de dos relojes por
-    completo -- eso es un error de método: el offset puntual (p. ej.
-    "-8608us") es un estimado, no una cota, y 10 ms no tiene relación con
-    la cota real que chrony declara (~20-50 ms es normal contra NTP
-    público). Ahora se reporta la cota en vez de usarla como corte
-    binario (ver docs/MEDICION_LATENCIA.md 8.4 y
-    docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md)."""
+    de `scripts/pi.sh clock` (ver NOTA_RELOJ). No se usa el OFFSET PUNTUAL
+    de chrony como corte binario: es un estimado (p. ej. "-8608us"), no una
+    cota, y la cota real que chrony declara (~20-50 ms es normal contra NTP
+    público) se reporta junto a la métrica (ver docs/MEDICION_LATENCIA.md
+    8.4)."""
     if not texto_reloj:
         return None
     m_disp = re.search(r"Root dispersion\s*:\s*([\d.]+)\s*seconds", texto_reloj)
@@ -175,21 +165,18 @@ def reloj_pi_sincronizado(texto_reloj: str | None) -> bool:
     asume que esté desincronizado solo por no poder confirmarlo -- eso lo
     cubre la cota de reloj/NOTA_RELOJ por separado).
 
-    Encontrado el 2026-10-29 en la corrida desvio_pi-lan del 2026-10-29:
-    chronyd perdió sincronización ('Can't synchronise: no majority',
-    journalctl en la Pi) en un punto de esa corrida, dejando 'reloj_pi_fin'
-    con Stratum 0 / Root delay y Root dispersion en 1.0 s (el centinela,
-    no una medición real) -- eso inflaba la cota de error a 1500 ms e
-    invalidaba cualquier verdict de RNF-01 bajo esa cota, aunque la
-    latencia medida en sí seguía siendo de decenas de ms. Causa raíz:
+    Cuando chronyd pierde sincronización ('Can't synchronise: no majority'
+    en journalctl de la Pi), 'chronyc tracking' muestra Stratum 0 / Root
+    delay y Root dispersion en 1.0 s (el centinela, no una medición real),
+    que inflaría la cota de error a 1500 ms aunque la latencia medida siga
+    siendo de decenas de ms. Causa raíz:
     chrony configurado con solo 2 fuentes NTP
     (/etc/chrony/conf.d/rsu-lab.conf en la Pi) -- con solo 2, el algoritmo
     de "mayoría" de chrony no tiene con qué desempatar si discrepan, y
     journalctl muestra el patrón "no majority"/"Selected source"
     repitiéndose cada ~15-45 min TODA la tarde, sin relación con
     desconexiones de red (NetworkManager/wpa_supplicant no registraron
-    ningún evento en esas ventanas) -- ver
-    docs/bitacora/2026-10-29_fase-controlador-emulado.md."""
+    ningún evento en esas ventanas)."""
     if not texto_reloj:
         return True
     if re.search(r"Leap status\s*:\s*Not synchronised", texto_reloj):
@@ -203,11 +190,10 @@ def reloj_pi_sincronizado_de_dirs(dirs: list[Path]) -> bool:
     """False si ALGÚN config.json no-local de estos directorios muestra
     'reloj_pi_inicio'/'reloj_pi_fin' desincronizado (ver
     reloj_pi_sincronizado), O si 'chrony_sincronizado_por_repeticion'
-    (campañas corridas desde 2026-10-29 en adelante, con el muestreo por
-    repetición -- ver scripts/campanas/lazo_centralizado.py) marca alguna
-    repetición como False -- conservador: basta un punto desincronizado
-    en toda la corrida para marcarla entera. Las corridas anteriores a
-    esa fecha no tienen ese campo; se evalúa solo con inicio/fin."""
+    (muestreo por repetición, ver scripts/campanas/lazo_centralizado.py)
+    marca alguna repetición como False -- conservador: basta un punto
+    desincronizado en toda la corrida para marcarla entera. Las corridas
+    sin ese campo se evalúan solo con inicio/fin."""
     for d in dirs:
         cfg_path = d / "config.json"
         if not cfg_path.exists():
@@ -336,12 +322,8 @@ def analizar(eventos: list[dict], cota_reloj_ms: float | None = None,
         # cola), controller_emulator.py::_log_si_cambio_locked no logueó
         # ningún ctrl_fase_cambio para esta parada -- no hubo transición
         # real que loguear (ya estaba en verde). Sin esto, t_verde y
-        # anticipación real quedaban "sin dato" para TODA llegada en
-        # verde -- el caso más simple, el primero en tener datos reales
-        # desde que se corrigió el emulador el 2026-10-29 (antes el 100%
-        # de las decisiones caía en "amarillo", ver
-        # docs/bitacora/2026-10-29_fase-controlador-emulado.md). El verde
-        # ya estaba activo al momento de la decisión: ese es el instante
+        # anticipación real quedarían "sin dato" para TODA llegada en
+        # verde. El verde ya estaba activo al momento de la decisión: ese es el instante
         # de referencia (t_verde=0 por construcción).
         if not verde and fase_decision == "verde" and decision:
             verde = [decision]
@@ -403,7 +385,7 @@ def analizar(eventos: list[dict], cota_reloj_ms: float | None = None,
         if resultado == "sin_respuesta":
             # Diagnostico de DONDE se detuvo, no de POR QUE (la causa se
             # investiga en los logs de agent/servidor de esa repeticion,
-            # no se asume -- ver docs/bitacora).
+            # no se asume).
             if decision:
                 etapa_alcanzada = "decision_sin_m2"  # la RSU decidio pero el M2 nunca llego/se vio
             elif rx1:
@@ -448,10 +430,6 @@ def analizar(eventos: list[dict], cota_reloj_ms: float | None = None,
         # Desglose por condicion de llegada (verde/ambar_todo_rojo/
         # rojo_general, ver condicion_de_fase): mismas 6 metricas, cada
         # una filtrada a las paradas que decidieron en esa condicion.
-        # Pedido tras el defecto de banco de pruebas corregido el
-        # 2026-10-29 (ver docs/bitacora/2026-10-29_fase-controlador-emulado.md):
-        # antes, el 100% de las decisiones caia en "ambar_todo_rojo" por
-        # el bug, asi que este desglose no tenia sentido -- ahora si.
         "condicion_llegada_conteo": dict(condicion_llegada_conteo),
         "por_condicion_llegada": {
             c: {m: resumen(vals) for m, vals in metricas.items()}
@@ -461,7 +439,7 @@ def analizar(eventos: list[dict], cota_reloj_ms: float | None = None,
     l_p95 = global_["L_ms"].get("p95")
     global_["rnf01_cumple_p95"] = (l_p95 is not None and l_p95 <= UMBRAL_L_MS)
     global_["reloj_pi_sincronizado"] = reloj_sincronizado
-    # Formulación de peor caso (RNF-01, pedida el 2026-10-28): L sigue
+    # Formulación de peor caso (RNF-01): L sigue
     # siendo el valor medido, pero la conclusión de cumplimiento se da
     # sumando la cota de error de reloj declarada (lado Pi) al p95 medido
     # -- "L < X ms incluso en el peor caso de error de reloj", no un
@@ -476,7 +454,7 @@ def analizar(eventos: list[dict], cota_reloj_ms: float | None = None,
     # RTT_srv) sigue siendo una medición válida de un solo reloj donde
     # corresponda -- solo el VEREDICTO de RNF-01 (que necesita la cota de
     # dos relojes) queda "no evaluable" en vez de forzar CUMPLE/NO CUMPLE
-    # con un número que no es real (ver docs/bitacora/2026-10-29_fase-controlador-emulado.md).
+    # con un número que no es real.
     if not reloj_sincronizado:
         global_["l_p95_peor_caso_ms"] = None
         global_["rnf01_cumple_p95_peor_caso"] = None
@@ -526,11 +504,7 @@ def analizar_conflicto(eventos: list[dict], filas_parada: list[dict]) -> dict:
     obtenido verde, y (c) el perdedor se haya atendido después o se haya
     cancelado correctamente al cruzar (en vez de quedar sin resolver).
 
-    *** FUERA DE ALCANCE de la campaña oficial y del Capítulo 4 desde el
-    2026-10-28 (decisión del autor; ver docs/CRONOGRAMA.md decisión de
-    alcance #2 y docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md).
-    Esta función se conserva (igual que el escenario 'conflicto' del
-    runner) porque no se borra código verificado -- main() solo la llama
+    Fuera de alcance de la campaña oficial del Capítulo 4: main() solo la llama
     si --dir apunta a una corrida con escenario='conflicto' en su
     config.json, lo que no debería ocurrir en una campaña nueva."""
     arbitrajes = sorted((e for e in eventos if e["tipo_evento"] == EVT_CONFLICTO_ARBITRADO),
@@ -625,8 +599,7 @@ def main() -> None:
     if not reloj_sincronizado:
         print("*** AVISO: la Pi perdió sincronización NTP (chronyc tracking: Stratum 0 / "
               "Not synchronised) en algún punto de esta corrida -- RNF-01 (peor caso) se "
-              "reporta 'no evaluable', no NO CUMPLE. Ver "
-              "docs/bitacora/2026-10-29_fase-controlador-emulado.md.\n")
+              "reporta 'no evaluable', no NO CUMPLE.\n")
     if not filas_parada:
         print("No hay paradas (M1_tx del servidor con seq) en esas carpetas.", file=sys.stderr)
         raise SystemExit(1)

@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
-"""Campaña de medición del lazo con la ARQUITECTURA CENTRALIZADA
-(2026-10-22): servidor/main.py decide, la RSU solo traduce. Reemplaza a
-scripts/campanas/lazo_emulado.py para este propósito (ver su docstring:
-quedó obsoleto, era para el esquema anterior donde la OBU emitía M1
-directo a la RSU).
+"""Campaña de medición del lazo con la ARQUITECTURA CENTRALIZADA:
+servidor/main.py decide, la RSU solo traduce.
 
 Tres escenarios, cada uno con UNA sola RSU física (rsu_id="1", igual al
 RSU_ID por defecto de agent/rsu_middleware.py y al que corre hoy en la
@@ -17,18 +14,13 @@ scripts/campanas/fixtures/):
              UMBRAL_DESVIO_M).
   conflicto  2 OBU casi simultáneas, accesos incompatibles de la MISMA RSU
              (grafo sintético "cruce", registro_rsu_1_conflicto.json).
-             *** FUERA DE ALCANCE de la campaña de medición y del
-             Capítulo 4 desde el 2026-10-28 (decisión del autor, caso
-             demasiado específico para el alcance de la tesis -- ver
-             docs/CRONOGRAMA.md, decisión de alcance #2, y
-             docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md).
-             El arbitraje (servidor/conflictos.py) sigue verificado con
-             pruebas unitarias; este runner conserva el escenario (no se
-             borra código) pero NO correrlo para la campaña oficial.
+             Fuera de alcance de la campaña de medición del
+             Capítulo 4; el arbitraje (servidor/conflictos.py) se
+             verifica con pruebas unitarias.
 
 Tres configuraciones de dónde corre la RSU, con el MISMO runner y el MISMO
 análisis (scripts/analisis/lazo_centralizado.py) para que sean
-comparables (OE5, hito S7):
+comparables (OE5):
 
   local      Todo en esta máquina: lanza controller_emulator.py +
              agent/rsu_middleware.py también (como los correr_e2e*.sh de
@@ -43,10 +35,8 @@ comparables (OE5, hito S7):
              --broker-host (la dirección por la que se la alcanza); la
              topología de mensajes es idéntica.
 
-*** CORREGIDO 2026-10-28, tras una campaña pi-lan inútil (100 %
-sin_respuesta) por este motivo exacto *** El broker Mosquitto vive en
-la LAPTOP, no en la Raspberry Pi, en los TRES config -- al revés de lo
-que decía esta sección antes. `deploy/systemd/rsu-agent.service.d/broker.conf`
+El broker Mosquitto vive en la LAPTOP, no en la Raspberry Pi, en los
+TRES config. `deploy/systemd/rsu-agent.service.d/broker.conf`
 (instalado siguiendo docs/ARRANQUE_BROKER_LAPTOP.md) fija
 `MQTT_BROKER_HOST=100.121.77.97` (Tailscale de la laptop) en la unidad
 systemd del agente de la Pi: el agente real NUNCA se conecta a
@@ -57,13 +47,10 @@ LAPTOP (`127.0.0.1` si este script corre en la misma laptop que aloja el
 broker, que es el caso de hoy), NO la de la Pi -- apuntar a la Pi
 conecta a un Mosquitto distinto, sin nadie suscrito del lado del agente,
 y cada M1 se pierde en silencio (servidor cree que lo mandó, el agente
-nunca lo vio: "sin_respuesta" en 100 % de las paradas, ver
-docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md).
+nunca lo vio: "sin_respuesta" en 100 % de las paradas).
 **[REVISAR con asesor]**: si el diseño final quiere el broker EN cada
-RSU (como sugería esta sección antes de corregirse) hay que: (a) quitar
-`broker.conf` en la Pi para que el agente vuelva a 127.0.0.1, (b) usar
-el Mosquitto de la Pi en vez de desactivarlo. Hoy no es así: queda
-documentada la realidad desplegada, no el diseño que se había asumido.
+RSU hay que: (a) quitar `broker.conf` en la Pi para que el agente vuelva
+a 127.0.0.1, (b) usar el Mosquitto de la Pi en vez de desactivarlo.
 
 Cada repetición varía la trayectoria (ruido GNSS gaussiano, mismo patrón
 que scripts/trayectorias/generar.py) y espera una pausa aleatoria (0..
@@ -72,7 +59,7 @@ verde 8 s + ámbar 3 s + todo rojo 2 s + rojo general 8 s = 21 s) antes de
 arrancar, para que las solicitudes lleguen en fases distintas del ciclo
 (verde, ámbar/todo rojo, rojo) en vez de repetir N veces el mismo caso.
 
-*** CUOTAS ADAPTATIVAS (2026-10-29) *** En vez de un número fijo de
+*** CUOTAS ADAPTATIVAS *** En vez de un número fijo de
 repeticiones, esta corrida sigue lanzando repeticiones hasta que cada una
 de las 3 condiciones de llegada (verde / ámbar-todo_rojo / rojo_general --
 la fase de la RSU en el momento de decidir, ver
@@ -81,8 +68,7 @@ scripts/analisis/lazo_centralizado.py::condicion_de_fase) tenga al menos
 `--tope-repeticiones` (por defecto 18) para no quedar colgado si alguna
 condición es rara. La pausa aleatoria NO se toca: la estratificación es
 por CUOTA (seguir corriendo hasta cubrir las 3), no por apuntar a una fase
-objetivo antes de lanzar la OBU -- eso último se descartó a propósito:
-entre lanzar la OBU y que la RSU decida pasan varios segundos variables
+objetivo antes de lanzar la OBU, porque entre lanzar la OBU y que la RSU decida pasan varios segundos variables
 (más con 4G), así que un objetivo fijado de antemano apuntaría a la fase
 equivocada. La condición de cada repetición se clasifica leyendo la
 decisión del lado de la RSU (snmp_set_tx, campo "fase") -- NO el M2 del
@@ -90,8 +76,7 @@ servidor: ese M2 vuelve a consultar al controlador al publicarse, y si la
 concesión fue inmediata (fase "verde" o "rojo_general", ambas fuera de
 FASES_NO_INTERRUMPIBLES) ya se llamó request_priority() antes de
 publicarlo, así que el M2 siempre reporta "verde" sin importar cuál de
-las dos fue la decisión real (bug encontrado y corregido el 2026-10-29,
-ver docs/bitacora/2026-10-29_fase-controlador-emulado.md). Con
+las dos fue la decisión real. Con
 config=local esos eventos ya están en esta máquina; con config=pi-lan/
 pi-4g se hace un fetch incremental (no solo al final de la campaña) para
 poder clasificar cada repetición de inmediato. `config.json` registra la
@@ -191,7 +176,7 @@ RSU_ID = "1"
 
 
 def _rutas_tls(tls_dir: Path, tipo: str, id_: str | None) -> tuple[str, str, str]:
-    """TLS 1.3 + mTLS para la campaña (prompt_seguridad.md, S1.4): reusa
+    """TLS 1.3 + mTLS para la campaña: reusa
     `scripts/seguridad/generar_ca.py` como librería, apuntando su PKI a
     `tls_dir` en vez de a deploy/pki/ (se asume ya inicializada --
     `generar_ca.py init` + `emitir --tipo servidor` corridos a mano, o por
@@ -225,8 +210,7 @@ ESCENARIOS = {
                            ("obu-conflicto-b", "trayectoria_conflicto_b_base.csv")]},
 }
 
-# Cuotas adaptativas por condición de llegada (ver docstring del módulo y
-# docs/bitacora/2026-10-29_fase-controlador-emulado.md).
+# Cuotas adaptativas por condición de llegada (ver docstring del módulo).
 META_POR_CONDICION_DEFAULT = 4
 TOPE_REPETICIONES_DEFAULT = 18
 CONDICIONES_LLEGADA = ("verde", "ambar_todo_rojo", "rojo_general")
@@ -254,11 +238,7 @@ def _condicion_de_repeticion(rep_dir: Path, config: str, host_rsu: str,
     campo "fase" y mismo filtro de acción que
     scripts/analisis/lazo_centralizado.py::analizar() usa para `decision`).
 
-    *** CORREGIDO 2026-10-29, el mismo día que se escribió: la primera
-    versión leía esto del lado del SERVIDOR (M2_rx.fase) para no depender
-    de scripts/pi.sh fetch con config=pi-lan/pi-4g (que solo trae los
-    eventos de la RSU real al terminar TODA la campaña) -- pero esa fase
-    NO es confiable para la concesión INMEDIATA de prioridad (fase_decision
+    No se lee del lado del SERVIDOR (M2_rx.fase): esa fase NO es confiable para la concesión INMEDIATA de prioridad (fase_decision
     "verde" o "rojo_general", ambas fuera de FASES_NO_INTERRUMPIBLES):
     agent/rsu_middleware.py::_publicar_m2() vuelve a consultar
     get_status() al publicar el M2, momento en el que ya se llamó
@@ -266,10 +246,7 @@ def _condicion_de_repeticion(rep_dir: Path, config: str, host_rsu: str,
     entonces una decisión real en "rojo_general" también se veía como
     "verde" en el M2. Solo el camino en cola (RF-06, fase amarillo/
     todo_rojo) reportaba bien, porque ese M2 se publica ANTES de pedir
-    prioridad. Visto en la primera campaña `lazo_local` real (20/20
-    "verde"/"ambar_todo_rojo", 0 "rojo_general" reportado en vivo, pero
-    8/5/5 real al recalcular desde el lado RSU) -- ver
-    docs/bitacora/2026-10-29_fase-controlador-emulado.md.
+    prioridad.
 
     Con config=local, eventos_rsu_1.csv ya está en `rep_dir` (misma
     máquina). Con config=pi-lan/pi-4g se hace un fetch incremental (no
@@ -377,10 +354,7 @@ def _verificar_sin_agente_local_huerfano() -> None:
     controller_emulator.py quedó corriendo en ESTA laptop de una corrida
     anterior, ocupa CONTROLLER_PORT/SNMP_PORT y, en pi-lan/pi-4g, usa el
     MISMO client_id 'rsu-middleware-{RSU_ID}' que el agente REAL de la
-    Pi -- el mismo choque que contaminó la campaña del 2026-10-28 (ver
-    docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md), aquí
-    en sentido inverso (huérfano local contra agente real de la Pi, en
-    vez de agente real de la Pi contra agente local)."""
+    Pi, y los dos clientes se desconectan mutuamente del broker."""
     ocupados = [(p, proto) for p, proto in ((CONTROLLER_PORT, "tcp"), (SNMP_PORT, "udp"))
                 if not _puerto_libre(p, proto)]
     if ocupados:
@@ -424,8 +398,8 @@ def _hosts_broker_laptop() -> set[str]:
 
 def _verificar_pi_agente_inactivo(host_rsu: str) -> None:
     """Solo para config=local: el agente de la Pi NO debe estar apuntando
-    a este mismo broker con el mismo client_id (causa real de la campaña
-    contaminada del 2026-10-28)."""
+    a este mismo broker con el mismo client_id (los dos clientes se
+    desconectarían mutuamente)."""
     r = _pi_sh("status", "agent", host_rsu)
     salida = r.stdout + r.stderr
     broker_pi = _broker_de_la_pi(host_rsu)
@@ -542,8 +516,7 @@ def _verificar_una_sola_conexion(rep_dir: Path) -> None:
                 f"expulsando y se reconecta en bucle; p. ej. rsu-agent.service de la Pi "
                 f"apuntando al broker de esta laptop). Verificar con "
                 f"'scripts/pi.sh status agent <host>' y detenerlo con "
-                f"'scripts/pi.sh stop agent <host>' si corresponde. Ver "
-                f"docs/bitacora/2026-10-28_campana-centralizada-lazo-desvio.md.")
+                f"'scripts/pi.sh stop agent <host>' si corresponde.")
 
 
 def _reloj_pi(host: str) -> str:
@@ -557,13 +530,10 @@ def _chrony_sincronizado(texto_reloj: str) -> bool:
     el runner al módulo de análisis) -- False si el texto de 'chronyc
     tracking' (dentro de _reloj_pi) muestra 'Leap status : Not
     synchronised' o 'Stratum : 0' (el centinela de chrony sin fuente
-    confiable). Preparado el 2026-10-29 tras encontrar que la Pi pierde
-    sincronización NTP de forma recurrente (chrony configurado con solo 2
-    fuentes, /etc/chrony/conf.d/rsu-lab.conf en la Pi -- journalctl
-    muestra 'no majority'/'Selected source' repitiéndose cada ~15-45 min,
-    sin relación con la red: ver
-    docs/bitacora/2026-10-29_fase-controlador-emulado.md). NO corregido
-    aquí (no se toca la configuración de red/tiempo de la Pi sin que el
+    confiable). La Pi pierde sincronización NTP de forma recurrente (chrony
+    configurado con solo 2 fuentes, /etc/chrony/conf.d/rsu-lab.conf en la
+    Pi -- journalctl muestra 'no majority'/'Selected source' repitiéndose
+    cada ~15-45 min, sin relación con la red). No se corrige aquí (no se toca la configuración de red/tiempo de la Pi sin que el
     autor esté presente para recuperarla si algo sale mal)."""
     if not texto_reloj:
         return True
@@ -575,9 +545,7 @@ def _chrony_sincronizado(texto_reloj: str) -> bool:
 
 
 def _verificar_chrony_sincronizado(host: str) -> None:
-    """Pre-vuelo para config=pi-lan/pi-4g (preparado, no corrido aún --
-    ver docs/bitacora/2026-10-29_fase-controlador-emulado.md, punto 1):
-    aborta ANTES de lanzar nada si la Pi ya está desincronizada en este
+    """Pre-vuelo para config=pi-lan/pi-4g: aborta ANTES de lanzar nada si la Pi ya está desincronizada en este
     momento -- más barato que descubrirlo al final de 18 repeticiones.
     No arregla nada ni reinicia chrony: eso es una decisión de red/tiempo
     de la Pi que le corresponde al autor, no a este script."""
@@ -588,8 +556,8 @@ def _verificar_chrony_sincronizado(host: str) -> None:
             f"('chronyc tracking' vía scripts/pi.sh clock {host} muestra Stratum 0 / "
             f"Not synchronised). No tiene sentido empezar una campaña pi-lan/pi-4g así: "
             f"el peor caso de RNF-01 saldría 'no evaluable' para toda la corrida. "
-            f"Esto es RECURRENTE en esta Pi (chrony con solo 2 fuentes NTP configuradas, "
-            f"ver docs/bitacora/2026-10-29_fase-controlador-emulado.md) -- esperar unos "
+            f"Esto es RECURRENTE en esta Pi (chrony con solo 2 fuentes NTP configuradas) "
+            f"-- esperar unos "
             f"minutos y reintentar ('chronyc tracking' en la Pi suele resincronizar solo "
             f"en 15-45 min) en vez de reiniciar servicios de red/tiempo sin supervisión.")
     print(f"[campaña] chrony sincronizado en '{host}' (pre-vuelo OK)")
@@ -746,14 +714,9 @@ def _lanzar_local(rep_dir: Path, tls_dir: Path | None,
 
     broker_host/broker_port tienen el default de agent/rsu_middleware.py
     (127.0.0.1:1883) por compatibilidad, pero SIEMPRE hay que pasar los
-    reales si se usa un broker en otro puerto -- antes de
-    prompt_seguridad.md/S3 esta función dependía en silencio de que
-    os.environ ya tuviera MQTT_BROKER_HOST/PORT puestos (coincidencia:
-    todas las campañas locales hasta ahora usaron el puerto por defecto
-    1883), un hueco real que se encontró al correr test_seguridad_broker.py
-    T11 contra un broker en un puerto arbitrario -- la RSU conectaba en
+    reales si se usa un broker en otro puerto: si no, la RSU conecta en
     TLS contra el Mosquitto de desarrollo en 1883 (sin TLS) y el handshake
-    fallaba con ssl.SSLEOFError en vez de un error claro de puerto."""
+    falla con ssl.SSLEOFError en vez de un error claro de puerto."""
     entorno = dict(os.environ, RSU_EVENTOS_DIR=str(rep_dir), RSU_ID=RSU_ID,
                    CONTROLLER_PORT=str(CONTROLLER_PORT), SNMP_PORT=str(SNMP_PORT),
                    MQTT_BROKER_HOST=broker_host, MQTT_BROKER_PORT=str(broker_port))
@@ -806,8 +769,8 @@ def _lanzar_servidor(rep_dir: Path, grafo: str, registro: Path, broker_host: str
     # Verificación del lado del servidor: si servidor/main.py no llega a
     # conectarse y suscribirse al broker ANTES de que las OBU empiecen a
     # publicar (_correr_obus), el MI/MP inicial de la misión se pierde sin
-    # dejar rastro en la RSU -- un "sin_respuesta" que antes se atribuía a
-    # otras causas sin haber revisado este log. servidor/main.py imprime
+    # dejar rastro en la RSU y se vería como un "sin_respuesta".
+    # servidor/main.py imprime
     # "[servidor] Conectado al broker" en su _on_connect justo antes de
     # suscribirse (ver servidor/main.py).
     if not _esperar_en_log(log, "[servidor] Conectado al broker"):
@@ -1110,9 +1073,7 @@ def main() -> None:
     ventanas: list[tuple[str, int, int]] = []
     conteo_por_condicion: dict[str, int] = {c: 0 for c in CONDICIONES_LLEGADA}
     condicion_por_repeticion: dict[str, str | None] = {}
-    # Muestreo de chrony por repetición (preparado 2026-10-29, ver
-    # docs/bitacora/2026-10-29_fase-controlador-emulado.md, punto 1):
-    # NO aborta a mitad de campaña si se pierde la sincronización --
+    # Muestreo de chrony por repetición: NO aborta a mitad de campaña si se pierde la sincronización --
     # perder 18 repeticiones de datos por un hueco de NTP de unos
     # minutos sería peor que marcarlo y decidir en el análisis (ver
     # scripts/analisis/lazo_centralizado.py::reloj_pi_sincronizado*). El
@@ -1238,7 +1199,7 @@ def main() -> None:
         perdidas = [r for r, ok in chrony_sincronizado_por_repeticion.items() if not ok]
         print(f"*** AVISO: la Pi perdió sincronización NTP en {len(perdidas)} repetición(es): "
               f"{perdidas}. RNF-01 (peor caso) de esta corrida se reportará 'no evaluable' en "
-              f"el análisis, no 'NO CUMPLE' -- ver docs/bitacora/2026-10-29_fase-controlador-emulado.md.")
+              f"el análisis, no 'NO CUMPLE'.")
 
     if args.config != "local":
         print("[campaña] Trayendo eventos de la RSU real (scripts/pi.sh fetch-eventos)...")
