@@ -7,7 +7,7 @@ controller/controller_emulator.py).
 contra la norma oficial publicada. OBJETOS NTCIP 1211 REALES (solicitud
 de prioridad), pero contra un BORRADOR SIN VERIFICAR -- ver mas abajo. ***
 
-NTCIP 1202 (P2, ver docs/PLAN_IMPLEMENTACION.md): el lado de LECTURA de
+NTCIP 1202: el lado de LECTURA de
 este agente -- estado de fase y parametros de tiempo -- usa los objetos
 reales de la norma NTCIP 1202 v03B, verificados a mano contra
 NTCIP-1202v03.35e-aspublished.pdf (no solo el .mib extraido automaticamente
@@ -21,12 +21,10 @@ bit 0 ("Bit 0: Phase # = (phaseStatusGroupNumber * 8) - 7" en la norma) --
 consistente con el alcance de esta etapa (sin arbitraje entre fases
 concurrentes, ver ssec:alcance en main.tex).
 
-NTCIP 1211 (P3): priorityRequestTable (lectura) y prgPriorityRequestAbsolute
+NTCIP 1211: priorityRequestTable (lectura) y prgPriorityRequestAbsolute
 (escritura, OCTET STRING OER-codificado) usan los nombres y el orden de
-campos del BORRADOR v02A-SE03 (2017) de NTCIP1211v02_PRS-MIB1 -- NO existe,
-al momento de escribir esto, una copia del documento oficial v02 (2014)
-disponible (se solicito a ntcip@nema.org, ver
-E:\\Tesis\\redaccion\\correo_nema.md). Ademas, el OID base `scp` (del que
+campos del BORRADOR v02A-SE03 (2017) de NTCIP1211v02_PRS-MIB1: no se
+dispone de una copia del documento oficial v02 (2014). Ademas, el OID base `scp` (del que
 cuelgan estos objetos) viene de un modulo de soporte reconstruido
 (NTCIP8004v02) con ese nodo marcado como NO confirmado contra una fuente
 autoritativa. Ver agent/ntcip1211.py para el detalle completo de esta
@@ -46,30 +44,25 @@ Cuatro enlaces que este proceso conecta:
    operacionales) antes de reenviar. Los objetos de phaseStatusGroupTable y
    phaseTable siempre reflejan en vivo el estado y los tiempos reales del
    controlador (consulta en cada GET, no hay cache local).
-3. Servidor central -> RSU (arquitectura centralizada, 2026-10-22), dos
+3. Servidor central -> RSU (arquitectura centralizada), dos
    caminos por el mismo tema rsu/{RSU_ID}/solicitudes:
    - M1/M3 del SERVIDOR (servidor/gestor_mision.py vía servidor/main.py):
-     M1 crea o renueva la solicitud (ahora con anticipación por ETA, no
-     solo al cruzar la geocerca local de la OBU: la geocerca se evalúa EN
-     EL SERVIDOR, ver gateway/geometria.py), M3 la cancela, y la RSU
-     responde M2 (recibida/en cola/concedida/rechazada/cancelada) en el
-     Response Topic de MQTT 5 que trae el propio mensaje -- sin cambios en
-     esa mecánica, solo cambia QUIÉN la usa. Ver docs/LAZO_EMULADO.md y
+     M1 crea o renueva la solicitud (con anticipación por ETA o al cruzar
+     la geocerca, que se evalúa EN EL SERVIDOR, ver gateway/geometria.py),
+     M3 la cancela, y la RSU responde M2 (recibida/en cola/concedida/
+     rechazada/cancelada) en el Response Topic de MQTT 5 que trae el
+     propio mensaje. Ver docs/LAZO_EMULADO.md y
      docs/CONTRATO_OBU.md.
-   - Legado (P0-P3, antes de la arquitectura centralizada): M1/M3 directo
-     de gateway/obu_emulada.py (la OBU decidía la RSU/acceso localmente) o
-     un mensaje en MQTT_TOPIC (gateway/obu_simulator.py), sin respuesta ni
-     cancelación. Esta RSU sigue aceptando ambos formatos por compatibilidad
-     con pruebas y evidencia ya levantada (ver evidencia/), pero el diseño
-     vigente de la tesis es que SOLO el servidor publique en este tema.
+   - Formato simplificado: un mensaje en MQTT_TOPIC (gateway/obu_simulator.py)
+     o un M1 con "vehiculo_id", sin respuesta ni cancelación. Se acepta
+     para pruebas aisladas de la RSU; en el diseño de la tesis SOLO el
+     servidor publica en este tema.
    *** Seguridad: la restricción de que solo el servidor pueda publicar en
    `rsu/+/solicitudes` se hace cumplir en el BROKER (ACL de Mosquitto +
    identidad mTLS, ver scripts/seguridad/), NO en este código -- este
    proceso no tiene manera de verificar, a partir del payload JSON, quién
-   lo publicó. Si el broker no tiene esa ACL configurada (ver el estado
-   real en docs/bitacora/2026-10-22_arquitectura-centralizada.md),
-   cualquier publicador en este tema puede activar una solicitud, igual
-   que en el esquema anterior. ***
+   lo publicó. Si el broker no tiene esa ACL configurada, cualquier
+   publicador en este tema puede activar una solicitud. ***
 4. Caducidad (RF-09/RNF-03): un hilo en segundo plano verifica cada medio
    segundo si la solicitud activa lleva mas de T_CAD_SEGUNDOS sin
    actualizarse (ver agent/ntcip1211.py) y, si es asi, libera la prioridad
@@ -208,28 +201,26 @@ NUM_FILAS_PRIORITY_REQUEST = 10  # fijo por la norma ("number of rows... is 10")
 CONTROLLER_HOST = "127.0.0.1"
 CONTROLLER_PORT = int(os.environ.get("CONTROLLER_PORT", "9000"))
 
-# Broker MQTT. Por defecto, el mosquitto de la propia RSU (como hasta P3);
-# con MQTT_BROKER_HOST se apunta al broker central del diseno vigente
+# Broker MQTT. Por defecto, el mosquitto local (127.0.0.1); con MQTT_BROKER_HOST se apunta al broker central del diseno vigente
 # (arquitectura centralizada, E3, ssec:sel_direccionamiento de main.tex).
 MQTT_BROKER_HOST = os.environ.get("MQTT_BROKER_HOST", "127.0.0.1")
 MQTT_BROKER_PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
 # Reconexión tras perder el enlace (RNF-08). Con los valores por defecto de
 # paho (keepalive de 30 s, espera entre reintentos que se duplica de 1 a
-# 120 s), el corte físico del 4G del 2026-11-15 dio un T_rec de 18,2 s de
-# mediana (7,4-38,1 s): el cliente podía quedar esperando su siguiente
-# reintento con la red ya disponible. Se acota la espera a MQTT_RECONEXION_MAX_S
+# 120 s), el cliente puede quedar esperando su siguiente reintento con la
+# red ya disponible (en el corte físico del 4G, T_rec de 18,2 s de mediana,
+# 7,4-38,1 s). Se acota la espera a MQTT_RECONEXION_MAX_S
 # y se detecta antes la pérdida con un keepalive menor. Son parámetros de
 # diseño en evaluación, no valores de una norma.
 MQTT_KEEPALIVE_S = int(os.environ.get("MQTT_KEEPALIVE_S", "10"))
 MQTT_RECONEXION_MIN_S = int(os.environ.get("MQTT_RECONEXION_MIN_S", "1"))
 MQTT_RECONEXION_MAX_S = int(os.environ.get("MQTT_RECONEXION_MAX_S", "2"))
-# Tema LEGADO (P0-P3): un solo tema para todas las RSU, mensaje con
+# Tema simplificado: un solo tema para todas las RSU, mensaje con
 # eta_seg. Se mantiene para gateway/obu_simulator.py y scripts/demo_asesor.sh.
 MQTT_TOPIC = "rsu/v2i/solicitud_prioridad"
 
-# mTLS opcional (prompt_seguridad.md, S1): igual convencion que
-# SERVIDOR_TLS_CA/CERT/KEY de servidor/main.py. Si no se definen, se
-# conecta sin TLS (como hasta ahora).
+# mTLS opcional: igual convencion que SERVIDOR_TLS_CA/CERT/KEY de
+# servidor/main.py. Si no se definen, se conecta sin TLS.
 RSU_TLS_CA = os.environ.get("RSU_TLS_CA")
 RSU_TLS_CERT = os.environ.get("RSU_TLS_CERT")
 RSU_TLS_KEY = os.environ.get("RSU_TLS_KEY")
@@ -289,11 +280,9 @@ def _id_numerico_para(vehiculo_id: str) -> int:
 
 
 # Conexion persistente hacia el controlador (JSON Lines, un pedido -> una
-# linea de respuesta). Antes se abria una conexion TCP nueva por pedido: en
-# Linux (la Pi) cuesta decimas de ms, pero en Windows cada conexion por
-# loopback cuesta ~15 ms, y con 2-3 pedidos por M1 inflaba la retencion de
-# la RSU en el banco local (~30 ms frente a 1,9 ms en la Pi). La
-# semantica de cada pedido no cambia. El candado serializa los pedidos del
+# linea de respuesta). Una conexion TCP nueva por pedido cuesta ~15 ms por
+# loopback en Windows (decimas de ms en la Pi), y con 2-3 pedidos por M1
+# inflaria la retencion de la RSU en el banco local. El candado serializa los pedidos del
 # hilo MQTT y del watchdog de caducidad sobre el mismo socket.
 _CTRL_LOCK = threading.Lock()
 _CTRL_SOCK: socket.socket | None = None
@@ -371,7 +360,7 @@ def procesar_solicitud_prioridad(
     reconocida) no se cumple -- el llamador decide que hacer con eso (error
     SNMP, o solo loguear si viene de MQTT, que no tiene un canal de
     respuesta sincrono hacia la OBU todavia, ver TODO en _on_mqtt_message).
-    RF-06 (limite operacional) ya NO rechaza: si el controlador esta en
+    RF-06 (limite operacional) NO rechaza: si el controlador esta en
     amarillo/todo_rojo, la fila queda en readyQueued (agent/ntcip1211.py) y
     NO se reenvia al controlador todavia -- lo hace el watchdog
     (verificar_caducidad_periodica) cuando termine el despeje, siempre que
@@ -386,8 +375,7 @@ def procesar_solicitud_prioridad(
         # La actualizacion (M1 con seq+1) renueva el plazo RF-09 en la RSU
         # Y la prioridad en el controlador: sin esto, el controlador emulado
         # soltaba el verde a los PRIORITY_HOLD_SECONDS (15 s) aunque la OBU
-        # siguiera renovando -- visto con un vehiculo detenido 20 s en cola
-        # (escenario detenido_en_cola, bitacora 2026-10-19). Si la OBU deja
+        # siguiera renovando (vehiculo detenido en cola). Si la OBU deja
         # de renovar, la caducidad RF-09 libera igual a los 3 s.
         _reenviar_request_priority(s.vehiculo_id, s.t_servicio_deseado, id_solicitud_evento)
         return
@@ -414,10 +402,8 @@ def procesar_solicitud_prioridad(
                     accion="en_cola_despeje", fase=fase_actual)
         return  # no se reenvia al controlador todavia -- ver verificar_caducidad_periodica
 
-    # fase=fase_actual agregado 2026-10-29 (instrumentacion, no cambia la
-    # decision): antes solo "en_cola_despeje" llevaba la fase del
-    # controlador en el evento; para poder clasificar TODA solicitud por
-    # la fase en que la RSU decidio (verde/amarillo-todo_rojo/rojo_general,
+    # fase=fase_actual (instrumentacion, no cambia la decision): para
+    # poder clasificar TODA solicitud por la fase en que la RSU decidio (verde/amarillo-todo_rojo/rojo_general,
     # ver scripts/campanas/lazo_centralizado.py), el camino de concesion
     # inmediata tambien debe loguearla.
     EVENTOS.log(EVT_SNMP_SET_TX, id_solicitud_evento, origen=origen, accion="request_priority",
@@ -623,7 +609,7 @@ class PrgPriorityRequestAbsoluteInstance:
         id_evento = f"snmp-{solicitud.vehiculo_id.decode('utf-8', errors='replace') or 'sin-vehiculo'}"
         try:
             # Solo RF-05 (clase no reconocida) o el controlador inalcanzable
-            # llegan aqui como SolicitudRechazada: RF-06 ya no rechaza, deja
+            # llegan aqui como SolicitudRechazada: RF-06 no rechaza, deja
             # la fila en readyQueued (ver procesar_solicitud_prioridad) y
             # el SET se acepta igual -- el resultado se sigue leyendo en
             # priorityRequestTable, no en la respuesta de este SET.
@@ -685,10 +671,8 @@ def _on_mqtt_connect(client, _userdata, _flags, reason_code, _properties=None):
     # Resuscribirse en cada conexion (no solo la primera vez): si el broker
     # se reinicia o la red se cae un momento, el cliente se reconecta solo
     # (loop_start ya lo maneja) pero pierde la suscripcion del lado del
-    # broker si no se repite aqui. Antes esto solo se hacia una vez en
-    # start_mqtt_listener(), lo que dejaba al middleware "sordo" tras
-    # cualquier reconexion sin ningun error visible (ver bitacora
-    # 2026-10-11_arranque-servicios-y-smoke-test.md).
+    # broker si no se repite aqui, y el middleware quedaria "sordo" sin
+    # ningun error visible.
     client.subscribe([(MQTT_TOPIC, 1), (MQTT_TOPIC_SOLICITUDES, 1)])
 
 
@@ -772,18 +756,16 @@ def _es_duplicado(id_solicitud: str, seq: int) -> bool:
 
 
 def _procesar_m1(msg, data: dict) -> None:
-    """M1 (tab:mensajes): desde la arquitectura centralizada lo publica el
-    servidor (servidor/gestor_mision.py::_cuerpo_m1), con campos minimos
-    id_solicitud/clase/acceso/t_servicio -- ya no "vehiculo_id" (acepta
-    "obu_id" o "mision_id" en su lugar, solo para el registro de eventos y
-    el id_solicitud numerico de NTCIP 1211). Desde el 2026-11-16 trae
-    tambien "interseccion_id" y "grupo_semaforico": hay una RSU por
+    """M1 (tab:mensajes): lo publica el servidor
+    (servidor/gestor_mision.py::_cuerpo_m1), con campos minimos
+    id_solicitud/clase/acceso/t_servicio y "obu_id" o "mision_id" (solo
+    para el registro de eventos y el id_solicitud numerico de NTCIP 1211).
+    Trae tambien "interseccion_id" y "grupo_semaforico": hay una RSU por
     CONTROLADOR, y un controlador puede gobernar varias intersecciones, asi
-    que el tema de la RSU ya no identifica la interseccion. El controlador
+    que el tema de la RSU no identifica la interseccion. El controlador
     emulado tiene un solo grupo y no los usa; un adaptador hacia un
-    controlador de varias intersecciones elige con ellos la fase. El camino legado
-    (gateway/obu_emulada.py anterior a 2026-10-22) sigue aceptandose: si
-    llega "vehiculo_id" se usa ese; si no, "obu_id"/"mision_id"."""
+    controlador de varias intersecciones elige con ellos la fase. Si llega
+    "vehiculo_id" se usa ese; si no, "obu_id"/"mision_id"."""
     response_topic, correlation = _respuesta_de(msg)
     try:
         id_solicitud = str(data["id_solicitud"])
@@ -873,9 +855,8 @@ def _procesar_m3(msg, data: dict) -> None:
 
 
 def _procesar_m1_legado(msg, data: dict) -> None:
-    """Camino de P0-P3 (gateway/obu_simulator.py, demo_asesor.sh): un M1
-    simplificado con eta_seg, sin seq ni Response Topic. Sin cambios de
-    comportamiento respecto de la version anterior."""
+    """Camino simplificado (gateway/obu_simulator.py, demo_asesor.sh): un M1
+    con eta_seg, sin seq ni Response Topic."""
     try:
         vehiculo_id = data["vehiculo_id"]
         eta_seg = data.get("eta_seg", 0)
@@ -895,8 +876,7 @@ def _procesar_m1_legado(msg, data: dict) -> None:
     # Traduccion V2I (M1, JSON) -> NTCIP 1211 (RF-07): M1 no trae todos los
     # campos de prgPriorityRequestAbsolute (ver tab:mensajes de main.tex,
     # que solo define id_solicitud/vehiculo_id/eta_seg/clase/etc. a nivel de
-    # diseno, no 1:1 con los 8 campos OER). Mapeo adoptado, documentado en
-    # la bitacora de P3:
+    # diseno, no 1:1 con los 8 campos OER). Mapeo adoptado:
     # - clase_tipo: toma "clase_tipo" del mensaje si viene, si no asume 1
     #   (maxima precedencia) -- gateway/obu_simulator.py ya lo envia.
     # - clase_nivel: 10 (minimo sub-nivel), M1 no distingue niveles dentro

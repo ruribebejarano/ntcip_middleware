@@ -4,14 +4,13 @@
 *** EMULADOR, NO ES UN CONTROLADOR REAL ***
 Sustituye al hardware real del controlador semaforico (el "Regulador RSIM" /
 controlador Indra mencionado en CLAUDE.md) para poder desarrollar y probar
-el middleware de la RSU sin depender de acceso a ese hardware (ver
-Cronograma, Semana 4, decision de reducir riesgo R5). Cuando haya acceso al controlador
-real, este archivo se reemplaza por el adaptador que hable su protocolo
+el middleware de la RSU sin depender de acceso a ese hardware (riesgo R5).
+Con acceso al controlador real, este archivo se reemplaza por el adaptador que hable su protocolo
 propietario real (ver "MANUAL DE PROGRAMAR CONTROL INDRA" en el material de
 referencia citado en CLAUDE.md) -- la interfaz hacia agent/rsu_middleware.py
 (el protocolo JSON Lines de abajo) es exactamente el punto de reemplazo.
 
-Ciclo de fases: a partir de esta version (P2, OE3), el ciclo normal usa
+Ciclo de fases: el ciclo normal usa
 TIEMPOS REALES de NTCIP 1202 (ver agent/rsu_middleware.py para los objetos
 expuestos por SNMP), no constantes arbitrarias:
 
@@ -27,18 +26,10 @@ a nivel de bit de estado (ver phaseStatusGroupReds en el middleware): la
 norma no distingue el despeje del resto del rojo a ese nivel, solo en los
 parametros de tiempo.
 
-*** CORREGIDO 2026-10-29: defecto de ESTE banco de pruebas, no de
-agent/rsu_middleware.py (que consume get_status tal cual lo definio
-siempre). La fase nominal se calcula ahora por modulo de un reloj continuo
+La fase nominal se calcula por modulo de un reloj continuo
 (Controller._fase_en_offset_locked), no avanzando un paso por cada llamada
-a status() como antes -- con el avance de un paso, cualquier intervalo sin
-consultas mas largo que la fase vigente (lo normal: nada hace poll al
-controlador mientras no hay una solicitud activa) dejaba la fase
-reportada permanentemente atrasada, convergiendo siempre a "amarillo" sin
-importar cuanto tiempo real hubiera pasado. Esto invalido la campana de
-medicion del 2026-10-28 (las 40 solicitudes llegaron "amarillo"/en cola
-de despeje, nunca verde ni rojo_general) -- ver
-docs/bitacora/2026-10-29_fase-controlador-emulado.md. ***
+a status(): nada hace poll al controlador mientras no hay una solicitud
+activa, y un avance por pasos dejaria la fase reportada atrasada.
 
 Protocolo (JSON Lines sobre TCP, un objeto JSON por linea, una linea de
 respuesta por cada linea de pedido):
@@ -69,7 +60,7 @@ en cuyo caso el controlador sostiene "verde" -- igual que una fase de
 preemption real para un vehiculo de emergencia (EVP) -- hasta que se pida
 clear_priority o venza PRIORITY_HOLD_SECONDS.
 
-Modo multifase (2026-11-16, --fases-conflicto): por defecto, una solicitud
+Modo multifase (--fases-conflicto): por defecto, una solicitud
 que llega en "rojo_general" recibe el verde de inmediato, como si ninguna
 otra fase tuviera verde. Un controlador real no puede hacer eso: si el
 grupo solicitado esta en rojo es porque otra fase tiene verde, y esa fase
@@ -154,8 +145,7 @@ class Controller:
         # REPORTA (fuerza "verde"); el ciclo de fondo sigue corriendo
         # igual, asi que al liberar la prioridad se reporta la fase real
         # segun el tiempo transcurrido, no una congelada desde antes de
-        # la prioridad (ver docs/bitacora, defecto de banco de pruebas
-        # corregido 2026-10-29).
+        # la prioridad.
         # desfase_s (campaña de ruta completa): arranca el ciclo como si
         # ya hubieran pasado desfase_s segundos desde el inicio del verde,
         # para que varios controladores lanzados juntos no queden en fase.
@@ -171,7 +161,7 @@ class Controller:
         self._priority_until = 0.0
         self._eventos = eventos
         self._fase_logueada: str | None = None
-        # Salida de la prioridad (2026-11-12): al liberar, el grupo no salta a
+        # Salida de la prioridad: al liberar, el grupo no salta a
         # la fase del plan. Respeta el verde mínimo desde que empezó el verde,
         # pasa por ámbar y todo rojo, y retoma el plan cuando este está en
         # verde o en rojo general (nunca entra al plan a mitad de un ámbar o
@@ -230,15 +220,10 @@ class Controller:
 
     def _fase_en_offset_locked(self, offset_s: float) -> str:
         """Fase nominal a `offset_s` segundos desde self._epoch, calculada
-        de una vez por modulo del ciclo TOTAL vigente -- no por pasos. Esto
-        es lo que corrige el defecto de banco de pruebas (no de
-        agent/rsu_middleware.py) detectado el 2026-10-28/29: la version
-        anterior solo avanzaba UNA fase por llamada a status(), asi que
-        cualquier intervalo sin consultas mayor que la duracion de la fase
-        actual (lo normal: nada hace poll al controlador mientras no hay
-        una solicitud en curso, ver agent/rsu_middleware.py) dejaba
-        reportada una fase atrasada, SIEMPRE la siguiente a "verde" en la
-        practica -- nunca la fase real. Con el modulo, no importa cuanto
+        de una vez por modulo del ciclo TOTAL vigente -- no por pasos: nada
+        hace poll al controlador mientras no hay una solicitud en curso, y
+        avanzar UNA fase por llamada a status() dejaria reportada una fase
+        atrasada. Con el modulo, no importa cuanto
         tiempo paso sin consultar: la fase devuelta es siempre la correcta
         segun el reloj."""
         cycle = self._cycle_locked()
@@ -318,8 +303,7 @@ class Controller:
         self._fase_logueada = fase
         # print() ademas del registro CSV: sin esto, el ciclo normal (fuera
         # de una solicitud de prioridad) no deja ningun rastro visible en
-        # journalctl -- se detecto al intentar capturar evidencia de un
-        # ciclo completo para la bitacora (2026-10-11).
+        # journalctl.
         print(f"[controlador] Fase -> {fase} ({extra.get('motivo', '?')})")
         if self._eventos is not None:
             self._eventos.log(
@@ -332,7 +316,7 @@ class Controller:
 
     def _sincronizar_locked(self) -> None:
         """Pone al dia _fase_logueada/el log de eventos con la fase que
-        corresponde AHORA (ver _fase_actual_locked) -- ya no "avanza" nada
+        corresponde AHORA (ver _fase_actual_locked) -- no "avanza" nada
         manualmente, solo detecta caducidad de prioridad y deja que
         _log_si_cambio_locked (llamado aqui y de nuevo en status()) lea la
         fase real."""
@@ -366,7 +350,7 @@ class Controller:
                 "green": green,
                 "prioridad_activa": self._priority_vehicle is not None,
                 "prioridad_de": self._priority_vehicle,
-                # campos adicionales (2026-11-12); el middleware no los usa
+                # campos adicionales; el middleware no los usa
                 "fase_plan": self._fase_normal_locked(),
                 "en_salida": self._salida_ambar is not None,
             }
@@ -378,7 +362,7 @@ class Controller:
                 "phase_yellow_change": self._phase_yellow_change_ds,
                 "phase_red_clear": self._phase_red_clear_ds,
                 "rojo_general_seg": self._rojo_general_s,
-                # modo multifase (2026-11-16); el middleware no los usa
+                # modo multifase; el middleware no los usa
                 "verde_plan_seg": self._verde_plan_s,
                 "fases_conflicto_seg": list(self._fases_conflicto_s),
                 "verde_min_conflicto_seg": self._verde_min_conflicto_s,

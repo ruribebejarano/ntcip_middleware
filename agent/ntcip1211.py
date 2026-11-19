@@ -1,9 +1,8 @@
 """NTCIP 1211 v02 -- Priority Request Server (PRS), subconjunto minimo.
 
 *** BORRADOR SIN VERIFICAR CONTRA LA NORMA OFICIAL ***
-No existe, al momento de escribir este modulo (2026-10-11), una copia del
-documento oficial NTCIP 1211 v02 (2014) disponible -- se solicito a
-ntcip@nema.org (ver E:\\Tesis\\redaccion\\correo_nema.md). El orden y tamano
+No se dispone de una copia del documento oficial NTCIP 1211 v02 (2014)
+(se solicito a ntcip@nema.org). El orden y tamano
 de los campos de abajo salen de
 E:\\Tesis\\datasheets\\ntcip1211_borrador\\NTCIP1211v02_PRS-MIB1_BORRADOR_SIN_VERIFICAR.mib
 (extraido automaticamente de un .docx del borrador v02A-SE03, 2017).
@@ -241,7 +240,7 @@ class PriorityRequestServer:
         """RF-05 + RF-06. RF-05 (clase no reconocida) sigue siendo un
         rechazo duro: levanta SolicitudRechazada y no modifica el estado.
 
-        RF-06 (limite operacional) ya NO rechaza: si el controlador esta en
+        RF-06 (limite operacional) NO rechaza: si el controlador esta en
         `amarillo` o `todo_rojo` (intervalo de seguridad en curso,
         restriccion R-02), la solicitud queda en `readyQueued` en vez de
         `activeProcessing`, a la espera de que termine el despeje. Sigue
