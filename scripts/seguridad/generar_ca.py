@@ -1,20 +1,13 @@
 #!/usr/bin/env python3
-"""CA propia para TLS 1.3 + mTLS (P4, sección 1.4 del prompt de
-arquitectura centralizada): emite y revoca certificados para el servidor
+"""CA propia para TLS 1.3 + mTLS: emite y revoca certificados para el servidor
 central, cada RSU y cada OBU, todos firmados por la misma CA, para que
 Mosquitto pueda exigir `require_certificate true` y las ACL de
 scripts/seguridad/mosquitto_acl.conf puedan basarse en el Common Name (CN)
 del certificado de cada cliente (`use_identity_as_username true`).
 
-*** Estado real en este entorno (ver docs/bitacora/2026-10-22_arquitectura-centralizada.md) ***
-Este script SÍ se probó en este entorno (genera la CA y emite certificados
-de servidor/RSU/OBU reales con openssl, verificados con
-`openssl verify`). Lo que NO se pudo probar aquí es un Mosquitto real
-escuchando en 8883 con estos certificados y las ACL aplicadas -- no hay un
-broker corriendo en este entorno de desarrollo. Ver
-scripts/seguridad/mosquitto_tls.conf y el final de este docstring para los
-comandos exactos para que el autor lo verifique en la Raspberry Pi o en su
-laptop con Mosquitto instalado.
+Ver scripts/seguridad/mosquitto_tls.conf y el final de este docstring para
+los comandos que configuran Mosquitto (puerto 8883) con estos certificados
+y las ACL.
 
 Subcomandos:
     init                                   crea la CA (una sola vez)
@@ -24,8 +17,7 @@ Subcomandos:
     revocar --tipo rsu --id 1              revoca el certificado de la RSU 1 (regenera la CRL)
     listar                                 lista los certificados emitidos y su estado
 
---id de una OBU: identidad FIJA del dispositivo (item 2b,
-prompt_integracion_app_obu.md), igual al obu_id que se configura en
+--id de una OBU: identidad FIJA del dispositivo, igual al obu_id que se configura en
 Ajustes de app_obu/ o se lee del Common Name del propio certificado
 (app_obu/seguridad/TlsConfig.kt::commonNameCliente) -- NO un id por
 sesión/misión: con mTLS, el certificado identifica a un dispositivo, y la
@@ -68,7 +60,7 @@ CA_DIR = PKI / "ca"
 DIAS_CA = 3650   # 10 años: CA de laboratorio, no de producción [REVISAR con asesor]
 DIAS_LEAF = 825  # ~27 meses, igual que el límite que exigen los navegadores para TLS de servidor
 
-# SAN por defecto del certificado del SERVIDOR (prompt_seguridad.md, S1.5):
+# SAN por defecto del certificado del SERVIDOR:
 # los clientes (servidor/main.py, agent/rsu_middleware.py, gateway/obu_*.py,
 # app_obu/ con TLS activado) verifican el nombre del host contra el SAN del
 # certificado del broker (ssl.SSLContext.check_hostname=True, ver
@@ -124,7 +116,7 @@ def init_ca() -> None:
     cnf = CA_DIR / "openssl.cnf"
     cnf.write_text(_OPENSSL_CNF.format(ca_dir=str(CA_DIR).replace("\\", "/")), encoding="utf-8")
 
-    # PKCS#8 (genpkey), no PKCS#1 (genrsa): B4 -- la app Android parsea la
+    # PKCS#8 (genpkey), no PKCS#1 (genrsa): la app Android parsea la
     # llave con javax.crypto puro (PKCS8EncodedKeySpec), sin BouncyCastle;
     # PKCS#1 no lo soporta el JDK sin una libreria aparte.
     _run(["openssl", "genpkey", "-algorithm", "RSA", "-pkeyopt", "rsa_keygen_bits:4096", "-out", str(CA_DIR / "ca.key")])
@@ -182,7 +174,7 @@ def emitir(tipo: str, id_: str | None, san: str | None = None) -> None:
     crt = out / f"{nombre_archivo}.crt"
 
     # SAN solo tiene sentido en el certificado del SERVIDOR (es el que los
-    # clientes verifican por hostname, S1.5); --san sobre rsu/obu se ignora.
+    # clientes verifican por hostname); --san sobre rsu/obu se ignora.
     entradas_san = (san.split(",") if san else SAN_SERVIDOR_POR_DEFECTO) if tipo == "servidor" else None
     extfile = None
 

@@ -36,8 +36,8 @@ Figuras:
   tabla_latencia.tex tabla LaTeX, una fila por métrica y etiqueta (n, mediana, p95, máx)
   notas_figuras.txt  texto largo (nota de la campaña, cota de reloj) para
                      copiar al \\caption de LaTeX de cada figura -- NO se
-                     incrusta en los PNG (se superponía con las etiquetas
-                     del eje x, ver docs/bitacora/2026-10-28_*.md).
+                     incrusta en los PNG (se superpone con las etiquetas
+                     del eje x).
 """
 
 from __future__ import annotations
@@ -131,7 +131,7 @@ TRAMOS = [("t_srv_ms", "$t_{srv}$", False), ("t_srv_RSU_ms", "$t_{srv\\to RSU}$"
           ("t_RSU_ms", "$t_{RSU}$", False), ("retorno_ms", "$t_{retorno}$", True)]
 
 
-#: RNF-01: umbral de L (prompt_figuras_cap4.md, M5.1). No se grafica L en
+#: RNF-01: umbral de L. No se grafica L en
 #: si en fig_tramos (ver TRAMOS arriba), pero la linea de umbral se deja
 #: igual como referencia visual de cuanto margen hay en cada tramo
 #: individual frente al presupuesto total.
@@ -295,11 +295,7 @@ NOMBRE_CONDICION = {"verde": "Verde", "ambar_todo_rojo": "Ámbar/todo rojo", "ro
 
 def tabla_condicion_latex(resultados: dict[str, dict], salida: Path, nota: str):
     """Tabla LaTeX con las métricas de latencia desglosadas por CONDICIÓN
-    de llegada (verde/ámbar-todo_rojo/rojo), una por etiqueta -- pedida
-    tras la campaña con cuotas adaptativas del 2026-10-29 (antes del
-    arreglo del controlador emulado, el 100 % de las decisiones caía en
-    "ámbar/todo rojo", así que este desglose no tenía sentido -- ver
-    docs/bitacora/2026-10-29_fase-controlador-emulado.md)."""
+    de llegada (verde/ámbar-todo_rojo/rojo), una por etiqueta."""
     # Versión completa (anexo); la tabla principal por condición de llegada,
     # reducida a T_desp y A_v, la genera recalculo_por_mensaje.py.
     metricas = [("RTT servidor--RSU", "RTT_srv_ms", "ms"), ("$t_{RSU}$", "t_RSU_ms", "ms"),
@@ -352,7 +348,7 @@ def main() -> None:
     ap.add_argument("--salida", required=True)
     ap.add_argument("--nota", default="")
     ap.add_argument("--marcar-umbral-rnf01", action="store_true",
-                    help="agrega la linea de 1000 ms (RNF-01) a fig_tramos -- M5, prompt_figuras_cap4.md")
+                    help="agrega la linea de 1000 ms (RNF-01) a fig_tramos")
     args = ap.parse_args()
 
     grupos = _grupos(args.dir, args.etiqueta)
@@ -384,8 +380,8 @@ def main() -> None:
     guardar(fig, salida, "fig_comparacion")
 
     # El texto largo (nota de la campaña, cota de reloj) NO se incrusta en
-    # el PNG: con fig_comparacion se superponía con las etiquetas del eje x
-    # (ver docs/bitacora). Va en el \caption de LaTeX; se deja aca como
+    # el PNG: con fig_comparacion se superpone con las etiquetas del eje x.
+    # Va en el \caption de LaTeX; se deja aca como
     # texto listo para copiar.
     notas = []
     if args.nota:

@@ -59,7 +59,7 @@ def main() -> None:
                 "retenida": x.get("retenida"),
                 "intentos_sonda": x.get("sonda", {}).get("intentos"),
                 "bytes_tunel": x.get("bytes_tailscale"),
-                # tramos de T_rec (solo con la RSU instrumentada, desde el 2026-11-15).
+                # tramos de T_rec (solo en corridas con la RSU instrumentada).
                 # trec_modem_s es el enlace USB (IP LAN del módem); el re-registro
                 # en la red celular queda dentro de trec_mqtt_s.
                 "trec_modem_s": x.get("trec_modem_s"),

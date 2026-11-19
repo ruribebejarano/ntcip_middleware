@@ -33,7 +33,7 @@ from costo_planes_iot import duracion_misiones_s  # noqa: E402
 RAIZ = Path(__file__).resolve().parent.parent.parent
 C = RAIZ / "resultados" / "campana"
 E = RAIZ / "resultados" / "evaluacion"
-# Escala de grises, para figuras formales (pedido del autor, 2026-11-16).
+# Escala de grises, para figuras formales.
 NEGRO, OSCURO, MEDIO, CLARO = "#1a1a1a", "#4d4d4d", "#8c8c8c", "#cfcfcf"
 
 RECALCULO_CAMPANA = C / "_figuras_cap4_2026-11-11" / "recalculo_por_mensaje.json"

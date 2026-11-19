@@ -35,7 +35,7 @@ Uso: .venv/Scripts/python.exe scripts/analisis/costo_planes_iot.py \
        [--reposo-tls <corrida de bytes con TLS cuyo reposo de la RSU se usa>]
 
 --reposo-tls sirve para evaluar un cambio de keepalive de la RSU sin rehacer
-toda la Fase 4: reemplaza el tráfico en reposo de la proyección (clave
+todas las pruebas: reemplaza el tráfico en reposo de la proyección (clave
 rsu_reposo.bytes_por_hora de esa corrida) y deja igual misiones y conexión.
 """
 from __future__ import annotations

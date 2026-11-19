@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resumen complementario del Capítulo 4 (B6, 2026-11-01), sobre las
+"""Resumen complementario del Capítulo 4, sobre las
 corridas de scripts/campanas/lazo_centralizado.py. NO repite las métricas
 de scripts/analisis/lazo_centralizado.py (RTT_srv, t_RSU, L, anticipación
 real: ya están en tabla_latencia.tex / tabla_condicion.tex de cada

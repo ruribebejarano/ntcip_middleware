@@ -116,8 +116,8 @@ def error_eta_al_solicitar(eventos: list[dict], centros: dict[str, tuple[float, 
 
     El servidor deja de registrar eta_estimado de una RSU en cuanto le envía
     el M1. Si la geocerca abre la solicitud a ~150 m (lo normal), nunca hay
-    un ETA cercano a 8 s y error_eta() queda sin datos (prueba con GPS real
-    del 2026-11-11). Aquí se toma el último ETA antes del primer M1, que es
+    un ETA cercano a 8 s y error_eta() queda sin datos (prueba con GPS
+    real). Aquí se toma el último ETA antes del primer M1, que es
     el que el servidor tenía al decidir, y se compara con el tiempo real
     hasta pasar por el centro de la RSU. Solo reloj del servidor."""
     mps: dict[str, list[tuple[float, float, float, object]]] = defaultdict(list)

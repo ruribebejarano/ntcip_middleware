@@ -30,8 +30,7 @@
 #                usb0 y (si se puede) señal del módem por el puerto AT, sin
 #                dejar ModemManager tomado el puerto al terminar.
 # evidencia:     guarda en ~/evidencia_4g/red_<fecha>.txt el mismo bloque de
-#                comandos usado en la puesta en marcha del 2026-10-28 (ver
-#                evidencia/2026-10-28_modem-4g/red_2026-10-28_1838.txt).
+#                comandos que evidencia/2026-10-28_modem-4g/red_2026-10-28_1838.txt.
 
 set -euo pipefail
 
@@ -55,7 +54,7 @@ listar_perfiles() {
 
 # Nombre del perfil de NetworkManager del módem (usb0). NetworkManager puede
 # crear un perfil nuevo al reconectar el módem (p. ej. "Wired connection 1"
-# en lugar de "netplan-eth0", visto el 2026-11-15), así que el nombre no se
+# en lugar de "netplan-eth0"), así que el nombre no se
 # da por fijo: con --perfil se verifica que exista; sin él se busca, en este
 # orden, el perfil activo en usb0, uno ligado a usb0 por interface-name, el
 # default heredado y, si hay un único perfil Ethernet, ese. Imprime el nombre
@@ -92,8 +91,7 @@ resolver_perfil() {
 modo_normal() {
   local pedido="$1" perfil
   # El Wi-Fi va primero: si algo falla con el perfil del módem, la RSU
-  # queda igual alcanzable por Wi-Fi (el 2026-11-15 el script abortó antes
-  # de encenderlo porque el perfil había cambiado de nombre).
+  # queda igual alcanzable por Wi-Fi (p. ej. si el perfil cambió de nombre).
   echo "==> modo normal: Wi-Fi encendido"
   sudo nmcli radio wifi on
   if ! perfil="$(resolver_perfil "$pedido")"; then
@@ -133,8 +131,7 @@ consultar_at() {
   # NOTA: se restaura ModemManager explícitamente en CADA punto de salida
   # (no con `trap ... RETURN`): ese trap dispara despues de que bash ya
   # destruyo el scope de las variables `local` de esta funcion, asi que
-  # referenciar $mm_activo ahi da "unbound variable" bajo `set -u` --
-  # pasó de verdad en la campaña pi-lan del 2026-10-28.
+  # referenciar $mm_activo ahi da "unbound variable" bajo `set -u`.
   local puerto="$1"; shift
   if [ ! -e "$puerto" ]; then
     echo "(puerto $puerto no existe)"

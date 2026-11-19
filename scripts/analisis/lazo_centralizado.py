@@ -288,8 +288,7 @@ def analizar(eventos: list[dict], cota_reloj_ms: float | None = None,
     # inclusion que las listas globales de arriba (ver mas abajo), solo que
     # ademas separado por condicion de llegada (verde/ambar_todo_rojo/
     # rojo_general). condicion_llegada=None (sin decision conocida) no
-    # entra en ningun bucket por condicion, igual que antes no entraba en
-    # sin_respuesta_por_etapa salvo que corresponda.
+    # entra en ningun bucket por condicion.
     por_condicion: dict[str, dict[str, list[float]]] = {
         c: {"t_RSU_ms": [], "RTT_srv_ms": [], "L_ms": [], "t_verde_ms": [], "T_desp_ms": [],
             "anticipacion_real_s": []}

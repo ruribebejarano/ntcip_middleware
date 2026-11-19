@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Corre la matriz de pruebas de seguridad (prompt_seguridad.md, S3:
-tests/test_seguridad_broker.py) y escribe la evidencia de la sección 4.6
+"""Corre la matriz de pruebas de seguridad
+(tests/test_seguridad_broker.py) y escribe la evidencia de la sección 4.6
 del Capítulo 4 en evidencia/<fecha>_seguridad/:
 
     resultados.csv      ID, caso, esperado, obtenido, ✔/✘, extracto de log
@@ -32,7 +32,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent.parent.parent
 PY = sys.executable
 
-# Descripción de cada caso (ver prompt_seguridad.md, S3) -- estática: no
+# Descripción de cada caso -- estática: no
 # se calcula de los datos, es lo que la prueba dice que verifica.
 MATRIZ = {
     "T01": ("Cliente sin certificado", "Handshake rechazado"),
@@ -60,8 +60,7 @@ _RE_ID = re.compile(r"test_(t\d{2})_", re.IGNORECASE)
 
 # T13 ya está cubierto, con esos datos: no se reimplementa aquí, se
 # referencia -- "repetición de un MP capturado (mismo seq) descartada"
-# es exactamente test_mp_fuera_de_orden_se_descarta (item 2a.2 de
-# prompt_integracion_app_obu.md, anterior a este prompt_seguridad.md).
+# es exactamente test_mp_fuera_de_orden_se_descarta.
 REFERENCIADOS = {
     "test_mp_fuera_de_orden_se_descarta": "T13",
 }

@@ -1,6 +1,5 @@
 """Tests del subconjunto de NTCIP 1211 (agent/ntcip1211.py): codec OER de
-prgPriorityRequestAbsolute, y los casos que pide
-docs/PLAN_IMPLEMENTACION.md P3: RF-06 (limites, ahora cola+activacion
+prgPriorityRequestAbsolute, y los casos: RF-06 (limites: cola+activacion
 automatica en vez de rechazo), RF-09 (caducidad, incluida la de una
 solicitud en cola) y RF-05 (clase no reconocida).
 

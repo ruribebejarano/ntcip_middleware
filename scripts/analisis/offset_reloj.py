@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""M6 (prompt_figuras_cap4.md): offset de reloj de la RSU respecto a su
+"""Offset de reloj de la RSU respecto a su
 referencia NTP (no respecto al servidor), por corrida (inicio y fin de cada una), a partir de la cota de
 reloj que ya guarda scripts/campanas/lazo_centralizado.py en config.json
 (reloj_pi_inicio/reloj_pi_fin: salida combinada de 'chronyc tracking' +

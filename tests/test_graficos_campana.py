@@ -1,9 +1,7 @@
 """Prueba de regresion de scripts/analisis/graficos_campana.py::fig_tramos():
 no debe reventar cuando una corrida no tiene NINGUN dato de t_V2I/t_RSU/L
 (p. ej. si todavia no se trajeron los eventos de la RSU con
-scripts/pi.sh fetch -- solo quedan eventos M1_tx/M2_rx del lado OBU).
-Bug real, reproducido tambien desde la linea de comandos antes de este
-arreglo (ver docs/bitacora/2026-10-20_consola-web.md)."""
+scripts/pi.sh fetch -- solo quedan eventos M1_tx/M2_rx del lado OBU)."""
 
 from __future__ import annotations
 

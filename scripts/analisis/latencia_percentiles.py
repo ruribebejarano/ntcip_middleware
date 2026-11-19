@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""M5 (prompt_figuras_cap4.md): percentiles de latencia (p50/p95/p99) y
+"""Percentiles de latencia (p50/p95/p99) y
 recuperación del plan, sobre las 4 campañas válidas de la arquitectura
 centralizada. Complementa (no reemplaza) scripts/analisis/graficos_campana_centralizada.py:
 fig_tramos con el umbral de RNF-01 se regenera corriendo ESE script con
@@ -204,8 +204,7 @@ def main() -> None:
     if usar_log:
         # El umbral de RNF-01 es >> el L observado (ms vs. 1000 ms): en
         # escala lineal la CDF entera queda aplastada contra el eje
-        # izquierdo. Escala log en X para que siga siendo legible (ver
-        # prompt_figuras_cap4.md, M5.1).
+        # izquierdo. Escala log en X para que siga siendo legible.
         ax.set_xscale("log")
         ax.set_xlim(left=max(0.1, min(min(r["L_ms"], default=1.0) for r in resultados.values() if r["L_ms"]) * 0.5))
         titulo += " -- escala log: el margen a RNF-01 es grande"

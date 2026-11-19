@@ -1,11 +1,8 @@
 """Pruebas de scripts/campanas/lazo_centralizado.py: el chequeo de una
-sola conexión al broker por repetición. Causa real de una campaña
-contaminada el 2026-10-28 (ver docs/bitacora/
-2026-10-28_campana-centralizada-lazo-desvio.md): el rsu-agent.service de
-la Pi, con su broker.conf apuntando al broker de la laptop y el mismo
-RSU_ID, usaba el mismo client_id que el agente local y Mosquitto
-expulsaba a uno de los dos en bucle de reconexión -- NO fue falta de
-memoria. Este archivo prueba el chequeo en aislado, con logs sintéticos
+sola conexión al broker por repetición. Si el rsu-agent.service de la
+Pi, con su broker.conf apuntando al broker de la laptop y el mismo
+RSU_ID, usa el mismo client_id que el agente local, Mosquitto expulsa a
+uno de los dos en bucle de reconexión. Este archivo prueba el chequeo en aislado, con logs sintéticos
 (no se puede reproducir el choque real sin dos procesos de verdad)."""
 
 from __future__ import annotations

@@ -29,7 +29,7 @@ COLA_LARGO="${COLA_LARGO:-280}"
 PUERTO="${PUERTO:-8884}"
 SOLO="${SOLO:-}"   # p. ej. SOLO=cola_eta16 para correr un solo criterio
 # Suspensión por vehículo detenido del servidor (vacío = desactivada, el
-# valor por defecto desde el 2026-11-16; 5 = la regla de la campaña).
+# valor por defecto; 5 = la regla de la campaña).
 T_DETENIDO="${T_DETENIDO:-}"
 SUFIJO="${SUFIJO:-}"   # se agrega a la etiqueta de cada corrida
 MOSQ="${MOSQ:-/c/Program Files (x86)/Mosquitto/mosquitto.exe}"

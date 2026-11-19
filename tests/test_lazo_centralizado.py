@@ -1,12 +1,10 @@
 """Pruebas de scripts/analisis/lazo_centralizado.py sobre eventos REALES
-ya existentes (evidencia/2026-10-22_arquitectura-centralizada/, fase 3.8:
-los tres escenarios de la arquitectura centralizada corridos localmente),
+ya existentes (evidencia/2026-10-22_arquitectura-centralizada/: los tres
+escenarios de la arquitectura centralizada corridos localmente),
 no sobre datos sintéticos hechos a mano -- así una regresión en el
 cálculo de tramos se detecta contra una corrida real conocida.
 
-Esos eventos son ANTERIORES a la instrumentación de `seq` en MP_rx y de
-`seq_ref` en M2_rx (commit de la campaña centralizada, 2026-10-28): por
-eso t_OBU_srv y RTT_srv deben salir "sin datos" (n=0) sobre esta
+Esos eventos no tienen `seq` en MP_rx ni `seq_ref` en M2_rx: por eso t_OBU_srv y RTT_srv deben salir "sin datos" (n=0) sobre esta
 evidencia -- no es un bug, es la limitación real de esos datos, y esta
 prueba la deja explícita en vez de que pase desapercibida."""
 
@@ -70,11 +68,9 @@ def test_rtt_srv_y_t_obu_srv_sin_datos_en_evidencia_anterior_a_seq_ref():
 
 
 def test_metricas_de_dos_relojes_ya_no_se_excluyen_por_umbral():
-    """Hasta el 2026-10-28, una cota de reloj grande (o no declarada)
-    NULEABA L/t_srv_RSU por completo -- eso era un error de método (el
-    umbral de 10 ms no tenía relación con la cota real que declara
-    chrony, típicamente 20-50 ms contra NTP público). Ahora las métricas
-    de dos relojes se calculan SIEMPRE que haya datos; la cota se adjunta
+    """Una cota de reloj grande (o no declarada) no anula L/t_srv_RSU (la
+    cota real que declara chrony es típicamente 20-50 ms contra NTP
+    público). Las métricas de dos relojes se calculan SIEMPRE que haya datos; la cota se adjunta
     aparte (cota_reloj_pi_ms en el resumen), no se usa para excluir."""
     eventos = cargar([EVIDENCIA])
     _, filas_parada, g = analizar(eventos, cota_reloj_ms=80.0)  # cota grande, a propósito
@@ -87,7 +83,7 @@ def test_metricas_de_dos_relojes_ya_no_se_excluyen_por_umbral():
 
 
 def test_cota_reloj_pi_ms_usa_root_dispersion_y_root_delay_si_hay_tracking():
-    """Salida real de 'chronyc tracking' (scripts/pi.sh clock, 2026-10-28):
+    """Salida real de 'chronyc tracking' (scripts/pi.sh clock):
     Root dispersion 0.0049 s + Root delay/2 0.0194 s =~ 24.3 ms. Se
     prefiere este campo (distancia de sincronización NTP estándar) sobre
     el 'estimated error' de 'chronyc sources -v' cuando está disponible."""
@@ -99,8 +95,8 @@ def test_cota_reloj_pi_ms_usa_root_dispersion_y_root_delay_si_hay_tracking():
 
 
 def test_cota_reloj_pi_ms_cae_a_estimated_error_de_sources_v_sin_tracking():
-    """Corridas anteriores a que scripts/pi.sh clock capturara 'chronyc
-    tracking' (todas las del 2026-10-28): solo queda el campo 'estimated
+    """Corridas en las que scripts/pi.sh clock no capturó 'chronyc
+    tracking': solo queda el campo 'estimated
     error' (+/- zzzz) de 'chronyc sources -v' -- una cota declarada por
     chrony, no el offset puntual que le precede."""
     texto = ("MS Name/IP address         Stratum Poll Reach LastRx Last sample\n"
@@ -229,8 +225,7 @@ def test_analizar_conflicto_detecta_arbitraje_inconsistente_con_la_politica():
 
 
 def test_analizar_conflicto_sin_candidatos_queda_sin_verificar():
-    """Corridas anteriores a la instrumentación de 'candidatos'
-    (2026-10-28): no se puede verificar la política, y eso debe quedar
+    """Corridas sin el campo 'candidatos': no se puede verificar la política, y eso debe quedar
     explícito en vez de contarse como correcto o incorrecto."""
     eventos = [
         _ev(5_000_000_000, "servidor", EVT_CONFLICTO_ARBITRADO, "mis-J", rsu_id="rsu-1",

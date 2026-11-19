@@ -369,8 +369,7 @@ def main() -> None:
     (salida / "recalculo_por_mensaje.json").write_text(json.dumps(res, indent=2, ensure_ascii=False), encoding="utf-8")
 
     # --- tabla principal de latencia: todos los pares M1/M2 ---------------
-    # Reemplaza a las tablas de latencia por solicitud inicial y de
-    # percentiles: con el RTT por mensaje, n permite estimar p99 con su IC.
+    # Con el RTT por mensaje, n permite estimar p99 con su IC.
     # Un bloque por enlace (encabezado de grupo) para que quepa en la página.
     fil = []
     for cond, x in res.items():

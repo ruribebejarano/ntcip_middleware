@@ -24,7 +24,7 @@ $DirDemo = Join-Path $Raiz "resultados\demo"
 $Actual = Join-Path $DirDemo "actual.json"
 
 # Windows reutiliza los PID: el de una corrida vieja puede ser hoy otro
-# programa (visto el 2026-11-11: una pestaña de Chrome). Solo es "nuestro" si
+# programa (p. ej. una pestaña de Chrome). Solo es "nuestro" si
 # es Python ejecutando el script que el lanzador registro para ese rol.
 function Es-Nuestro([int]$id, [string]$patron) {
     $p = Get-CimInstance Win32_Process -Filter "ProcessId = $id" -ErrorAction SilentlyContinue

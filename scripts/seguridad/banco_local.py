@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Banco de seguridad local, reproducible (prompt_seguridad.md, S2).
+"""Banco de seguridad local, reproducible.
 
 Todo en la laptop, sin Raspberry Pi ni tablet: genera una PKI de prueba
 (con casos positivos Y negativos) y levanta/baja un Mosquitto temporal
-en un puerto libre, para que tests/test_seguridad_broker.py (S3) pueda
+en un puerto libre, para que tests/test_seguridad_broker.py pueda
 probar TLS 1.3 + mTLS + ACL contra un broker real sin tocar
 deploy/pki/ ni el Mosquitto de desarrollo de la laptop (allow_anonymous
 en 1883).
@@ -107,7 +107,7 @@ def preparar(pki_dir: Path = PKI_BANCO) -> Path:
 
 def _emitir_vencido(pki_dir: Path) -> None:
     """Certificado YA vencido de verdad (openssl ca -startdate/-enddate
-    en el pasado), no una fecha de sistema falsificada: T04 de S3 debe
+    en el pasado), no una fecha de sistema falsificada: T04 debe
     probar el rechazo real de TLS ante un certificado expirado."""
     out = pki_dir / "obu" / OBU_EXPIRADO
     crt = out / f"obu-{OBU_EXPIRADO}.crt"
@@ -187,8 +187,7 @@ def _puerto_libre() -> int:
 
 def _mosquitto_conf(pki_dir: Path, puerto: int, log_path: Path) -> str:
     """Basado en mosquitto_tls.conf/mosquitto_acl.conf, con rutas LOCALES
-    a pki_dir en vez de /etc/mosquitto/pki/ (S2: 'levantar... basado en
-    mosquitto_tls.conf y mosquitto_acl.conf, con crlfile activo').
+    a pki_dir en vez de /etc/mosquitto/pki/, con crlfile activo.
 
     log_dest file (NO stdout): con stdout redirigido a un archivo desde
     Python, mosquitto.exe en Windows deja el log en su buffer interno y

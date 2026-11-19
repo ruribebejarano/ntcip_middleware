@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""M1 (prompt_figuras_cap4.md): diagrama espacio-tiempo de la priorización
+"""Diagrama espacio-tiempo de la priorización
 sucesiva -- el servidor central prioriza cada RSU de la ruta por separado;
 no es una coordinación de ola verde entre RSU (fuera del alcance) --, sobre
 la corrida multi-RSU de resultados/espacio_tiempo/<AAAA-MM-DD_HHMM>/

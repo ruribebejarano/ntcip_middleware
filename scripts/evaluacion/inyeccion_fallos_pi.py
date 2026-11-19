@@ -238,8 +238,7 @@ def main() -> None:
         return
     if args.caso == "enlace4g":
         # Con el Wi-Fi activo, al desconectar el módem el tráfico sigue por el
-        # Wi-Fi y el "corte" no corta nada (corrida del 2026-11-14 descartada
-        # por eso). Se exige que la única salida sea el módem.
+        # Wi-Fi y el "corte" no corta nada. Se exige que la única salida sea el módem.
         wifi = ssh("cat /sys/class/net/wlan0/operstate 2>/dev/null || echo ausente").strip()
         if wifi == "up":
             raise SystemExit("wlan0 está activo en la Pi: el corte del módem no cortaría el enlace. "
@@ -297,9 +296,9 @@ def main() -> None:
             texto_obs = ssh_reintentar(f"sleep 1; cat {obs_pi}")
             (rep / "observador_pi.csv").write_text(texto_obs, encoding="utf-8")
             # Sin sudo: el usuario de la Pi está en el grupo adm, que lee el
-            # journal. Con sudo, la lectura dependía de que el autor hubiera
+            # journal. Con sudo, la lectura dependería de que el autor hubiera
             # escrito su contraseña en la Pi en los últimos minutos, y si no,
-            # la corrida quedaba esperando (2026-11-15 01:03, descartada).
+            # la corrida quedaría esperando.
             journal = ssh_reintentar(f"journalctl -u rsu-agent.service -o short-unix --no-pager "
                                      f"--since @{t_ini_pi // 10**9}")
             (rep / "journal_agente.txt").write_text(journal, encoding="utf-8")

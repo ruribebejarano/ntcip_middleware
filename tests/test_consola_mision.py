@@ -1,6 +1,6 @@
 """Estado por RSU y linea de tiempo que arma consola/backend/mision.py a
 partir de los mensajes observados en el broker (secuencia real tomada de
-una corrida del escenario hospital_nino, 2026-10-30, resumida)."""
+una corrida del escenario hospital_nino, resumida)."""
 
 from consola.backend.mision import SeguidorMision
 

@@ -42,7 +42,7 @@ VELOCIDAD_KMH = 36.0  # 10 m/s, para que cada paso del grafo sintetico (~144 m) 
 # defecto): con esto, entre 50 y 80 m de la parada SOLO el respaldo por
 # ETA (paso 1/3 de procesar_mp) puede sostener una solicitud, no la
 # geocerca (paso 2) -- usada para aislar ese mecanismo en las pruebas de
-# "detenido" del item P2 (prompt_cierre_repo_2026-11-02.md), sin tener que
+# "detenido", sin tener que
 # reproducir el rodeo de _recorrido_con_rodeo.
 GEOCERCA_CHICA = ParametrosGeometria(r_g_m=50.0)
 
@@ -103,7 +103,7 @@ def test_armar_mision_calcula_ruta_y_publica_mr():
 
 
 def test_mi_repetido_no_duplica_la_mision():
-    """B2 + item 2a.3 de prompt_integracion_app_obu.md: la app reenvia el
+    """La app reenvia el
     MI tras una reconexion MQTT o un reinicio de proceso (ver
     app_obu/obu/ObuSessionService.kt); el servidor debe tratarlo como un
     no-op (sin recalcular la ruta ni perder el progreso ya hecho) pero
@@ -134,7 +134,7 @@ def test_mi_repetido_no_duplica_la_mision():
 
 
 def test_mp_fuera_de_orden_se_descarta():
-    """item 2a.2 de prompt_integracion_app_obu.md: un MP con seq <= el
+    """Un MP con seq <= el
     ultimo aceptado (reordenamiento o duplicado) no debe mover el progreso
     de la mision ni publicar un ME nuevo."""
     gestor, reg = _gestor()
@@ -167,10 +167,9 @@ def test_mp_fuera_de_orden_se_descarta():
 
 
 def test_desvio_recalcula_y_sube_la_version_del_mr():
-    """Hallazgo al implementar el item 2a.3: _cuerpo_mr() mandaba
-    "version": 1 siempre, incluso tras recalcular por desvio -- la app
+    """_cuerpo_mr() debe subir "version" al recalcular por desvio: la app
     (ObuSessionService.kt/VistaMision.kt) ignora un MR con version <= la
-    ya aplicada, asi que nunca habria aplicado la ruta recalculada."""
+    ya aplicada, asi que si no nunca aplicaria la ruta recalculada."""
     gestor, reg = _gestor()
     gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
     mision = gestor.misiones["obu-1"]
@@ -190,7 +189,7 @@ def test_desvio_recalcula_y_sube_la_version_del_mr():
 
 
 def test_mi_con_destino_distinto_cierra_la_mision_anterior():
-    """item 2a.4 de prompt_integracion_app_obu.md: un MI del mismo obu_id
+    """Un MI del mismo obu_id
     con un destino mas alla de TOLERANCIA_MISMO_DESTINO_M no es un
     MI_repetido -- cierra la mision anterior (M3/cancelacion de TODO lo
     abierto en las RSU) y arma una mision nueva."""
@@ -291,10 +290,8 @@ def test_me_mision_activa_true_mientras_no_se_desarma():
 
 
 def test_desarme_por_llegada_a_destino():
-    """B3: el servidor detecta la llegada sin que la app envie un MF
-    propio (app_obu/PROPUESTA_FIN_MISION.md). Item 3 de
-    prompt_integracion_app_obu.md: el cierre por destino debe cerrar
-    TODO lo abierto en las RSU (M3), no solo marcar la mision."""
+    """El servidor detecta la llegada sin que la app envie un MF propio;
+    el cierre por destino debe cerrar TODO lo abierto en las RSU (M3), no solo marcar la mision."""
     gestor, reg = _gestor()
     gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
     mision = gestor.misiones["obu-1"]
@@ -321,7 +318,7 @@ def test_desarme_por_llegada_a_destino():
 
 
 def test_desarme_por_tiempo_maximo():
-    """Item 3 de prompt_integracion_app_obu.md: igual que el destino, el
+    """Igual que el destino, el
     cierre por tiempo maximo debe cerrar las solicitudes abiertas en las
     RSU con M3, no solo marcar la mision."""
     gestor, reg = _gestor(tiempo_maximo_s=0.0)
@@ -418,7 +415,7 @@ def test_conflicto_se_libera_al_desarmar_el_ganador():
     assert mision_a.paradas["X"].estado != ESTADO_EN_ESPERA
 
 
-# --- Rodeo lejos de la interseccion (defecto del 2026-10-30) ---------------
+# --- Rodeo lejos de la interseccion -----------------------------------------
 
 
 def _recorrido_con_rodeo(gestor) -> None:
@@ -465,13 +462,13 @@ def test_rodeo_la_solicitud_se_renueva_y_se_cierra_por_avance_en_ruta():
     assert mision.paradas["SINT-C"].estado == ESTADO_CANCELADA
 
 
-# --- Velocidad detenido vs. sin dato (item P2 de prompt_cierre_repo_2026-11-02.md) ---
+# --- Velocidad detenido vs. sin dato ------------------------------------------
 
 
 def test_mp_sin_dato_de_velocidad_no_crashea_y_no_es_detenido():
     """docs/CONTRATO_OBU.md §MP: velocidad_kmh=None (GNSS sin lectura de
     velocidad) es "sin dato", no "detenido" -- no debe lanzar excepcion
-    (antes de este item, servidor/main.py hacia float(None)) ni marcar
+    (float(None)) ni marcar
     t_detenido_desde."""
     gestor, reg = _gestor()
     gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
@@ -509,11 +506,9 @@ def test_detenido_medido_no_dispara_una_solicitud_nueva_por_eta():
 def test_detenido_dentro_de_la_geocerca_sigue_renovando_por_geocerca():
     """La geocerca (paso 2, gateway.geometria.SeguidorAcceso) es de
     posicion pura, no mira velocidad: un vehiculo detenido DENTRO del
-    radio que ya pidio sigue renovando igual que antes -- no pierde la
-    solicitud por estar parado justo en el semaforo que la pidio. El
-    bug de este item era la renovacion indefinida LEJOS de la RSU (ver
-    test_detenido_lejos_de_la_rsu_suspende_la_solicitud_tras_el_margen),
-    no esta."""
+    radio que ya pidio sigue renovando -- no pierde la solicitud por
+    estar parado justo en el semaforo que la pidio (el caso LEJOS de la
+    RSU es test_detenido_lejos_de_la_rsu_suspende_la_solicitud_tras_el_margen)."""
     gestor, reg = _gestor()
     gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])
     gestor.procesar_mp("obu-1", *NODOS_RUTA["B"], VELOCIDAD_KMH, 0.0, fuente_velocidad="gps")  # entra a R_g de SINT-C
@@ -528,15 +523,12 @@ def test_detenido_dentro_de_la_geocerca_sigue_renovando_por_geocerca():
 
 
 def test_detenido_lejos_de_la_rsu_suspende_la_solicitud_tras_el_margen():
-    """Item P2: una solicitud sostenida SOLO por el respaldo de ETA (fuera
-    de la geocerca) no debe renovarse para siempre si el vehiculo se
-    detiene de verdad lejos de la RSU -- antes de este item, el servidor
-    pretendia que seguia moviendose a VELOCIDAD_RESPALDO_KMH, lo que
-    mantenia un ETA corto y la solicitud renovandose indefinidamente. Se
-    tolera hasta T_DETENIDO_MAX_S (5 s por defecto) detenido antes de
-    suspender (M3 motivo="detenido", vuelve a "pendiente", no "cancelada").
-    Desde el 2026-11-16 la suspensión está desactivada por defecto (prueba
-    de colas); aquí se activa con t_detenido_max_s=5."""
+    """Con la suspensión activada (t_detenido_max_s=5; por defecto está
+    desactivada, ver la prueba de colas), una solicitud sostenida SOLO por
+    el respaldo de ETA (fuera de la geocerca) no se renueva para siempre
+    si el vehiculo se detiene de verdad lejos de la RSU: se tolera hasta
+    t_detenido_max_s detenido antes de suspender (M3 motivo="detenido",
+    vuelve a "pendiente", no "cancelada")."""
     reloj = _Reloj()
     gestor, reg = _gestor(parametros_geocerca=GEOCERCA_CHICA, ahora=reloj, t_detenido_max_s=5.0)
     gestor.armar_mision("obu-1", clase=1, origen=NODOS_RUTA["A"], destino=NODOS_RUTA["G"])

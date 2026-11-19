@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""M3 (prompt_figuras_cap4.md): cumplimiento de RF8 (anticipación real >= 8 s)
+"""Cumplimiento de RF8 (anticipación real >= 8 s)
 por intersección, sobre las 4 campañas válidas de la arquitectura
 centralizada (resultados/campana/2026102*, excluida _descartadas/).
 

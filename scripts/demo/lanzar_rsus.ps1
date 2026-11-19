@@ -114,8 +114,8 @@ Write-Host "Broker MQTT $Broker`:$BrokerPort responde." -ForegroundColor Green
 
 # --- RSU_ID repetidos ya corriendo -----------------------------------------
 # Windows reutiliza los PID: el de una corrida vieja puede ser hoy otro
-# programa (visto el 2026-11-11: una pestaña de Chrome bloqueaba el arranque
-# con "RSU_ID ya corre"). Solo cuenta si es Python ejecutando ese script.
+# programa (p. ej. una pestaña de Chrome, que bloquearía el arranque con
+# "RSU_ID ya corre"). Solo cuenta si es Python ejecutando ese script.
 function Vive-Script([object]$id, [string]$patron) {
     if (-not $id) { return $false }
     $p = Get-CimInstance Win32_Process -Filter "ProcessId = $([int]$id)" -ErrorAction SilentlyContinue

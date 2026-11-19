@@ -1,11 +1,10 @@
-"""Matriz de pruebas de seguridad del broker (prompt_seguridad.md, S3):
+"""Matriz de pruebas de seguridad del broker:
 T01-T13 contra un Mosquitto real y temporal (scripts/seguridad/banco_local.py),
 T14-T17 contra un agente SNMPv3 real y temporal (sin la Raspberry Pi).
 
 Se salta TODO el módulo si no hay mosquitto instalado (ni en el PATH ni en
 la ruta del instalador de Windows) -- no debe romper `pytest` normal.
-Cada caso levanta su PROPIO broker y lo baja al terminar (S2: "cada caso
-levanta el banco y lo baja al terminar"), para que el log de cada uno
+Cada caso levanta su PROPIO broker y lo baja al terminar, para que el log de cada uno
 quede aislado (scripts/seguridad/correr_matriz.py lo usa como evidencia
 por caso).
 
@@ -37,7 +36,7 @@ pytestmark = pytest.mark.seguridad
 if banco_local.mosquitto_disponible() is None:
     pytest.skip(
         "mosquitto no está instalado (ni en el PATH ni en la ruta del instalador de "
-        "Windows) -- avisar antes de instalarlo, ver prompt_seguridad.md regla 0.",
+        "Windows).",
         allow_module_level=True,
     )
 
@@ -59,7 +58,7 @@ def banco(pki_dir: Path, request: pytest.FixtureRequest) -> banco_local.EstadoBa
     # mosquitto_banco.log para que el "levantar" del siguiente caso no
     # choque con el archivo todavia bloqueado por el proceso recien
     # matado (ver banco_local.bajar); scripts/seguridad/correr_matriz.py
-    # (S3) lee estos archivos como evidencia por caso.
+    # lee estos archivos como evidencia por caso.
     logs_dir = pki_dir / "_logs_por_caso"
     logs_dir.mkdir(exist_ok=True)
     nombre = request.node.name.replace("test_", "").split("[")[0]
@@ -399,7 +398,7 @@ def test_T10_m2_falso_pasa_el_broker_pero_el_servidor_lo_ignora(banco, pki_dir):
 
 def test_T11_flujo_legitimo_de_punta_a_punta(banco, pki_dir, tmp_path):
     """MI -> MR y M1 -> M2 con TLS 1.3 + mTLS real: reusa el runner de
-    campana (ya probado en S1) para no reimplementar el lanzamiento de
+    campana para no reimplementar el lanzamiento de
     servidor/RSU/OBU -- 1 repeticion del escenario 'lazo', factor 4."""
     # Import por ruta, no por sys.path + nombre: scripts/analisis/ TAMBIEN
     # tiene un modulo "lazo_centralizado" y tests/test_lazo_centralizado.py
@@ -452,13 +451,7 @@ def test_T11_flujo_legitimo_de_punta_a_punta(banco, pki_dir, tmp_path):
 def agente_snmp():
     """Motor SNMPv3 minimo, con las MISMAS credenciales reales de
     agent/rsu_middleware.py (USER_NAME/AUTH_KEY/PRIV_KEY, auth SHA-256
-    RFC 7860 + priv AES-128 -- corregido: hasta antes de esta prueba, el
-    codigo usaba SHA-1 (config.usmHMACSHAAuthProtocol) a pesar de que el
-    diseño de seguridad ya habia adoptado SHA-256; ver
-    redaccion/capitulo4_seguridad.tex para el detalle de la correccion).
-    T15 usa SHA-1 como protocolo "equivocado" -- es justo el que se
-    informo como rechazado y es el que de verdad queda obsoleto con este
-    cambio.
+    RFC 7860 + priv AES-128). T15 usa SHA-1 como protocolo "equivocado".
 
     Motor SIN la mision/MIB completa de rsu_middleware.py (no hace falta
     para probar el rechazo a nivel USM), en un hilo propio, puerto
@@ -543,7 +536,7 @@ def test_T16_snmp_clave_equivocada_se_rechaza(agente_snmp):
 
 
 def test_T17_snmp_sha256_y_aes128_correctos_hacen_get(agente_snmp):
-    """Prueba positiva (P1 de prompt_cierre_repo_2026-11-02.md): con el
+    """Prueba positiva: con el
     protocolo y las credenciales reales (SHA-256 + AES-128), el GET pasa
     la capa de seguridad USM -- sin error_indication ni error_status, sin
     importar si el OID en si tiene un objeto registrado (este motor no

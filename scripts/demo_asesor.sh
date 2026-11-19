@@ -313,7 +313,7 @@ pausar
 # ===========================================================================
 encabezado "4" "Solicitud durante el despeje (ámbar/todo rojo)" "RF-06, RF-09, RNF-03"
 observar "priorityRequestStatusInPRS pasa de 2 (readyQueued) a 4 (activeProcessing) solo al terminar el despeje, sin que se rechace el SET."
-echo "Nota: desde el cambio de hoy, RF-06 YA NO rechaza durante el despeje: encola"
+echo "Nota: RF-06 NO rechaza durante el despeje: encola"
 echo "(readyQueued) y activa sola la solicitud en cuanto termina, si sigue vigente"
 echo "(TTL de RNF-03 = 3s). El despeje real del banco (ámbar+todo_rojo = 5s) es mas"
 echo "largo que el TTL (3s), asi que para esta demo se acorta brevemente via SNMP"

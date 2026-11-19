@@ -1,4 +1,4 @@
-"""Pruebas de common/mqtt_tls.py (prompt_seguridad.md, S1) que no
+"""Pruebas de common/mqtt_tls.py que no
 requieren un broker real: construccion del contexto, puerto 8883 sin
 rutas, rutas incompletas, rutas inexistentes. Las pruebas que sí
 necesitan un mosquitto real (TLS 1.3 efectivo, verificacion de SAN,

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""M2 (prompt_figuras_cap4.md): llegadas en verde con prioridad y estimación
+"""Llegadas en verde con prioridad y estimación
 contrafactual de lo que habría pasado SIN prioridad, sobre las 4 campañas
 válidas de la arquitectura centralizada (resultados/campana/2026102*,
 excluida _descartadas/) más, opcionalmente, la corrida multi-RSU de M1.
@@ -37,8 +37,8 @@ ES la fase natural en ese instante, medida, no calculada):
 Para la demora evitada (tiempo hasta el siguiente verde del plan, cuando la
 fase sin prioridad en el cruce NO es verde): el método anterior da la
 IDENTIDAD de la fase en el cruce, pero no en qué punto de esa fase está (no
-hay una segunda referencia dentro de la misma parada para fijarlo exacto --
-ver docstring de este módulo y docs/bitacora de esta sesión). Se reporta un
+hay una segunda referencia dentro de la misma parada para fijarlo exacto).
+Se reporta un
 RANGO exacto (mínimo = 0 s restantes de esa fase, máximo = su duración
 completa) y un punto central bajo el supuesto de llegada uniforme dentro de
 la fase (esperanza = duración/2, igual que el supuesto de Webster para
@@ -109,10 +109,10 @@ def fase_natural_en_cruce(eventos_parada: list[dict], resultado: str) -> tuple[s
                  key=lambda e: e["ts_ns"])
     liberacion = next((e for e in reversed(ctrl) if e["extra"].get("motivo") in MOTIVOS_LIBERACION), None)
     if liberacion is not None:
-        # Desde el 2026-11-12 el controlador sale de la prioridad por ámbar y
-        # todo rojo: la fase visible al liberar ya no es la del plan, y el
-        # evento trae fase_plan. Las corridas anteriores solo tienen "fase",
-        # que entonces sí era la del plan.
+        # El controlador sale de la prioridad por ámbar y todo rojo: la fase
+        # visible al liberar no es la del plan, y el evento trae fase_plan.
+        # Las corridas sin fase_plan solo tienen "fase", que en ellas sí era
+        # la del plan.
         ex = liberacion["extra"]
         return ex.get("fase_plan", ex.get("fase")), "medido_liberacion"
     if resultado == "concedida":

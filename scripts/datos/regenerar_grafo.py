@@ -10,12 +10,10 @@ través de overpass-api.de).
 Caja por defecto: el rectángulo que envuelve las dos intersecciones de
 config/registro_rsu.json (OSM-C24 y OSM-C902, San Miguel, Lima) más un
 margen de ~650 m (0.006 grados de latitud/longitud). Corrida original:
-2026-10-22, 415 nodos, 725 aristas, ~75 s (ver
-docs/bitacora/2026-10-22_arquitectura-centralizada.md).
+2026-10-22, 415 nodos, 725 aristas, ~75 s.
 
 Escenario de referencia (Cía. de Bomberos San Miguel N.º 83 -> Hospital
-Centro Médico Naval): geocodificado con Nominatim el 2026-10-23 (no estaba
-disponible el 2026-10-22). Con --incluir-escenario-referencia la caja se
+Centro Médico Naval): geocodificado con Nominatim. Con --incluir-escenario-referencia la caja se
 amplía para cubrir también esos dos puntos (hasta ~7.5 km de lado), no solo
 las dos intersecciones. Para una caja totalmente manual, usar
 --norte/--sur/--este/--oeste.
@@ -43,7 +41,7 @@ sys.path.insert(0, str(RAIZ))
 LAT_C24, LON_C24 = -12.103551833333334, -77.03156646666667
 LAT_C902, LON_C902 = -12.099695500000001, -77.03229606666666
 
-# Escenario de referencia, geocodificado con Nominatim el 2026-10-23
+# Escenario de referencia, geocodificado con Nominatim
 # (OpenStreetMap, nombres "Compañía de Bomberos San Miguel Nº 83" y
 # "Hospital Centro Médico Naval"); no se inventaron coordenadas.
 LAT_BOMBEROS, LON_BOMBEROS = -12.0856611, -77.0758653

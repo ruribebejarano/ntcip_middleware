@@ -2,19 +2,14 @@
 fases normal (sin solicitud de prioridad activa).
 
 El caso central (test_fase_correcta_tras_intervalo_largo_sin_consultas)
-reproduce el defecto de banco de pruebas corregido el 2026-10-29: antes,
-Controller._advance_locked() avanzaba COMO MAXIMO UNA fase por llamada a
-status(), asi que una consulta que llega mucho despues de la anterior (lo
-normal: nada hace poll al controlador mientras no hay una solicitud
-activa, ver agent/rsu_middleware.py) reportaba la fase siguiente a la
-ultima conocida, no la fase real segun el tiempo transcurrido. Con el
-reloj viejo (ciclo de 21 s: verde 8 + amarillo 3 + todo_rojo 2 +
-rojo_general 8) y un intervalo de, por ejemplo, 33 s sin consultas desde
-la construccion (fase inicial "verde"), el codigo viejo reportaba
-"amarillo" (un paso desde "verde") en vez de "todo_rojo" (33 % 21 = 12 s,
-que cae en el tramo [11, 13) de todo_rojo). Este test falla con el
-comportamiento anterior y pasa con el corregido (ver
-docs/bitacora/2026-10-29_fase-controlador-emulado.md)."""
+verifica que la fase se calcula segun el tiempo transcurrido y no
+avanzando COMO MAXIMO UNA fase por llamada a status(): nada hace poll al
+controlador mientras no hay una solicitud activa (ver
+agent/rsu_middleware.py), asi que una consulta puede llegar mucho despues
+de la anterior. Con el ciclo de 21 s (verde 8 + amarillo 3 + todo_rojo 2 +
+rojo_general 8) y 33 s sin consultas desde la construccion (fase inicial
+"verde"), la fase correcta es "todo_rojo" (33 % 21 = 12 s, tramo [11, 13));
+un avance por pasos reportaria "amarillo"."""
 
 from __future__ import annotations
 
@@ -52,8 +47,8 @@ def test_fase_correcta_tras_intervalo_largo_sin_consultas():
         # Avanza 33 s SIN ninguna consulta intermedia (simula el patron
         # real: nada hace poll al controlador entre repeticiones de la
         # campana). 33 % 21 = 12 s -> cae en todo_rojo ([11, 13) s).
-        # El codigo anterior a 2026-10-29 habria reportado "amarillo" (un
-        # solo paso desde "verde"), no la fase real.
+        # Un avance por pasos reportaria "amarillo" (un solo paso desde
+        # "verde"), no la fase real.
         reloj.t += 33.0
         estado = ctrl.status()
         assert estado["fase"] == "todo_rojo", (
@@ -69,13 +64,10 @@ def test_fase_correcta_tras_50s_sin_consultas_formulacion_pedida():
     dar la fase correcta, no un paso. 50 % 21 = 8.0 s, justo el limite
     verde/amarillo -- se usa 50.5 s para no depender de un empate de
     punto flotante en el limite exacto: 50.5 % 21 = 8.5 s, dentro de
-    amarillo ([8, 11) s). El codigo anterior tambien habria dado
-    "amarillo" aqui (coincide con el primer paso), asi que esta prueba por
-    si sola NO habria detectado el defecto -- se mantiene como la
-    verificacion de la formulacion pedida, y
-    test_fase_correcta_tras_intervalo_largo_sin_consultas (33 s, cae en
-    todo_rojo) es la que de verdad distingue el comportamiento viejo del
-    corregido."""
+    amarillo ([8, 11) s). Un avance por pasos tambien daria "amarillo"
+    aqui (coincide con el primer paso); el caso que distingue ambos
+    calculos es test_fase_correcta_tras_intervalo_largo_sin_consultas
+    (33 s, cae en todo_rojo)."""
     reloj = _RelojFalso()
     with patch("controller.controller_emulator.time.monotonic", reloj):
         ctrl = Controller()
@@ -190,7 +182,7 @@ def test_desfase_inicial_adelanta_el_ciclo():
     assert Controller(desfase_s=21.5).status()["fase"] == "verde"      # vuelta completa
 
 
-# --- Modo multifase (2026-11-16): tiempos del manual INDRA ----------------
+# --- Modo multifase: tiempos del manual INDRA ------------ ----------------
 # Ciclo: verde de plan 50 s + ámbar 3 + rojo-rojo 1 (t = 0..54), fase B
 # 28 s + 4 (54..86), fase C 20 s + 4 (86..110). Verde mínimo 5 s.
 

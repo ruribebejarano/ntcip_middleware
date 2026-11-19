@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""M4 (prompt_figuras_cap4.md, OE2): validación del middleware NTCIP --
+"""Validación del middleware NTCIP --
 traducción y rechazo correctos.
 
 Parte A (traducción correcta): sobre las 4 campañas válidas (y,

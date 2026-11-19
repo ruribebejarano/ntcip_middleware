@@ -26,10 +26,7 @@ NO se mide t_adq (adquisicion GNSS: el simulador toma el ETA por
 argumento, no lo adquiere) ni t_OBU por separado (evaluacion del criterio
 de activacion + serializacion + proteccion criptografica: el simulador no
 marca ese paso con su propio evento). L_aprox es, por lo tanto, una cota
-INFERIOR de la L real de RNF-01, no un reemplazo. Esto deja de ser una
-aproximacion recien cuando el agente implemente NTCIP 1202/1211 reales
-(ver docs/PLAN_IMPLEMENTACION.md, P2/P3) y la OBU real adquiera telemetria
-(OE4).
+INFERIOR de la L real de RNF-01, no un reemplazo.
 
 Uso:
     python3 scripts/analisis/latencia_tramos.py --dir resultados/prueba_registro
