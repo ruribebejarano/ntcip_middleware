@@ -441,8 +441,7 @@ exigencia de Android al declarar ese tipo, no de esta app.)
 
 Mientras está activo: el indicador "EMULADA" durante la misión (ver "Pantalla principal"),
 y los MP van con `"fuente_velocidad": "simulada"` -- valor documentado en
-el enum de `docs/CONTRATO_OBU.md` §3 (`"gps"|"respaldo"|"simulada"`); ver
-`app_obu/PROPUESTA_FIN_MISION.md`, §4.
+el enum de `docs/CONTRATO_OBU.md` §3 (`"gps"|"respaldo"|"simulada"`).
 
 La reproducción siempre es a factor 1 (tiempo real), a diferencia de
 `--factor` en `gateway/obu_emulada.py`.
@@ -509,15 +508,10 @@ MF con motivo `"boton"`, nunca `"destino"` -- eso le toca al servidor).
 
 Si no llega ningún ME en más de 5 s, el indicador muestra "Sin conexión
 con el servidor" **sin dejar de publicar MP** (la misión sigue activa
-localmente). La app queda preparada para interpretar una señal explícita
-de fin de misión del servidor (`mision_activa=false`, `motivo_fin=...` en
-el ME) que **todavía no existe** en `servidor/gestor_mision.py` -- ver
-`app_obu/PROPUESTA_FIN_MISION.md` para la propuesta de ese cambio (no
-implementada aquí, le corresponde al worktree principal). Mientras ese
-cambio no esté implementado, la única forma de terminar una misión desde
-la app es el botón; `TIEMPO_MAXIMO_MISION_S` (30 min) sigue existiendo en
-el servidor como límite de seguridad, pero la app no lo refleja todavía
-en pantalla.
+localmente). El fin de misión decidido por el servidor (llegada a destino
+o `TIEMPO_MAXIMO_MISION_S`) llega en el último ME con `mision_activa=false`
+y `motivo_fin` (`docs/CONTRATO_OBU.md` §4); la app lo interpreta en
+`ObuSessionService.onMensajeEstado()` y cierra la misión.
 
 ## Prueba en mesa
 

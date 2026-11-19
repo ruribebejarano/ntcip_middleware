@@ -271,18 +271,15 @@ procesado y de cada M2 recibido de una RSU (así que, con la OBU activa, a
   dato que alimenta el indicador de "próximo semáforo" de la interfaz
   mínima. `null` si no queda ninguna parada pendiente en la ruta.
 - `conflicto`: `true` si alguna parada de ESTA misión está `en_espera`.
-- `mision_activa` (bool, **agregado 2026-11-01**, B3): `true` en todos los
-  ME salvo el último, que ya refleja el desarme y lleva `false`. Antes de
-  este campo, un cliente no podía distinguir "la misión terminó" de "la
-  misión sigue, ya no hay más semáforos por delante" (ambos casos dejan
-  `paradas` todas `cancelada` y `proximo=null`) — ver
-  `app_obu/PROPUESTA_FIN_MISION.md`.
-- `motivo_fin` (string | null, **agregado 2026-11-01**, B3): `"boton" |
-  "destino" | "tiempo_maximo"` en ese último ME; `null` en todos los
-  anteriores. **Compatibilidad hacia atrás:** ambos campos son nuevos al
-  final del mensaje; un cliente que no los conozca sigue funcionando
-  igual que antes (`app_obu/` ya los interpreta, ver
-  `ObuSessionService.onMensajeEstado()`).
+- `mision_activa` (bool): `true` en todos los ME salvo el último, que ya
+  refleja el desarme y lleva `false`. Sin este campo un cliente no podría
+  distinguir "la misión terminó" de "la misión sigue, ya no hay más
+  semáforos por delante" (ambos casos dejan `paradas` todas `cancelada` y
+  `proximo=null`).
+- `motivo_fin` (string | null): `"boton" | "destino" | "tiempo_maximo"` en
+  ese último ME; `null` en todos los anteriores. Ambos campos van al final
+  del mensaje; un cliente que no los conozca puede ignorarlos (`app_obu/`
+  los interpreta en `ObuSessionService.onMensajeEstado()`).
 
 ## 5. Ciclo de vida de la misión (quién la desarma)
 
