@@ -13,8 +13,8 @@ package pe.pucp.ntcip.obu.velocidad
  * detenido). Una instancia por misión -- igual que [FuenteGnss], que es
  * quien la crea.
  *
- * `velocidadKmh` de la [MuestraPosicion] resultante distingue (ítem P2 de
- * `prompt_cierre_repo_2026-11-02.md`, docs/CONTRATO_OBU.md §MP) "sin dato
+ * `velocidadKmh` de la [MuestraPosicion] resultante distingue
+ * (docs/CONTRATO_OBU.md §MP) "sin dato
  * de velocidad" de "detenido, medido": sin lectura de velocidad
  * (`!tieneVelocidad`) es `null` + `fuenteVelocidad="respaldo"`; con
  * lectura y ésta por debajo de [umbralDetenidoKmh] (ruido del GNSS a

@@ -48,7 +48,7 @@ class EvaluadorFixGnssTest {
             tienePrecision = true, precisionM = 5f,
             tsFixMs = 2000L, ahoraMs = 2000L,
         )
-        assertNull(sinDato!!.velocidadKmh) // sin dato, NO "detenido medido" (item P2)
+        assertNull(sinDato!!.velocidadKmh) // sin dato, NO "detenido medido"
         assertEquals("respaldo", sinDato.fuenteVelocidad)
         assertEquals(123.0, sinDato.rumboDeg, 0.01) // heredado, no inventado
         assertEquals(false, sinDato.rumboMedido)
@@ -64,7 +64,7 @@ class EvaluadorFixGnssTest {
             tsFixMs = 1000L, ahoraMs = 1000L,
         )
         assertEquals(0.0, r!!.velocidadKmh!!, 0.01)
-        assertEquals("gps", r.fuenteVelocidad) // medido, no "sin dato" -- distinción clave del item P2
+        assertEquals("gps", r.fuenteVelocidad) // medido, no "sin dato"
     }
 
     @Test

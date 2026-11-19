@@ -18,8 +18,7 @@ import kotlinx.serialization.json.Json
  * kotlinx.serialization omite "tipo" (y "paradas"/"conflicto"/etc. en
  * MR/ME) porque coinciden con su valor por defecto, y
  * servidor/main.py::_on_message imprime "tipo desconocido en
- * obu/{obu_id}/mision: None" para ese MI sin "tipo" -- bug real visto
- * contra el servidor el 2026-10-29 con el APK de las 11:44.
+ * obu/{obu_id}/mision: None" para ese MI sin "tipo".
  */
 val jsonObu: Json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
@@ -86,9 +85,9 @@ data class MensajeME(
     val proximo: ParadaEstado? = null,
     val conflicto: Boolean = false,
     val ts_ms: Long = 0L,
-    // Campos NO implementados todavía por servidor/gestor_mision.py -- ver
-    // app_obu/PROPUESTA_FIN_MISION.md. Mientras el servidor no los envíe,
-    // llegan como null y la app NO debe asumir que la misión terminó.
+    // Fin de misión decidido por el servidor (docs/CONTRATO_OBU.md §4): solo
+    // vienen en el último ME. Si llegan como null, la app NO debe asumir que
+    // la misión terminó.
     val mision_activa: Boolean? = null,
     val motivo_fin: String? = null,
 )

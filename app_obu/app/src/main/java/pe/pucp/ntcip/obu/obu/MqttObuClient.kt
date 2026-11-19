@@ -20,7 +20,7 @@ class MqttObuClient(
     private val host: String,
     private val port: Int,
     private val obuId: String,
-    private val tls: TlsConfig? = null, // Etapa 3 (docs/CONTRATO_OBU.md §1); null = sin TLS (broker de desarrollo)
+    private val tls: TlsConfig? = null, // TLS 1.3 + mTLS (docs/CONTRATO_OBU.md §1); null = sin TLS (broker de desarrollo)
     private val onRuta: (MensajeMR) -> Unit,
     private val onEstado: (MensajeME) -> Unit,
     private val onConexion: (conectado: Boolean) -> Unit,
@@ -32,13 +32,13 @@ class MqttObuClient(
     // connect() puede quedarse reintentando (broker inalcanzable) y, si la
     // misión termina en ese lapso, hay que poder cerrarlo -- si no, sigue
     // reintentando en segundo plano y se conecta más tarde como una sesión
-    // fantasma (visto el 2026-10-31 con Tailscale en otra cuenta).
+    // fantasma.
     @Volatile private var construido: Mqtt5BlockingClient? = null
 
     suspend fun conectar() = withContext(Dispatchers.IO) {
         // automaticReconnectWithDefaultConfig(): NO hace falta volver a
         // suscribir a mano en el callback de reconexion. Verificado contra
-        // un mosquitto real (prompt_integracion_app_obu.md, item 2a.1): el
+        // un mosquitto real: el
         // MqttClientReconnector interno de HiveMQ trae
         // DEFAULT_RESUBSCRIBE_IF_SESSION_EXPIRED = true, y con
         // sessionExpiryInterval = 0 (por defecto) cada reconexion cuenta

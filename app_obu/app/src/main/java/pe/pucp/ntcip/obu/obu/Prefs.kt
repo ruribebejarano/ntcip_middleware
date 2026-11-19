@@ -18,9 +18,8 @@ class Prefs(context: Context) {
         get() = sp.getInt(CLAVE_CLASE, 1)
         set(v) = sp.edit().putInt(CLAVE_CLASE, v).apply()
 
-    /** Identidad fija del dispositivo (item 2b, prompt_integracion_app_obu.md):
-     * antes se generaba un obu_id al azar en cada misión, lo que chocaba con
-     * el CN fijo del certificado mTLS. Con TLS activado, ObuSessionService
+    /** Identidad fija del dispositivo: un obu_id al azar por misión chocaría
+     * con el CN fijo del certificado mTLS. Con TLS activado, ObuSessionService
      * usa el CN del certificado en vez de este valor (ver TlsConfig.kt). */
     var obuId: String
         get() = sp.getString(CLAVE_OBU_ID, OBU_ID_POR_DEFECTO) ?: OBU_ID_POR_DEFECTO
@@ -61,8 +60,8 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(CLAVE_VIBRAR, true)
         set(v) = sp.edit().putBoolean(CLAVE_VIBRAR, v).apply()
 
-    /** Etapa 3 (TLS 1.3 + mTLS, docs/CONTRATO_OBU.md §1). Por defecto
-     * apagado: broker de desarrollo plano, como hasta ahora. */
+    /** TLS 1.3 + mTLS (docs/CONTRATO_OBU.md §1). Por defecto apagado:
+     * broker de desarrollo plano. */
     var tlsActivado: Boolean
         get() = sp.getBoolean(CLAVE_TLS_ACTIVADO, false)
         set(v) = sp.edit().putBoolean(CLAVE_TLS_ACTIVADO, v).apply()

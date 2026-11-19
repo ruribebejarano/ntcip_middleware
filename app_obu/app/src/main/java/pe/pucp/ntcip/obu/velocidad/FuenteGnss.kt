@@ -40,7 +40,7 @@ import kotlinx.coroutines.launch
  * - Sin velocidad (`!hasSpeed()`): se envía `velocidadKmh = null` +
  *   `fuenteVelocidad = "respaldo"` -- "sin dato", no "detenido" (ver
  *   [EvaluadorFixGnss] para la distinción completa con "detenido,
- *   medido", ítem P2 de `prompt_cierre_repo_2026-11-02.md`).
+ *   medido").
  * - Sin rumbo (`!hasBearing()`): se hereda el último rumbo real conocido
  *   de esta misma misión; si nunca hubo uno todavía (vehículo detenido
  *   antes de moverse por primera vez), se usa 0.0° como mejor esfuerzo

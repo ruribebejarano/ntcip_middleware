@@ -456,8 +456,7 @@ class MainActivity : AppCompatActivity() {
      * Destino elegido por el usuario (mapa, hospital, lista). Una
      * trayectoria grabada solo va a SU destino: si está activa, se pasa a
      * Ruta libre, si no el vehículo seguiría el CSV hacia otro lado y el
-     * servidor recalcularía la ruta una y otra vez (visto en la tablet el
-     * 2026-10-31 con "Mariano Cornejo (grabada)" y un hospital de destino).
+     * servidor recalcularía la ruta una y otra vez.
      */
     private fun elegirDestinoUsuario(d: Destino) {
         if (prefs.modoSimulado && !Escenarios.esRutaLibre(prefs)) {

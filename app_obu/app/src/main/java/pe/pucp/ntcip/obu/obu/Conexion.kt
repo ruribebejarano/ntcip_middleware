@@ -56,8 +56,8 @@ object Conexion {
     /**
      * Conecta un momento al broker con los ajustes actuales y se desconecta,
      * sin publicar nada (el servidor no se entera). Client ID distinto del de
-     * la misión ("…-prueba") para no desplazar una sesión real. Detecta lo
-     * que antes solo se veía al iniciar: puerto o host equivocado, Tailscale
+     * la misión ("…-prueba") para no desplazar una sesión real. Detecta,
+     * antes de iniciar la misión: puerto o host equivocado, Tailscale
      * apagado, TLS mal configurado o certificado rechazado.
      */
     suspend fun probar(context: Context, prefs: Prefs, timeoutS: Long = 6): Prueba = withContext(Dispatchers.IO) {

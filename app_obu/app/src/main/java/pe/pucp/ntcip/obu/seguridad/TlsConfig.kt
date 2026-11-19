@@ -11,15 +11,14 @@ import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.TrustManagerFactory
 
 /**
- * Etapa 3 (TLS 1.3 + mTLS, docs/CONTRATO_OBU.md §1): los tres PEM
+ * TLS 1.3 + mTLS (docs/CONTRATO_OBU.md §1): los tres PEM
  * emitidos por `scripts/seguridad/generar_ca.py emitir --tipo obu --id
  * <obu_id>` -- el Common Name del certificado DEBE coincidir exactamente
  * con `obu_id` (ACL del broker por `use_identity_as_username`, ver
  * `scripts/seguridad/mosquitto_acl.conf`).
  *
- * Resuelto (item 2b, prompt_integracion_app_obu.md): el mismatch entre un
- * `obu_id` aleatorio por misión y un CN fijo de certificado se resuelve
- * fijando la identidad por DISPOSITIVO. Con TLS activado,
+ * La identidad es por DISPOSITIVO (no un `obu_id` aleatorio por misión,
+ * que no coincidiría con el CN fijo del certificado). Con TLS activado,
  * `ObuSessionService` usa [commonNameCliente] como `obu_id` -- el
  * certificado es la única fuente de verdad, no `Prefs.obuId` (que solo
  * aplica sin TLS, broker de desarrollo). Así el certificado nunca puede

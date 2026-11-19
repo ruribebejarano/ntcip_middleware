@@ -86,7 +86,7 @@ class ObuSessionService : LifecycleService() {
 
         val prefs = Prefs(this)
 
-        // Etapa 3 (TLS 1.3 + mTLS, docs/CONTRATO_OBU.md §1): si está
+        // TLS 1.3 + mTLS (docs/CONTRATO_OBU.md §1): si está
         // activado en Ajustes pero algún PEM falta o no se puede usar, no se
         // arranca la misión sin cifrar por un error de configuración.
         val tls: TlsConfig? = if (prefs.tlsActivado) {
@@ -99,10 +99,9 @@ class ObuSessionService : LifecycleService() {
             }
         } else null
 
-        // obu_id: identidad FIJA del dispositivo (item 2b,
-        // prompt_integracion_app_obu.md), igual al CN del certificado de
-        // cliente -- no un id al azar por misión, que chocaba con el CN
-        // fijo del certificado mTLS (ACL del broker por
+        // obu_id: identidad FIJA del dispositivo, igual al CN del
+        // certificado de cliente -- no un id al azar por misión, que
+        // chocaría con el CN fijo del certificado mTLS (ACL del broker por
         // use_identity_as_username, ver scripts/seguridad/mosquitto_acl.conf).
         // Sin TLS (broker de desarrollo), se usa el valor fijo de Ajustes.
         val nuevoObuId = tls?.commonNameCliente() ?: prefs.obuId
@@ -140,8 +139,7 @@ class ObuSessionService : LifecycleService() {
                 // después de conectar() más abajo). El servidor ya trata un
                 // MI repetido del mismo obu_id como no-op, sin duplicar la
                 // misión (servidor/gestor_mision.py::armar_mision,
-                // docs/CONTRATO_OBU.md §2) -- ver bitácora
-                // 2026-10-29_app-obu-fix-serializacion-y-pucp.md §2.
+                // docs/CONTRATO_OBU.md §2).
                 if (conectado && !terminando) {
                     ultimoMiEnviado?.let { mi -> lifecycleScope.launch { reenviarMiTrasReconexion(mi) } }
                 }
@@ -232,10 +230,9 @@ class ObuSessionService : LifecycleService() {
 
     /**
      * MP a 1 Hz (RNF-02) con plazos fijos: el siguiente envío se programa
-     * en inicio + n·1000 ms, no "1 s después de terminar el anterior". Antes,
-     * el tiempo de enviar (esperando el PUBACK por 4G) se sumaba al segundo
-     * y el intervalo real quedaba en ~1,13 s (prueba con GPS real del
-     * 2026-11-11). Si el ticker se atrasa más de un periodo (app en pausa),
+     * en inicio + n·1000 ms, no "1 s después de terminar el anterior": si
+     * no, el tiempo de enviar (esperando el PUBACK por 4G) se suma al
+     * segundo y el intervalo real queda en ~1,13 s. Si el ticker se atrasa más de un periodo (app en pausa),
      * se resincroniza en vez de enviar una ráfaga de MP atrasados.
      */
     private fun iniciarTickerPublicacion() {
@@ -332,9 +329,8 @@ class ObuSessionService : LifecycleService() {
         ultimoTsMeAplicado = me.ts_ms
         ObuSessionRepository.actualizar { it.copy(ultimoEstado = me) }
 
-        // mision_activa/motivo_fin: implementados en servidor/gestor_mision.py
-        // desde B3 (app_obu/PROPUESTA_FIN_MISION.md) -- cierre por destino o
-        // tiempo máximo, reflejado aquí. terminarPorServidor() ya es
+        // mision_activa/motivo_fin (servidor/gestor_mision.py): cierre por
+        // destino o tiempo máximo, reflejado aquí. terminarPorServidor() ya es
         // idempotente (guard `terminando`): si el usuario pulsa "Terminar"
         // justo después de un cierre automático, no envía un MF de más.
         if (me.mision_activa == false) {

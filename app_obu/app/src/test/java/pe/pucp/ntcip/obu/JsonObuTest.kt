@@ -13,9 +13,8 @@ import pe.pucp.ntcip.obu.obu.MensajeMP
 import pe.pucp.ntcip.obu.obu.jsonObu
 
 /**
- * Prueba de regresión del bug real visto el 2026-10-29 contra
- * servidor/main.py (APK de las 11:44, sin `encodeDefaults`): el servidor
- * imprimía "tipo desconocido en obu/{obu_id}/mision: None" porque
+ * Prueba de regresión: sin `encodeDefaults`, servidor/main.py imprime
+ * "tipo desconocido en obu/{obu_id}/mision: None" porque
  * kotlinx.serialization, con `encodeDefaults` en su valor por defecto,
  * omite un campo del JSON cuando coincide con el valor por defecto de la
  * data class -- y "tipo" SIEMPRE coincide (es un valor fijo por tipo de

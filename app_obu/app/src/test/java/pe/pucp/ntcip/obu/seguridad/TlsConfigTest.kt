@@ -5,7 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Prueba de la parte de B4 que no necesita Android ni un broker real: que
+ * Prueba de la parte de TLS que no necesita Android ni un broker real: que
  * TlsConfig parsea los tres PEM de scripts/seguridad/generar_ca.py (llave
  * en PKCS#8, ver la nota en ese script) y construye un KeyManagerFactory/
  * TrustManagerFactory sin excepciones. Fixture generada con openssl para
@@ -103,7 +103,7 @@ class TlsConfigTest {
     }
 
     @Test
-    fun `commonNameCliente extrae el CN del certificado (item 2b, obu_id fijo por dispositivo)`() {
+    fun `commonNameCliente extrae el CN del certificado (obu_id fijo por dispositivo)`() {
         assertEquals("ses-test01", tlsConfig().commonNameCliente())
     }
 
