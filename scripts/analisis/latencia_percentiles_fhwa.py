@@ -39,6 +39,7 @@ SESIONES = {  # mismas corridas que scripts/analisis/campana_nube.py
     "Laptop (3-nov)": ["20261103-232704_lazo_pi-4g", "20261103-235034_desvio_pi-4g"],
     "Nube, S1 (15-nov)": ["20261115-222810_lazo_pi-4g", "20261115-233321_desvio_pi-4g"],
     "Nube, S2 (20-nov, mañana)": ["20261120-131856_lazo_pi-4g", "20261120-135406_desvio_pi-4g"],
+    "Nube, S3 (20-nov, mediodía)": ["20261120-174635_lazo_pi-4g", "20261120-182200_desvio_pi-4g"],
 }
 PERCENTILES = np.arange(60.0, 100.0 + 1e-9, 0.5)
 TABLA_P = (60, 70, 80, 90, 95, 99, 100)
