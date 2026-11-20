@@ -1,0 +1,28 @@
+==> Estado combinado de chrony en la Pi (rsu) -- 'System time' es la
+    mejor estimacion de chrony del error del reloj local; 'Root dispersion'
+    + 'Root delay' acotan la incertidumbre de esa estimacion (NO ignorar
+    este bloque: es la cota de error real, ver docs/MEDICION_LATENCIA.md 8.4):
+Reference ID    : D8EF2308 (time3.google.com)
+Stratum         : 2
+Ref time (UTC)  : Fri Nov 20 17:48:40 2026
+System time     : 0.000241209 seconds slow of NTP time
+Last offset     : -0.000058405 seconds
+RMS offset      : 0.000072111 seconds
+Frequency       : 7.449 ppm slow
+Residual freq   : -0.000 ppm
+Skew            : 0.021 ppm
+Root delay      : 0.040405467 seconds
+Root dispersion : 0.003580625 seconds
+Update interval : 1034.3 seconds
+Leap status     : Normal
+==> Offset de la Pi (rsu) contra time.cloudflare.com (vía chronyc sources, detalle por fuente;
+    el campo despues de '+/-' es el error ESTIMADO de esa medicion puntual,
+    no un margen a ignorar):
+MS Name/IP address         Stratum Poll Reach LastRx Last sample               
+^+ time.cloudflare.com           3  10   377  124m  -2472us[-2675us] +/-   67ms
+==> Offset de la laptop (Windows) contra time.cloudflare.com:
+    Correr en PowerShell (este shell no tiene w32tm en el PATH):
+    w32tm /stripchart /computer:time.cloudflare.com /samples:3 /dataonly
+==> Nota: si el servicio 'Windows Time' (w32time) no está corriendo en la
+    laptop, su reloj no se autocorrige y este offset puede crecer con el
+    tiempo. Verificar con: w32tm /query /status
