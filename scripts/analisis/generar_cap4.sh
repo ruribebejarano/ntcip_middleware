@@ -53,6 +53,8 @@ done
 # tres en la nube) frente a la FHWA. Las sesiones están fijas en el script.
 NUBE="$C/_campana_nube"
 "$PY" scripts/analisis/latencia_percentiles_fhwa.py --salida "$NUBE"
+# Episodios de ida lenta hacia la RSU y margen frente a T_CAD (sección de la nube).
+"$PY" scripts/analisis/cortes_bajada_4g.py --salida "$NUBE" > /dev/null
 "$PY" scripts/analisis/consumo_datos.py --dir "$L_4G" --dir "$D_4G" > "$SALIDA/consumo_datos.txt"
 {
   echo "== con TLS"; grep -aE '^(L --|t_OBU_srv)' "$L_LOCAL/analisis.txt"
