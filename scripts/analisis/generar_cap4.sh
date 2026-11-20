@@ -49,6 +49,10 @@ done
     "$PY" scripts/analisis/frecuencia_actualizacion.py --dir "$d"
   done
 } > "$SALIDA/frecuencia_actualizacion.txt"
+# Figura 4.10 (Discusión): L por percentil en las cuatro sesiones 4G (laptop y
+# tres en la nube) frente a la FHWA. Las sesiones están fijas en el script.
+NUBE="$C/_campana_nube"
+"$PY" scripts/analisis/latencia_percentiles_fhwa.py --salida "$NUBE"
 "$PY" scripts/analisis/consumo_datos.py --dir "$L_4G" --dir "$D_4G" > "$SALIDA/consumo_datos.txt"
 {
   echo "== con TLS"; grep -aE '^(L --|t_OBU_srv)' "$L_LOCAL/analisis.txt"
@@ -71,4 +75,5 @@ if [ $# -ge 1 ]; then
   for f in fig_rtt_cdf fig_comparacion fig_tramos fig_offset_reloj fig_anticipacion_cdf; do
     cp "$SALIDA/$f.pdf" "$T/figuras/resultados/$f.pdf"
   done
+  cp "$NUBE/fig_latencia_percentiles_fhwa.pdf" "$T/figuras/resultados/fig_latencia_percentiles_fhwa.pdf"
 fi
