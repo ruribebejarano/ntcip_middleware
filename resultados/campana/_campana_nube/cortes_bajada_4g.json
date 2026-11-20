@@ -1,0 +1,170 @@
+{
+  "umbral_ms": 1000.0,
+  "t_cad_s": 3.0,
+  "sesiones": {
+    "Laptop (3-nov)": {
+      "n_m1": 423,
+      "m1_ida_mayor_umbral": 1,
+      "episodios": 1,
+      "m1_lentos_iniciales": 0,
+      "lentos": [
+        {
+          "corrida": "20261103-235034_desvio_pi-4g",
+          "rep": "rep_17",
+          "solicitud": "mis-5610ecd2-C",
+          "seq": 12,
+          "renovacion": true,
+          "ida_ms": 1051.9,
+          "siguiente_llega_ms": 5.7
+        }
+      ],
+      "brecha_max_s": 2.0,
+      "brecha_max_en": "20261103-235034_desvio_pi-4g/rep_17",
+      "margen_caducidad_s": 1.0,
+      "eventos_caducidad": 0
+    },
+    "Nube, S1 (15-nov)": {
+      "n_m1": 526,
+      "m1_ida_mayor_umbral": 6,
+      "episodios": 6,
+      "m1_lentos_iniciales": 0,
+      "lentos": [
+        {
+          "corrida": "20261115-222810_lazo_pi-4g",
+          "rep": "rep_04",
+          "solicitud": "mis-495a8406-C",
+          "seq": 12,
+          "renovacion": true,
+          "ida_ms": 1058.6,
+          "siguiente_llega_ms": 122.0
+        },
+        {
+          "corrida": "20261115-222810_lazo_pi-4g",
+          "rep": "rep_17",
+          "solicitud": "mis-a340e853-C",
+          "seq": 3,
+          "renovacion": true,
+          "ida_ms": 1624.2,
+          "siguiente_llega_ms": 147.9
+        },
+        {
+          "corrida": "20261115-233321_desvio_pi-4g",
+          "rep": "rep_01",
+          "solicitud": "mis-eb54bb34-C",
+          "seq": 13,
+          "renovacion": true,
+          "ida_ms": 1240.1,
+          "siguiente_llega_ms": 1.4
+        },
+        {
+          "corrida": "20261115-233321_desvio_pi-4g",
+          "rep": "rep_04",
+          "solicitud": "mis-81a00fe0-C",
+          "seq": 3,
+          "renovacion": true,
+          "ida_ms": 1145.8,
+          "siguiente_llega_ms": 132.9
+        },
+        {
+          "corrida": "20261115-233321_desvio_pi-4g",
+          "rep": "rep_10",
+          "solicitud": "mis-2177a7b3-C",
+          "seq": 14,
+          "renovacion": true,
+          "ida_ms": 1042.6,
+          "siguiente_llega_ms": null
+        },
+        {
+          "corrida": "20261115-233321_desvio_pi-4g",
+          "rep": "rep_14",
+          "solicitud": "mis-49aa3aad-C",
+          "seq": 13,
+          "renovacion": true,
+          "ida_ms": 1248.7,
+          "siguiente_llega_ms": 1.3
+        }
+      ],
+      "brecha_max_s": 2.53,
+      "brecha_max_en": "20261115-222810_lazo_pi-4g/rep_17",
+      "margen_caducidad_s": 0.47,
+      "eventos_caducidad": 0
+    },
+    "Nube, S2 (20-nov, mañana)": {
+      "n_m1": 526,
+      "m1_ida_mayor_umbral": 0,
+      "episodios": 0,
+      "m1_lentos_iniciales": 0,
+      "lentos": [],
+      "brecha_max_s": 1.83,
+      "brecha_max_en": "20261120-131856_lazo_pi-4g/rep_08",
+      "margen_caducidad_s": 1.17,
+      "eventos_caducidad": 0
+    },
+    "Nube, S3 (20-nov, mediodía)": {
+      "n_m1": 526,
+      "m1_ida_mayor_umbral": 6,
+      "episodios": 3,
+      "m1_lentos_iniciales": 1,
+      "lentos": [
+        {
+          "corrida": "20261120-174635_lazo_pi-4g",
+          "rep": "rep_04",
+          "solicitud": "mis-24e7d105-C",
+          "seq": 1,
+          "renovacion": false,
+          "ida_ms": 3169.3,
+          "siguiente_llega_ms": 140.9
+        },
+        {
+          "corrida": "20261120-174635_lazo_pi-4g",
+          "rep": "rep_04",
+          "solicitud": "mis-24e7d105-C",
+          "seq": 2,
+          "renovacion": true,
+          "ida_ms": 2310.4,
+          "siguiente_llega_ms": 1.0
+        },
+        {
+          "corrida": "20261120-174635_lazo_pi-4g",
+          "rep": "rep_04",
+          "solicitud": "mis-24e7d105-C",
+          "seq": 3,
+          "renovacion": true,
+          "ida_ms": 1311.3,
+          "siguiente_llega_ms": 0.9
+        },
+        {
+          "corrida": "20261120-174635_lazo_pi-4g",
+          "rep": "rep_12",
+          "solicitud": "mis-24b850c9-C",
+          "seq": 6,
+          "renovacion": true,
+          "ida_ms": 1901.2,
+          "siguiente_llega_ms": 144.0
+        },
+        {
+          "corrida": "20261120-174635_lazo_pi-4g",
+          "rep": "rep_12",
+          "solicitud": "mis-24b850c9-C",
+          "seq": 7,
+          "renovacion": true,
+          "ida_ms": 1044.8,
+          "siguiente_llega_ms": 139.9
+        },
+        {
+          "corrida": "20261120-174635_lazo_pi-4g",
+          "rep": "rep_13",
+          "solicitud": "mis-16832168-C",
+          "seq": 13,
+          "renovacion": true,
+          "ida_ms": 1023.7,
+          "siguiente_llega_ms": 144.8
+        }
+      ],
+      "brecha_max_s": 2.81,
+      "brecha_max_en": "20261120-174635_lazo_pi-4g/rep_12",
+      "margen_caducidad_s": 0.19,
+      "eventos_caducidad": 0
+    }
+  }
+}
