@@ -35,6 +35,7 @@ RAIZ = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(RAIZ / "scripts" / "analisis"))
 sys.path.insert(0, str(RAIZ))
 from lazo_centralizado import cargar  # noqa: E402
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
 
 
 def _config_json(directorio: Path) -> dict:
@@ -116,7 +117,7 @@ def main() -> None:
 \\end{{tabular}}
 \\end{{table}}
 """
-    (salida / "tabla_renovacion.tex").write_text(tex, encoding="utf-8")
+    (salida / "tabla_renovacion.tex").write_text(formalizar(tex), encoding="utf-8")
 
     total_caducidades = sum(r["n_caducidades"] for r in resumenes)
     print(f"Tabla: {salida / 'tabla_renovacion.tex'}")

@@ -22,7 +22,11 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analisis"))
+from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
 
 
 def leer(f: Path) -> list[dict]:
@@ -120,7 +124,7 @@ def main() -> None:
            "\\label{tab:conflicto}\n\\small\n\\begin{tabular}{>{\\raggedright\\arraybackslash}p{10.5cm}r}\n\\toprule\n"
            "\\textbf{Métrica} & \\textbf{Valor} \\\\\n\\midrule\n" +
            "\n".join(f"{a} & {b} \\\\" for a, b in filas) + "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
-    (corrida / "tabla_conflicto.tex").write_text(tex, encoding="utf-8")
+    (corrida / "tabla_conflicto.tex").write_text(formalizar(tex), encoding="utf-8")
     for k, v in res.items():
         if k != "reps":
             print(f"{k}: {v}")

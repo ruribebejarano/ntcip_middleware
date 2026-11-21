@@ -19,11 +19,11 @@ import re
 
 CORTAS = {
     "tab:fallos": r"Inyección de fallos con una prioridad activa (RNF-07, RNF-08).",
-    "tab:costo_obu": r"Consumo y costo mensual de datos de una OBU según las horas de misión por día.",
-    "tab:carga": r"Carga del servidor central y del \emph{broker} según el número de misiones simultáneas.",
+    "tab:costo_obu": r"Consumo y costo mensual de datos de una OBU.",
+    "tab:carga": r"Carga del servidor central y del \emph{broker}.",
     "tab:direccionamiento": r"Exactitud del direccionamiento del servidor con ruido de posición creciente.",
     "tab:ntcip_traduccion": r"Traducción de las solicitudes a NTCIP en la campaña de medición.",
-    "tab:costo_planes": r"Costo mensual de datos de una RSU con dos planes IoT de tarifa publicada.",
+    "tab:costo_planes": r"Costo mensual de datos de una RSU.",
     "tab:latencia_inicial": r"Latencia de la solicitud inicial y del tramo OBU--servidor, por enlace.",
     "tab:bytes": r"Bytes por mensaje y por misión, con y sin TLS.",
     "tab:latencia_mensaje": r"Latencia servidor--RSU por mensaje, por condición de enlace.",
@@ -37,9 +37,11 @@ CORTAS = {
     "tab:proyeccion_datos": r"Proyección del consumo mensual de datos de una RSU.",
     "tab:anticipacion_parada": r"Anticipación $A_v$ por enlace frente a los límites de RF-11.",
     "tab:rf11_indra": r"Anticipación $A_v$ con los tiempos del controlador INDRA.",
-    "tab:separacion_rsu": r"Separación entre intersecciones consecutivas de una ruta real de 13 intersecciones.",
+    "tab:separacion_rsu": r"Separación entre intersecciones consecutivas de una ruta real.",
     "tab:entrega": r"Tasa de entrega por tipo de mensaje y enlace.",
     "tab:cola": r"Emisión de la solicitud con el vehículo en una cola.",
+    "tab:conflicto": r"Conflicto entre dos misiones en el banco de pruebas.",
+    "tab:renovacion_campana": r"Renovación y caducidad de las solicitudes.",
 }
 
 

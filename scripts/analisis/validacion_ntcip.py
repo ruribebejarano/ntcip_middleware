@@ -135,11 +135,7 @@ def correr_tests_rechazo() -> dict[str, bool]:
 def tabla_rechazo_latex(resultados: dict[str, bool], salida: Path) -> None:
     lineas = [
         "\\begin{table}[H]", "\\centering",
-        "\\caption{Casos de rechazo/aceptación correctos del middleware NTCIP (OE2), a partir del "
-        "resultado real de las pruebas automatizadas existentes (no se repite su lógica, solo se "
-        "recoge pass/fail). Los últimos cuatro casos se agregaron en esta sesión "
-        "(tests/test\\_rsu\\_middleware\\_validacion.py) porque no tenían prueba a nivel de la lógica "
-        "de rechazo.}",
+        "\\caption{Casos de aceptación y rechazo del middleware NTCIP.}",
         "\\label{tab:ntcip_rechazo}", "\\small",
         "\\begin{tabular}{p{5.2cm}p{4.5cm}p{1.6cm}}", "\\toprule",
         "\\textbf{Caso} & \\textbf{Resultado esperado} & \\textbf{Obtenido} \\\\", "\\midrule",
