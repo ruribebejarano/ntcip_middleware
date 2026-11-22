@@ -40,14 +40,14 @@ from gateway.geometria import proyeccion_local  # noqa: E402
 from leyenda_tabla import formalizar  # noqa: E402  (título corto y nota al pie)
 
 ETIQUETAS = {
-    "cola_geocerca_eta8": r"$R_g$ 150~m o ETA 8~s",
-    "cola_geocerca_eta16": r"$R_g$ 150~m o ETA 16,3~s",
+    "cola_geocerca_eta8": r"$R_{\mathrm{g}}$ 150~m o ETA 8~s",
+    "cola_geocerca_eta16": r"$R_{\mathrm{g}}$ 150~m o ETA 16,3~s",
     "cola_eta16": r"Solo ETA 16,3~s, suspensión a 5~s",
     "cola_eta16_sin_suspension": r"Solo ETA 16,3~s, sin suspensión",
 }
 GRUPOS = {  # corridas que se reportan en una sola fila de la tabla
-    "cola_geocerca_eta8": r"$R_g$ 150~m o ETA (8~s o 16,3~s)",
-    "cola_geocerca_eta16": r"$R_g$ 150~m o ETA (8~s o 16,3~s)",
+    "cola_geocerca_eta8": r"$R_{\mathrm{g}}$ 150~m o ETA (8~s o 16,3~s)",
+    "cola_geocerca_eta16": r"$R_{\mathrm{g}}$ 150~m o ETA (8~s o 16,3~s)",
 }
 
 

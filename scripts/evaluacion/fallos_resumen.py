@@ -96,9 +96,9 @@ def main() -> None:
     (salida / "fallos_resumen.json").write_text(json.dumps(resumen, indent=1), encoding="utf-8")
     tex = ("\\begin{table}[H]\n\\centering\n\\caption[Inyección de fallos con una prioridad activa]{Inyección de "
            "fallos con una prioridad activa (RNF-07, RNF-08). ``Misión reanudada'': la misión en curso volvió a "
-           "renovar su solicitud tras la restauración. $t_{lib}$: desde el último M1 recibido por la RSU hasta que "
+           "renovar su solicitud tras la restauración. $T_{\\mathrm{lib}}$: desde el último M1 recibido por la RSU hasta que "
            "el controlador deja de sostener la prioridad, en las repeticiones en que la liberación la causó el "
-           "fallo (entre paréntesis, cuántas); en las demás la liberó el cruce del vehículo. $T_{rec}$: desde la "
+           "fallo (entre paréntesis, cuántas); en las demás la liberó el cruce del vehículo. $T_{\\mathrm{rec}}$: desde la "
            "restauración hasta que la RSU responde de nuevo (local: a una sonda que publica cada 0,5~s; RSU física: "
            "reconexión del agente al \\emph{broker}, incluidos los 2~s de espera del reinicio; corte del enlace 4G: "
            "desde que el módem vuelve a aparecer en el USB hasta el siguiente M1 recibido por la RSU). ``Retenidas'': "
@@ -106,8 +106,8 @@ def main() -> None:
            "\\label{tab:fallos}\n\\footnotesize\n\\begin{tabular}{>{\\raggedright\\arraybackslash}p{3.6cm}r"
            ">{\\centering\\arraybackslash}p{1.6cm}>{\\centering\\arraybackslash}p{2.4cm}"
            ">{\\centering\\arraybackslash}p{2.2cm}>{\\centering\\arraybackslash}p{1.5cm}}\n\\toprule\n"
-           "\\textbf{Fallo} & \\textbf{n} & \\textbf{Misión reanudada} & \\textbf{$t_{lib}$ med./máx. (s)} & "
-           "\\textbf{$T_{rec}$ med./máx. (s)} & \\textbf{Retenidas} \\\\\n\\midrule\n" + "\n".join(filas) +
+           "\\textbf{Fallo} & \\textbf{n} & \\textbf{Misión reanudada} & \\textbf{$T_{\\mathrm{lib}}$ med./máx. (s)} & "
+           "\\textbf{$T_{\\mathrm{rec}}$ med./máx. (s)} & \\textbf{Retenidas} \\\\\n\\midrule\n" + "\n".join(filas) +
            "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
     (salida / "tabla_fallos.tex").write_text(formalizar(tex), encoding="utf-8")
     print(tex)

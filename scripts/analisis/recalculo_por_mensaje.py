@@ -399,10 +399,10 @@ def main() -> None:
         fuera = sum(1 for a in v if a < T_M_S or a > A_V_MAX_S)
         fil.append(f"{cond} & {esc} & {len(rd)} & {len(v)} & {coma(pct(v, 50))} & {coma(pct(v, 95))} & "
                    f"{coma(min(v))} & {coma(max(v))} & {fuera} \\\\")
-    tex = ("\\begin{table}[H]\n\\centering\n\\caption{Anticipación $A_v$ (verde concedido $\\to$ cruce del "
-           f"vehículo) frente a los límites de RF-11, $T_m = {coma(T_M_S, 0)}$~s y $A_{{v,max}} = {coma(A_V_MAX_S, 0)}$~s "
+    tex = ("\\begin{table}[H]\n\\centering\n\\caption{Anticipación $A$ (verde concedido $\\to$ cruce del "
+           f"vehículo) frente a los límites de RF-11, $T_{{\\mathrm{{m}}}} = {coma(T_M_S, 0)}$~s y $A_{{\\mathrm{{max}}}} = {coma(A_V_MAX_S, 0)}$~s "
            "(ecuación~\\eqref{eq:avmax}), en s, corregida por el desfase de relojes. ``Fuera'' cuenta las paradas "
-           "con $A_v$ fuera de ese intervalo.}\n\\label{tab:anticipacion_parada}\n\\small\n"
+           "con $A$ fuera de ese intervalo.}\n\\label{tab:anticipacion_parada}\n\\small\n"
            "\\begin{tabular}{llrrrrrrr}\n\\toprule\n\\textbf{Enlace} & \\textbf{Escenario} & \\textbf{Repet.} & "
            "\\textbf{Cruces} & \\textbf{Mediana} & \\textbf{p95} & \\textbf{Mín.} & \\textbf{Máx.} & "
            "\\textbf{Fuera} \\\\\n\\midrule\n" + "\n".join(fil) + "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
@@ -420,13 +420,13 @@ def main() -> None:
             fil.append(f"{cond} & {NOMBRE_LLEGADA[c]} & {s['n']} & {td_txt} & {coma(s['med'])} & "
                        f"{coma(s['p95'])} & {coma(s['min'])} \\\\")
         fil.append("\\addlinespace")
-    tex = ("\\begin{table}[H]\n\\centering\n\\caption{Espera por despeje $T_{desp}$ (RF-04) y anticipación $A_v$ "
+    tex = ("\\begin{table}[H]\n\\centering\n\\caption{Espera por despeje $T_{\\mathrm{desp}}$ (RF-04) y anticipación $A$ "
            "(RF-11) por condición de llegada: la fase del controlador cuando la RSU decide sobre la solicitud. "
            "Ámbar y todo rojo se agrupan porque la RSU trata ambas igual (encola la solicitud). Escenarios de lazo "
            "y desvío combinados, en s.}\n\\label{tab:latencia_por_condicion}\n\\small\n"
            "\\begin{tabular}{llrrrrrr}\n\\toprule\n\\textbf{Enlace} & \\textbf{Llegada} & \\textbf{n} & "
-           "\\textbf{$T_{desp}$ med.} & \\textbf{$T_{desp}$ p95} & \\textbf{$A_v$ med.} & \\textbf{$A_v$ p95} & "
-           "\\textbf{$A_v$ mín.} \\\\\n\\midrule\n" + "\n".join(fil[:-1]) +
+           "\\textbf{$T_{\\mathrm{desp}}$ med.} & \\textbf{$T_{\\mathrm{desp}}$ p95} & \\textbf{$A$ med.} & \\textbf{$A$ p95} & "
+           "\\textbf{$A$ mín.} \\\\\n\\midrule\n" + "\n".join(fil[:-1]) +
            "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n")
     (salida / "tabla_condicion_llegada.tex").write_text(formalizar(tex), encoding="utf-8")
 
@@ -439,12 +439,12 @@ def main() -> None:
         v = sorted(a for (c, _e), rd in por_corrida.items() if c == cond for r in rd for a in r["A_v"])
         ax.step(v, [(i + 1) / len(v) for i in range(len(v))], where="post", color=color,
                 label=f"{cond} (n={len(v)})")
-    for lim, txt in ((T_M_S, "$T_m$"), (A_V_MAX_S, "$A_{v,max}$")):
+    for lim, txt in ((T_M_S, "$T_{\\mathrm{m}}$"), (A_V_MAX_S, "$A_{\\mathrm{max}}$")):
         ax.axvline(lim, color="0.3", ls="--", lw=1)
         ax.text(lim, 0.03, f" {txt} = {coma(lim, 0)} s", fontsize=8, ha="left" if lim < 10 else "right",
                 va="bottom")
     ax.set_xlim(0, A_V_MAX_S + 2)
-    ax.set_xlabel("Anticipación $A_v$ (s)")
+    ax.set_xlabel("Anticipación $A$ (s)")
     ax.set_ylabel("Fracción de paradas")
     ax.grid(alpha=0.3)
     ax.legend(loc="upper left", fontsize=8)

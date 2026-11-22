@@ -199,8 +199,8 @@ def fig_anticipacion(filas: list[dict], salida: Path) -> None:
             ax.plot(xs, ys, mk, ms=3.5, color=col, alpha=0.8, lw=0, label=lab)
     # Límites de RF-11 (ecuación eq:avmax de la tesis) con los tiempos del
     # controlador emulado: T_m = 2 s y A_v,max = T_desp,max + T_m + Δt = 16 s.
-    ax.axhline(2.0, color="#b91c1c", lw=0.9, ls="--", label="$T_m$ = 2 s")
-    ax.axhline(16.0, color="#7f1d1d", lw=0.9, ls=":", label="$A_{v,max}$ = 16 s")
+    ax.axhline(2.0, color="#b91c1c", lw=0.9, ls="--", label="$T_{\\mathrm{m}}$ = 2 s")
+    ax.axhline(16.0, color="#7f1d1d", lw=0.9, ls=":", label="$A_{\\mathrm{max}}$ = 16 s")
     ax.set_xticks(range(len(ids)), ids)
     ax.set_xlabel("RSU (en el orden de la ruta)")
     ax.set_ylabel("Anticipación real (s)")

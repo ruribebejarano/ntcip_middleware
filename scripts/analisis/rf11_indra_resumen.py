@@ -133,15 +133,15 @@ def main() -> None:
             f"{r['A_v_dentro']} / {r['A_v_bajo_T_m']} / {r['A_v_sobre_max']} \\\\")
     tex = "\n".join([
         r"\begin{table}[H]", r"\centering",
-        r"\caption[RF-11 con los tiempos de un controlador real]{Anticipación $A_v$ con los tiempos del "
+        r"\caption[RF-11 con los tiempos de un controlador real]{Anticipación $A$ con los tiempos del "
         r"controlador INDRA (verde mínimo 5~s, ámbar 3~s, rojo-rojo 1~s, ciclo de 110~s), por velocidad "
-        r"y criterio de emisión. Límites de RF-11: $T_m = 2$~s y $A_{v,max} = "
+        r"y criterio de emisión. Límites de RF-11: $T_{\mathrm{m}} = 2$~s y $A_{\mathrm{max}} = "
         + f"{A_V_MAX_S:.0f}" + r"$~s. Elaboración propia.}",
         r"\label{tab:rf11_indra}", r"\small",
         r"\resizebox{\textwidth}{!}{%",
         r"\begin{tabular}{rlrrccc}", r"\toprule",
-        r"km/h & Emisión & Paradas & Sin verde & $t_{verde}$ med. / máx. (s) & $A_v$ mín. / med. / máx. (s) "
-        r"& Dentro / $<T_m$ / $>A_{v,max}$ \\",
+        r"km/h & Emisión & Paradas & Sin verde & $t_{\mathrm{verde}}$ med. / máx. (s) & $A$ mín. / med. / máx. (s) "
+        r"& Dentro / $<T_{\mathrm{m}}$ / $>A_{\mathrm{max}}$ \\",
         r"\midrule", *filas_tex, r"\bottomrule", r"\end{tabular}}", r"\end{table}", ""])
     (salida / "tabla_rf11_indra.tex").write_text(formalizar(tex), encoding="utf-8")
     print(f"\nResumen: {salida / 'rf11_indra_resumen.json'}\nTabla:   {salida / 'tabla_rf11_indra.tex'}")

@@ -99,7 +99,7 @@ def rf11_indra(salida: Path) -> None:
             ax.scatter([0.6] * sin_verde, [i + 0.12 * k for k in range(sin_verde)], marker="x", c=NEGRO, s=26, zorder=3)
             ax.text(1.1, i + 0.05, f"{sin_verde} sin verde", color=NEGRO, fontsize=7, va="center")
     ax.set_yticks(range(len(RF11)), [e for e, _ in reversed(RF11)])
-    ax.set_xlabel("anticipación $A_v$: segundos de verde antes de que el vehículo cruce")
+    ax.set_xlabel("anticipación $A$: segundos de verde antes de que el vehículo cruce")
     ax.set_xlim(0, 20)
     ax.set_ylim(-0.6, len(RF11) - 0.1)
     ax.grid(axis="x")
